@@ -11,7 +11,7 @@ Living plan for moving backend and data from **Firebase** (Firestore + Cloud Fun
 
 ## Done (baseline)
 
-- [x] Monorepo: **pnpm** + **Turborepo**, workspace packages (`VEyeDashBoard`, `veyeFirebaseApi/functions`, `veyeWebApp`).
+- [x] Monorepo: **pnpm** + **Turborepo**, workspace packages (`VEyeDashBoard`, `veyeLegacyApi/functions`, `veyeWebApp`).
 - [x] **Supabase CLI** layout: `supabase/config.toml`, docs ([SUPABASE_EDGE.md](./SUPABASE_EDGE.md)).
 - [x] **Postgres schema + RLS** applied (`supabase/migrations/…`) — see [DATABASE.md](./DATABASE.md) (includes follow-up migrations for `users` notify fields + `viktim` Telegram ids).
 - [x] Firebase **Telegram schedule** interim: **every 15 minutes** (until Edge + cron own it).
@@ -35,8 +35,8 @@ Living plan for moving backend and data from **Firebase** (Firestore + Cloud Fun
 | A1 | **Optional import** — see [FIRESTORE_IMPORT.md](./FIRESTORE_IMPORT.md). | Populated tables in dev/staging. |
 | A2 | **Edge: `telegram-monitor` v1** — implemented: Postgres cursor, `getUpdates` timeout **25s**, dedupe across `news` / `zone_danger` / `viktim` / `kidnaping_alert`, `processPost` + `news` fallback. **You:** deploy + attach **15 min** cron (Supabase **Scheduled Functions**, GitHub Actions, or cron hitting the function URL). | Live monitor off Firebase. |
 | A3 | **Edge: `process-global-alert`** — implemented (Gemini + geocode + embedding dedupe + writes). **You:** set secrets, deploy, point clients when ready. | Same JSON body as Firebase `processGlobalAlert`. |
-| A4 | **Edge: admin paths** — implemented: `process-admin-alert`, `unblock-user`, `send-notification`, `health-check`. | Parity with `veyeFirebaseApi/functions/index.js` (plus `health-check`). |
-| A5 | **Deprecate Firebase Functions** — after Edge is verified in prod: stop deploying `veyeFirebaseApi/functions`; optionally keep Firestore/Auth until Phase B/C. | Lower Firebase cost. |
+| A4 | **Edge: admin paths** — implemented: `process-admin-alert`, `unblock-user`, `send-notification`, `health-check`. | Parity with `veyeLegacyApi/functions/index.js` (plus `health-check`). |
+| A5 | **Deprecate legacy Node deploy** — after Edge is verified in prod: stop deploying `veyeLegacyApi/functions`; optionally keep Firestore/Auth until Phase B/C. | Lower legacy stack cost. |
 
 **Dependencies:** Set Edge **secrets** in Supabase (see [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md)). Run `supabase db push` for new migrations (`users` columns, `viktim` Telegram columns) if not applied yet.
 

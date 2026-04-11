@@ -1,5 +1,5 @@
 /**
- * VEYe AI pipeline — Deno port of veyeFirebaseApi/functions/aiPipeline.js (Firestore → Supabase Postgres).
+ * VEYe AI pipeline — Deno port of veyeLegacyApi/functions/aiPipeline.js (Firestore → Supabase Postgres).
  */
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { GoogleGenAI } from "npm:@google/genai@1.44.0";

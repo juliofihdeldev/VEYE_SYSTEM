@@ -1,10 +1,10 @@
 # VEYE_SYSTEM monorepo (pnpm + Turborepo)
 
-This repository is a **pnpm workspace** orchestrated by **Turborepo**. It groups the web dashboard, Firebase Functions (transitioning to Supabase Edge Functions), and native Android sources in one tree.
+This repository is a **pnpm workspace** orchestrated by **Turborepo**. It groups the web dashboard, legacy Node handlers (emulator-only; production is Supabase Edge), and native Android sources in one tree.
 
 ## One-time Git unify + three commits (`SuperbaseMigration`)
 
-If you still have **nested `.git` folders** inside `VEyeDashBoard/`, `veyeFirebaseApi/`, `VEYe/`, `VEYeApp/`, or `veyeWebApp/`, back them up, then from the repo root:
+If you still have **nested `.git` folders** inside `VEyeDashBoard/`, `veyeLegacyApi/`, `VEYe/`, `VEYeApp/`, or `veyeWebApp/`, back them up, then from the repo root:
 
 ```bash
 chmod +x scripts/git-monorepo-commits.sh
@@ -31,7 +31,7 @@ That script removes nested repos, runs `pnpm install`, checks out branch **`Supe
 |------|------|-----------------|
 | `VEyeDashBoard/` | Admin dashboard (Vite + React) | pnpm (workspace package `veye-dashboard`) |
 | `veyeWebApp/` | Public static site (Firebase Hosting, `index.html/`) | pnpm (workspace package `veye-web-app`) |
-| `veyeFirebaseApi/functions/` | Legacy Cloud Functions (Node) | pnpm (workspace package `@veye/firebase-functions`) |
+| `veyeLegacyApi/functions/` | Legacy Node handlers (emulator) | pnpm (workspace package `@veye/legacy-functions`) |
 | `supabase/` | Supabase CLI config + **Edge Functions** (Deno) | Supabase CLI (not a pnpm package) |
 | `VEYe/` | Android app (Kotlin / Gradle) | **Android Studio / Gradle** — not wired into pnpm |
 | `VEYeApp/` | **Deprecated** — do not extend | excluded from active migration work |
@@ -47,7 +47,7 @@ That script removes nested repos, runs `pnpm install`, checks out branch **`Supe
   ```
 
 - **Supabase CLI** (for Edge Functions): [Install](https://supabase.com/docs/guides/cli)
-- **Firebase CLI** (until functions are fully migrated): optional, for `firebase deploy` from `veyeFirebaseApi/`
+- **Legacy CLI** (optional): the `firebase` tool is only needed if you still run `pnpm run deploy:legacy` or the functions emulator from `veyeLegacyApi/functions/`
 
 ## Install (root)
 
@@ -57,7 +57,7 @@ From the repository root:
 pnpm install
 ```
 
-This installs dependencies for all **workspace** packages (`VEyeDashBoard`, `veyeFirebaseApi/functions`).
+This installs dependencies for all **workspace** packages (`VEyeDashBoard`, `veyeLegacyApi/functions`).
 
 ## How Turborepo is used
 
@@ -70,7 +70,7 @@ Filtering a single app:
 
 ```bash
 pnpm --filter veye-dashboard dev
-pnpm --filter @veye/firebase-functions serve
+pnpm --filter @veye/legacy-functions serve
 ```
 
 ## Run each part
@@ -113,15 +113,15 @@ Production build:
 pnpm --filter veye-dashboard build
 ```
 
-### Firebase Functions (legacy Node)
+### Legacy Node handlers (emulator)
 
 ```bash
 pnpm dev:functions
 # equivalent
-pnpm --filter @veye/firebase-functions serve
+pnpm --filter @veye/legacy-functions serve
 ```
 
-Uses the Firebase emulator for functions (`veyeFirebaseApi/functions`). Deploy still uses Firebase CLI from that directory if configured.
+Uses the functions emulator from `veyeLegacyApi/functions/`. Emergency deploy uses the `firebase` CLI from that directory (`pnpm run deploy:legacy`).
 
 ### Supabase Edge Functions
 

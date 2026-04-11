@@ -1,12 +1,12 @@
 {
-  "name": "@veye/firebase-functions",
-  "description": "Cloud Functions for Firebase (migration target: Supabase Edge)",
+  "name": "@veye/legacy-functions",
+  "description": "Legacy Node serverless handlers (emulator only; production is Supabase Edge)",
   "scripts": {
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
-    "deploy": "node -e \"console.error('\\n  Firebase deploy is disabled by default (Phase A5).\\n  Use: pnpm run deploy:firebase  (emergency only)\\n  Or from repo root: pnpm supabase:deploy\\n'); process.exit(1)\"",
-    "deploy:firebase": "firebase deploy --only functions",
+    "deploy": "node -e \"console.error('\\n  Legacy stack deploy is disabled by default (Phase A5).\\n  Use: pnpm run deploy:legacy  (emergency only)\\n  Or from repo root: pnpm supabase:deploy\\n'); process.exit(1)\"",
+    "deploy:legacy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "build": "node -e \"process.exit(0)\"",
     "lint": "node -e \"process.exit(0)\""

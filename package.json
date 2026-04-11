@@ -7,7 +7,7 @@
     "build": "turbo run build",
     "dev:dashboard": "pnpm --filter veye-dashboard dev",
     "dev:webapp": "pnpm --filter veye-web-app dev",
-    "dev:functions": "pnpm --filter @veye/firebase-functions serve",
+    "dev:functions": "pnpm --filter @veye/legacy-functions serve",
     "supabase:serve": "supabase functions serve",
     "supabase:deploy": "supabase functions deploy",
     "supabase:db:push": "supabase db push",

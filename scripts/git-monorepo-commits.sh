@@ -9,8 +9,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "==> Removing nested .git (VEyeDashBoard, veyeFirebaseApi, VEYe, VEYeApp, veyeWebApp)…"
-for d in VEyeDashBoard veyeFirebaseApi VEYe VEYeApp veyeWebApp; do
+echo "==> Removing nested .git (VEyeDashBoard, veyeLegacyApi, VEYe, VEYeApp, veyeWebApp)…"
+for d in VEyeDashBoard veyeLegacyApi VEYe VEYeApp veyeWebApp; do
   if [[ -d "$d/.git" ]]; then
     rm -rf "$d/.git"
     echo "    removed $d/.git"
@@ -38,8 +38,8 @@ git add .
 # (`git restore --staged` fails with: fatal: could not resolve HEAD when HEAD is unborn).
 git rm -r --cached supabase 2>/dev/null || true
 git rm --cached -f docs/SUPABASE_EDGE.md 2>/dev/null || true
-git rm --cached -f veyeFirebaseApi/functions/telegramMonitor.js 2>/dev/null || true
-git rm --cached -f veyeFirebaseApi/TELEGRAM_PLAN.md 2>/dev/null || true
+git rm --cached -f veyeLegacyApi/functions/telegramMonitor.js 2>/dev/null || true
+git rm --cached -f veyeLegacyApi/TELEGRAM_PLAN.md 2>/dev/null || true
 
 if ! git diff --cached --quiet; then
   git commit -m "chore(monorepo): pnpm workspace, Turborepo, and project layout"
@@ -56,7 +56,7 @@ else
 fi
 
 echo "==> Commit 3: Telegram schedule 15 minutes…"
-git add veyeFirebaseApi/functions/telegramMonitor.js veyeFirebaseApi/TELEGRAM_PLAN.md
+git add veyeLegacyApi/functions/telegramMonitor.js veyeLegacyApi/TELEGRAM_PLAN.md
 if ! git diff --cached --quiet; then
   git commit -m "chore(telegram): run scheduled monitor every 15 minutes"
 else

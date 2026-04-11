@@ -1,19 +1,19 @@
-# Firebase Cloud Functions — **deprecated for deploy (Phase A5)**
+# Legacy Node handlers — **deprecated for deploy (Phase A5)**
 
-Business logic for alerts, Telegram, and OneSignal now lives in **Supabase Edge Functions** under `../../supabase/functions/`. See:
+Alerts, Telegram, and OneSignal in production live in **Supabase Edge Functions** under `../../supabase/functions/`. See:
 
 - [docs/EDGE_FUNCTIONS.md](../../docs/EDGE_FUNCTIONS.md)
 - [docs/SUPABASE_MIGRATION_PLAN.md](../../docs/SUPABASE_MIGRATION_PLAN.md)
 
 ## Do not use `pnpm deploy` / `npm run deploy` here for production
 
-The default **`deploy`** script exits with an error so production deploys do not accidentally hit Firebase. Use:
+The default **`deploy`** script exits with an error so production deploys do not hit the legacy stack. Use:
 
 ```bash
-pnpm run deploy:firebase
+pnpm run deploy:legacy
 ```
 
-only if you still need an **emergency** Firebase deploy (legacy). Prefer:
+only for an **emergency** deploy of this package. Prefer:
 
 ```bash
 cd ../.. && pnpm supabase:deploy
@@ -25,4 +25,4 @@ cd ../.. && pnpm supabase:deploy
 pnpm serve
 ```
 
-Runs the Firebase emulator for comparing behavior while migrating.
+Runs the legacy functions emulator for parity checks while migrating.

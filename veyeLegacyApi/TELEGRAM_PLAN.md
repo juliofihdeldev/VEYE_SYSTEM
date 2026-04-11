@@ -121,11 +121,11 @@ exports.telegramMonitor = functions
 
 | File                                           | Action                                                     |
 | ---------------------------------------------- | ---------------------------------------------------------- |
-| `veyeFirebaseApi/TELEGRAM_PLAN.md`             | Create (this file)                                         |
-| `veyeFirebaseApi/functions/telegramMonitor.js` | Create – monitor logic + `telegramMonitorRun` HTTP trigger |
-| `veyeFirebaseApi/functions/index.js`           | Modify – export `telegramMonitor`, `telegramMonitorRun`    |
-| `veyeFirebaseApi/functions/package.json`       | Add `telegraf` or keep axios                               |
-| `veyeFirebaseApi/functions/.env.example`       | Create – document required env vars                        |
+| `veyeLegacyApi/TELEGRAM_PLAN.md`             | Create (this file)                                         |
+| `veyeLegacyApi/functions/telegramMonitor.js` | Create – monitor logic + `telegramMonitorRun` HTTP trigger |
+| `veyeLegacyApi/functions/index.js`           | Modify – export `telegramMonitor`, `telegramMonitorRun`    |
+| `veyeLegacyApi/functions/package.json`       | Add `telegraf` or keep axios                               |
+| `veyeLegacyApi/functions/.env.example`       | Create – document required env vars                        |
 
 ---
 

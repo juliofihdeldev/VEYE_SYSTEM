@@ -5,7 +5,7 @@ const { processPost, unblockUser } = require('./aiPipeline');
 admin.initializeApp();
 const { sendOneSignalNotification } = require('./notificationHelper');
 
-// Telegram channel monitor (see veyeFirebaseApi/TELEGRAM_PLAN.md)
+// Telegram channel monitor (see veyeLegacyApi/TELEGRAM_PLAN.md)
 const telegram = require('./telegramMonitor');
 exports.telegramMonitor = telegram.telegramMonitor;
 exports.telegramMonitorRun = telegram.telegramMonitorRun;

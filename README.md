@@ -1,6 +1,6 @@
 # VEYE_SYSTEM
 
-Monorepo for VEYe (Android), VEyeDashBoard, Firebase Functions (transitioning to Supabase), and Supabase Edge Functions.
+Monorepo for VEYe (Android), VEyeDashBoard, legacy Node handlers (`veyeLegacyApi`, emulator-only), and Supabase Edge Functions.
 
 ## Quick start
 
@@ -11,7 +11,7 @@ pnpm install
 
 - **Dashboard:** `pnpm dev:dashboard`
 - **Public web (`veyeWebApp`):** `pnpm dev:webapp`
-- **Firebase Functions (local):** `pnpm dev:functions`
+- **Legacy functions (local emulator):** `pnpm dev:functions`
 - **Supabase Edge Functions:** see `supabase/README.md` and `docs/SUPABASE_EDGE.md`
 - **Android:** open `VEYe/` in Android Studio
 

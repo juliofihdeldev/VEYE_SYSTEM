@@ -79,7 +79,7 @@ importers:
         specifier: ^4.3.0-beta.2
         version: 4.5.14(@types/node@25.6.0)
 
-  veyeFirebaseApi/functions:
+  veyeLegacyApi/functions:
     dependencies:
       '@google/genai':
         specifier: ^1.44.0

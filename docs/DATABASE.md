@@ -6,7 +6,7 @@ Migrations (apply in order):
 2. `20260411200000_users_notification_fields.sql` — `users.latitude/longitude/device_token` for OneSignal geo targeting  
 3. `20260411201000_viktim_telegram_ids.sql` — `viktim.telegram_*` for dedupe parity with Firebase monitor
 
-This mirrors **Firestore** collections used by **veyeFirebaseApi/functions**, **VEYe**, and **VEyeDashBoard** (not **VEYeApp**). Field names are **snake_case** in SQL; map from camelCase in app code or in an ETL script.
+This mirrors **Firestore** collections used by **veyeLegacyApi/functions**, **VEYe**, and **VEyeDashBoard** (not **VEYeApp**). Field names are **snake_case** in SQL; map from camelCase in app code or in an ETL script.
 
 ## Table ↔ Firestore
 
