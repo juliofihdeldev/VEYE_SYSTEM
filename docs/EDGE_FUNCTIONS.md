@@ -29,6 +29,15 @@ Invoke URL (hosted):
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically in the Edge runtime.
 
+## Schedule (every 15 minutes)
+
+See [SCHEDULE_TELEGRAM.md](./SCHEDULE_TELEGRAM.md) (GitHub Actions workflow in-repo).
+
+## Smoke tests
+
+- **CI:** run workflow **Smoke Edge functions** (`.github/workflows/smoke-edge.yml`) from the Actions tab. Set secrets `SUPABASE_FUNCTIONS_BASE`, `SUPABASE_ANON_KEY`, optional `PROCESS_ALERT_SECRET`.
+- **Local:** `chmod +x scripts/smoke-edge.sh` then set env vars and run `./scripts/smoke-edge.sh`.
+
 ## Deploy
 
 ```bash

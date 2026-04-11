@@ -1,0 +1,41 @@
+# Step 4 — Invoke Supabase Edge `telegram-monitor` every 15 minutes (America/Toronto ≈ Haiti-adjacent; adjust if needed).
+# Configure repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_FUNCTION_TELEGRAM_URL — full URL, e.g. https://<project-ref>.supabase.co/functions/v1/telegram-monitor
+#   SUPABASE_ANON_KEY — project anon key (Authorization header required by Edge even with verify_jwt=false)
+#   PROCESS_ALERT_SECRET — optional; sent as x-veye-secret if set (must match Edge secret)
+
+name: Telegram monitor (15 min)
+
+on:
+  schedule:
+    # Every 15 minutes (UTC). Change to match Haiti business hours if you prefer.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: telegram-monitor-cron
+  cancel-in-progress: false
+
+jobs:
+  invoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: POST telegram-monitor
+        env:
+          URL: ${{ secrets.SUPABASE_FUNCTION_TELEGRAM_URL }}
+          ANON: ${{ secrets.SUPABASE_ANON_KEY }}
+          SECRET: ${{ secrets.PROCESS_ALERT_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${URL:-}" ] || [ -z "${ANON:-}" ]; then
+            echo "Missing SUPABASE_FUNCTION_TELEGRAM_URL or SUPABASE_ANON_KEY repository secrets."
+            exit 1
+          fi
+          HDR=( -H "Authorization: Bearer ${ANON}" -H "Content-Type: application/json" )
+          if [ -n "${SECRET:-}" ]; then
+            HDR+=( -H "x-veye-secret: ${SECRET}" )
+          fi
+          curl -sfS -X POST "$URL" "${HDR[@]}" -d '{}' --max-time 120 -D -
+          echo
+          echo "OK"

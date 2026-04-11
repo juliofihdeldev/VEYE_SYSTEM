@@ -102,6 +102,11 @@ Deploy (Firebase CLI, from app folder context is handled by script cwd):
 pnpm --filter veye-web-app deploy
 ```
 
+### Supabase Edge (smoke + cron)
+
+- **Smoke (local):** `chmod +x scripts/smoke-edge.sh` then set `SUPABASE_FUNCTIONS_BASE`, `SUPABASE_ANON_KEY`, optional `PROCESS_ALERT_SECRET` and run `./scripts/smoke-edge.sh`.
+- **Smoke / cron (GitHub):** see [SCHEDULE_TELEGRAM.md](./SCHEDULE_TELEGRAM.md) and `.github/workflows/*.yml`.
+
 Production build:
 
 ```bash

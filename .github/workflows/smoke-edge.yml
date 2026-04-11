@@ -1,0 +1,58 @@
+# Step 5 — Manual smoke of Edge functions (run from Actions tab → "Smoke Edge functions" → Run workflow).
+# Secrets (same as cron + optional alert body):
+#   SUPABASE_FUNCTIONS_BASE — e.g. https://<project-ref>.supabase.co/functions/v1  (no trailing slash)
+#   SUPABASE_ANON_KEY
+#   PROCESS_ALERT_SECRET — optional for telegram-monitor / if your process-global path required it (it does not)
+
+name: Smoke Edge functions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: health-check (GET)
+        env:
+          BASE: ${{ secrets.SUPABASE_FUNCTIONS_BASE }}
+          ANON: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE:-}" ] || [ -z "${ANON:-}" ]; then
+            echo "Set SUPABASE_FUNCTIONS_BASE and SUPABASE_ANON_KEY"
+            exit 1
+          fi
+          curl -sfS "${BASE}/health-check" \
+            -H "Authorization: Bearer ${ANON}" \
+            -w "\nHTTP %{http_code}\n"
+
+      - name: process-global-alert (POST, expect JSON)
+        env:
+          BASE: ${{ secrets.SUPABASE_FUNCTIONS_BASE }}
+          ANON: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          BODY='{"summary":"Smoke test — automated workflow (non-incident).","title":"smoke","userId":"github-actions-smoke","source":"smoke-test"}'
+          curl -sfS -X POST "${BASE}/process-global-alert" \
+            -H "Authorization: Bearer ${ANON}" \
+            -H "Content-Type: application/json" \
+            -d "$BODY" \
+            -w "\nHTTP %{http_code}\n" | head -c 4000
+          echo
+
+      - name: telegram-monitor (POST, optional secret)
+        env:
+          BASE: ${{ secrets.SUPABASE_FUNCTIONS_BASE }}
+          ANON: ${{ secrets.SUPABASE_ANON_KEY }}
+          SECRET: ${{ secrets.PROCESS_ALERT_SECRET }}
+        run: |
+          set -euo pipefail
+          HDR=( -H "Authorization: Bearer ${ANON}" -H "Content-Type: application/json" )
+          if [ -n "${SECRET:-}" ]; then
+            HDR+=( -H "x-veye-secret: ${SECRET}" )
+          fi
+          curl -sfS -X POST "${BASE}/telegram-monitor" "${HDR[@]}" -d '{}' \
+            --max-time 120 -w "\nHTTP %{http_code}\n" | head -c 4000
+          echo

@@ -24,6 +24,7 @@ pnpm install
 | [docs/DATABASE.md](./docs/DATABASE.md) | Postgres tables, RLS, Firestore mapping |
 | [docs/SUPABASE_MIGRATION_PLAN.md](./docs/SUPABASE_MIGRATION_PLAN.md) | Phased migration plan (what’s next) |
 | [docs/EDGE_FUNCTIONS.md](./docs/EDGE_FUNCTIONS.md) | Edge slugs, secrets, deploy |
+| [docs/SCHEDULE_TELEGRAM.md](./docs/SCHEDULE_TELEGRAM.md) | 15‑minute cron (GitHub Actions) |
 
 ## Branch
 

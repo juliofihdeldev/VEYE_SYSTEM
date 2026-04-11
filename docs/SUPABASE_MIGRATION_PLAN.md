@@ -83,8 +83,8 @@ Living plan for moving backend and data from **Firebase** (Firestore + Cloud Fun
 ## Suggested order (next 2–4 weeks)
 
 1. **`supabase db push`** — apply latest migrations; **`supabase functions deploy`** — deploy all Edge functions; set **secrets**.  
-2. **Cron** — schedule `telegram-monitor` every **15 minutes** (with `x-veye-secret` header if used).  
-3. **Smoke test** — `health-check`, then `process-global-alert` / `telegram-monitor` against staging data.  
+2. **Cron** — [SCHEDULE_TELEGRAM.md](./SCHEDULE_TELEGRAM.md): GitHub Actions **Telegram monitor (15 min)** workflow + repository secrets.  
+3. **Smoke test** — workflow **Smoke Edge functions** or `./scripts/smoke-edge.sh` (see [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md)).  
 4. **B2 reads + B3** — dashboard loads from Postgres, submits to Edge URLs.  
 5. **C2 reads** — Android map/lists from Supabase.  
 6. **A5** — turn off Firebase Functions deploys when happy.  
