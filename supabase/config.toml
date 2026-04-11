@@ -53,23 +53,25 @@ inspector_port = 8083
 deno_version = 2
 
 # Called from mobile / dashboard with shared secrets — not Supabase JWT (until Auth migration)
-["functions.telegram-monitor"]
+# Use [functions.<slug>] (dotted table headers). Quoted headers like ["functions.name"] are a
+# single top-level table name and break CLI defaults — Edge runtime gets SUPABASE_INTERNAL_FUNCTIONS_CONFIG={}.
+[functions.telegram-monitor]
 verify_jwt = false
 
-["functions.process-global-alert"]
+[functions.process-global-alert]
 verify_jwt = false
 
-["functions.process-admin-alert"]
+[functions.process-admin-alert]
 verify_jwt = false
 
-["functions.unblock-user"]
+[functions.unblock-user]
 verify_jwt = false
 
-["functions.send-notification"]
+[functions.send-notification]
 verify_jwt = false
 
-["functions.health-check"]
+[functions.health-check]
 verify_jwt = false
 
-["functions.dashboard-mutate"]
+[functions.dashboard-mutate]
 verify_jwt = false

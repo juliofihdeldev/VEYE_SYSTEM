@@ -1,17 +1,24 @@
-import axios from "axios";
-import { getSupabase, functionsBaseUrl } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 
-function edgeHeaders(): Record<string, string> {
-  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-  if (!anon) {
-    throw new Error("VITE_SUPABASE_ANON_KEY is required for Edge calls");
-  }
+/** Call a deployed Edge function from the browser (preferred over raw axios to avoid CORS/header issues). */
+async function invokeEdge<T = unknown>(
+  functionName: string,
+  body: Record<string, unknown> = {},
+): Promise<T> {
+  const sb = getSupabase();
   const secret = import.meta.env.VITE_PROCESS_ALERT_SECRET as string | undefined;
-  return {
-    Authorization: `Bearer ${anon}`,
-    "Content-Type": "application/json",
-    ...(secret ? { "x-veye-secret": secret } : {}),
-  };
+  const headers: Record<string, string> = {};
+  if (secret) headers["x-veye-secret"] = secret;
+
+  const { data, error } = await sb.functions.invoke(functionName, {
+    body,
+    ...(Object.keys(headers).length > 0 ? { headers } : {}),
+  });
+
+  if (error) {
+    throw new Error(error.message || "Edge function request failed");
+  }
+  return data as T;
 }
 
 function tsToFirestoreShape(iso: string | null | undefined): { seconds: number; nanoseconds: number } {
@@ -66,8 +73,7 @@ function mapKidnapRow(r: Record<string, unknown>) {
 }
 
 async function edgeMutate(body: Record<string, unknown>) {
-  const base = functionsBaseUrl();
-  await axios.post(`${base}/dashboard-mutate`, body, { headers: edgeHeaders() });
+  await invokeEdge("dashboard-mutate", body);
 }
 
 // --- Zone danger (read: PostgREST; write: Edge) ---
@@ -91,25 +97,30 @@ const TELEGRAM_MONITOR_RUN_URL = import.meta.env.VITE_TELEGRAM_MONITOR_RUN_URL a
 export const runTelegramMonitor = async () => {
   if (TELEGRAM_MONITOR_RUN_URL) {
     const secret = import.meta.env.VITE_PROCESS_ALERT_SECRET as string | undefined;
-    const resp = await axios.post(
-      TELEGRAM_MONITOR_RUN_URL,
-      {},
-      {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 130_000);
+    try {
+      const res = await fetch(TELEGRAM_MONITOR_RUN_URL, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(secret ? { "x-veye-secret": secret } : {}),
         },
-        timeout: 130_000,
-      },
-    );
-    return resp.data;
+        body: "{}",
+        signal: controller.signal,
+      });
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || res.statusText);
+      try {
+        return JSON.parse(text);
+      } catch {
+        return text;
+      }
+    } finally {
+      window.clearTimeout(timer);
+    }
   }
-  const resp = await axios.post(
-    `${functionsBaseUrl()}/telegram-monitor`,
-    {},
-    { headers: edgeHeaders(), timeout: 130_000 },
-  );
-  return resp.data;
+  return invokeEdge("telegram-monitor", {});
 };
 
 export const handleSendAlert = async (data: any) => {
@@ -157,14 +168,13 @@ export const handleSendAlert = async (data: any) => {
     delete payload.longitude;
   }
 
-  const base = functionsBaseUrl();
+  const body = JSON.parse(JSON.stringify(payload)) as Record<string, unknown>;
+
   try {
-    const resp = await axios.post(`${base}/process-global-alert`, payload, {
-      headers: edgeHeaders(),
-    });
-    return resp.data;
-  } catch (error: any) {
-    console.error("handleSendAlert: process-global-alert failed", error?.response?.data ?? error.message);
+    return await invokeEdge("process-global-alert", body);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("handleSendAlert: process-global-alert failed", msg);
     throw error;
   }
 };
@@ -211,12 +221,12 @@ export const handleSendViktim = async (data: any) => {
   if (!data) return;
   const row = typeof data === "string" ? JSON.parse(data) : { ...data };
   try {
-    const resp = await axios.post(
-      `${functionsBaseUrl()}/dashboard-mutate`,
-      { action: "insert", table: "viktim", row },
-      { headers: edgeHeaders() },
-    );
-    return resp.data?.id as string | undefined;
+    const out = await invokeEdge<{ id?: string }>("dashboard-mutate", {
+      action: "insert",
+      table: "viktim",
+      row,
+    });
+    return out?.id;
   } catch (error) {
     console.error(error);
   }
@@ -250,12 +260,12 @@ export const handleSendNews = async (data: any) => {
   if (!data) return;
   const row = typeof data === "string" ? JSON.parse(data) : { ...data };
   try {
-    const resp = await axios.post(
-      `${functionsBaseUrl()}/dashboard-mutate`,
-      { action: "insert", table: "news", row },
-      { headers: edgeHeaders() },
-    );
-    return resp.data?.id as string | undefined;
+    const out = await invokeEdge<{ id?: string }>("dashboard-mutate", {
+      action: "insert",
+      table: "news",
+      row,
+    });
+    return out?.id;
   } catch (error) {
     console.error(error);
   }
@@ -402,13 +412,8 @@ export const handleGetIncidentStats = async (filters?: IncidentStatsFilters) => 
 };
 
 export const handleSendALertNotification = async (message: string) => {
-  const base = functionsBaseUrl();
   try {
-    await axios.post(
-      `${base}/send-notification`,
-      { information: message },
-      { headers: edgeHeaders() },
-    );
+    await invokeEdge("send-notification", { information: message });
   } catch (error) {
     console.error(error);
   }

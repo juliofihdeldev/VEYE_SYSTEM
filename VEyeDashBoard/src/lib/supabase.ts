@@ -56,10 +56,3 @@ export function getSupabase(): SupabaseClient {
   return client;
 }
 
-export function functionsBaseUrl(): string {
-  const url = readSupabaseUrl();
-  if (!url) {
-    throw new Error("VITE_SUPABASE_URL is required (copy VEyeDashBoard/.env.example to .env)");
-  }
-  return `${url}/functions/v1`;
-}
