@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build / caches
+dist/
+build/
+.turbo/
+*.local
+
+# Env
+.env
+.env.*
+!.env.example
+
+# OS / IDE
+.DS_Store
+.idea/
+*.log
+
+# Android (VEYe)
+VEYe/**/build/
+VEYe/.gradle/
+VEYe/**/.cxx/
+VEYe/local.properties
+VEYe/*.iml
+VEYe/.kotlin/
+
+# Supabase local (generated when you run supabase start)
+supabase/.branches/
+supabase/.temp/
+
+# Legacy / misc
+.git-test-mono/

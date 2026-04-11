@@ -1,0 +1,50 @@
+name: Build and deploy iOS release
+on:
+  push:
+    branches:
+      - main
+      - staging
+permissions:
+  contents: write # needed for fastlane commit_version_bump + push (only main branch)
+jobs:
+  ios-build:
+    name: ${{ github.ref_name == 'main' && 'App Store Release' || 'TestFlight Beta' }}
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for fastlane version bump
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.0'
+          bundler-cache: true
+      - name: Install JS dependencies
+        run: npm ci
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: ${{ runner.os }}-pods-
+      - name: Configure git for fastlane bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Build and upload (beta or release)
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APP_STORE_EMAIL: ${{ secrets.APP_STORE_EMAIL }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          IOS_DISTRIBUTION_CERTS_GITHUB_URL: ${{ secrets.IOS_DISTRIBUTION_CERTS_GITHUB_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            bundle exec fastlane ios release
+          else
+            bundle exec fastlane ios beta
+          fi

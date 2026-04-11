@@ -1,0 +1,5 @@
+app_identifier "com.elitesoftwarestudio.veye"
+apple_id "julio.fils1@gmail.com"
+
+itc_team_id "X3L9TQDJ62" # App Store Connect Team ID — fill in if prompted
+team_id "X3L9TQDJ62" # Developer Portal Team ID (from your Distribution cert)

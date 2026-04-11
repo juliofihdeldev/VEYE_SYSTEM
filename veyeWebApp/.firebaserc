@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "edel-34e48"
+  },
+  "targets": {
+    "edel-34e48": {
+      "hosting": {
+        "website": [
+          "veye-website-45c84"
+        ]
+      }
+    }
+  }
+}

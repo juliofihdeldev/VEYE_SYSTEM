@@ -1,0 +1,91 @@
+apply plugin: "com.android.application"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+apply plugin: "com.google.gms.google-services"
+apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
+
+react {
+    autolinkLibrariesWithApp()
+}
+
+def enableProguardInReleaseBuilds = false
+
+def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
+
+def localProperties = new Properties()
+def localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    localPropsFile.withInputStream { stream -> localProperties.load(stream) }
+}
+
+def loadDotEnv = { File projectRoot ->
+    def props = new Properties()
+    def envFile = new File(projectRoot, ".env")
+    if (!envFile.exists()) return props
+    envFile.eachLine { line ->
+        def trimmed = line.trim()
+        if (trimmed.isEmpty() || trimmed.startsWith("#")) return
+        def eq = trimmed.indexOf("=")
+        if (eq <= 0) return
+        def key = trimmed.substring(0, eq).trim()
+        def val = trimmed.substring(eq + 1).trim()
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.substring(1, val.length() - 1)
+        }
+        props.setProperty(key, val)
+    }
+    return props
+}
+def dotEnv = loadDotEnv(rootProject.projectDir.parentFile)
+
+def googleMapsApiKey = System.getenv("GOOGLE_MAPS_API_KEY")
+        ?: localProperties.getProperty("GOOGLE_MAPS_API_KEY")
+        ?: project.findProperty("GOOGLE_MAPS_API_KEY")
+        ?: dotEnv.getProperty("GOOGLE_MAPS_API_KEY")
+        ?: dotEnv.getProperty("GOOGLE_GEOCODING_API_KEY")
+        ?: ""
+
+android {
+    ndkVersion rootProject.ext.ndkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdkVersion
+
+    namespace "com.veyeapp"
+    defaultConfig {
+        applicationId "tech.transitiondigitaleht.veye"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 17
+        versionName "1.1.7"
+        manifestPlaceholders = [GOOGLE_MAPS_API_KEY: googleMapsApiKey]
+    }
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled enableProguardInReleaseBuilds
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
+    }
+}
+
+dependencies {
+    implementation("com.facebook.react:react-android")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.0.0")
+
+    if (hermesEnabled.toBoolean()) {
+        implementation("com.facebook.react:hermes-android")
+    } else {
+        implementation jscFlavor
+    }
+}

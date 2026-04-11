@@ -1,0 +1,194 @@
+BUNDLE_ID         = 'com.elitesoftwarestudio.veye'
+SCHEME            = 'veyeapp'
+WORKSPACE         = './ios/veyeapp.xcworkspace'
+XCODEPROJ         = './ios/veyeapp.xcodeproj'
+PODFILE           = './ios/Podfile'
+KEYCHAIN_NAME     = 'veye_build.keychain'
+KEYCHAIN_PASSWORD = 'veye_build_password'
+
+platform :ios do
+  # ─────────────────────────────────────────────────────────────────
+  # Private helpers
+  # ─────────────────────────────────────────────────────────────────
+
+  # Load the App Store Connect API key from environment variables.
+  # Works both locally (via fastlane/.env) and in CI (via GitHub secrets).
+  # No Apple ID password or 2FA session needed.
+  private_lane :load_api_key do
+    app_store_connect_api_key(
+      key_id:        ENV['ASC_KEY_ID'],
+      issuer_id:     ENV['ASC_ISSUER_ID'],
+      key_filepath:  ENV['ASC_KEY_FILEPATH'],
+      duration:      1200,
+      in_house:      false,
+    )
+  end
+
+  # Sync certs & profiles via match using the API key.
+  # Pass keychain_name/password only in CI; locally match uses the
+  # login keychain automatically.
+  private_lane :sync_certs do |options|
+    match(
+      type:                    'appstore',
+      app_identifier:          BUNDLE_ID,
+      readonly:                options.fetch(:readonly, true),
+      api_key:                 options[:api_key],
+      git_basic_authorization: ENV['MATCH_GIT_BASIC_AUTHORIZATION'],
+      keychain_name:           options[:keychain_name],
+      keychain_password:       options[:keychain_password],
+    )
+  end
+
+  # Install pods, bump build number, and compile the IPA.
+  private_lane :build_ipa do
+    cocoapods(podfile: PODFILE, use_bundle_exec: true)
+    increment_build_number(xcodeproj: XCODEPROJ)
+    gym(
+      scheme:           SCHEME,
+      workspace:        WORKSPACE,
+      export_method:    'app-store',
+      configuration:    'Release',
+      output_directory: './build',
+      output_name:      'veyeapp.ipa',
+      clean:            true,
+      export_options: {
+        method:               'app-store',
+        signingStyle:         'manual',
+        provisioningProfiles: {
+          BUNDLE_ID => "match AppStore #{BUNDLE_ID}"
+        }
+      }
+    )
+  end
+
+  # ─────────────────────────────────────────────────────────────────
+  # LOCAL lanes  (no keychain creation, no git commit/push)
+  # ─────────────────────────────────────────────────────────────────
+
+  desc "LOCAL — First-time setup: install profiles from git repo (no Apple portal needed)"
+  lane :setup_certs do
+    match(
+      type:                      'appstore',
+      app_identifier:            BUNDLE_ID,
+      readonly:                  true,
+      skip_certificate_matching: true,   # don't verify cert against Dev Portal
+    )
+    UI.success "✅  Profiles installed from git repo"
+  end
+
+  desc "LOCAL — Build IPA only (no upload). Good for validating the build."
+  lane :local_build do
+    match(
+      type:                      'appstore',
+      app_identifier:            BUNDLE_ID,
+      readonly:                  true,
+      skip_certificate_matching: true,
+    )
+    build_ipa
+    UI.success "✅  IPA ready at ./build/veyeapp.ipa"
+  end
+
+  desc "LOCAL — Build + upload to TestFlight"
+  lane :local_beta do
+    api_key = load_api_key
+    match(
+      type:                      'appstore',
+      app_identifier:            BUNDLE_ID,
+      readonly:                  true,
+      skip_certificate_matching: true,
+      api_key:                   api_key,
+    )
+    build_ipa
+    upload_to_testflight(
+      api_key:                           api_key,
+      app_identifier:                    BUNDLE_ID,
+      skip_waiting_for_build_processing: true,
+    )
+    UI.success "✅  Uploaded to TestFlight"
+  end
+
+  desc "LOCAL — Build + upload to App Store Connect (IPA only; no review submit, no metadata/screenshots)"
+  lane :local_release do
+    api_key = load_api_key
+    match(
+      type:                      'appstore',
+      app_identifier:            BUNDLE_ID,
+      readonly:                  true,
+      skip_certificate_matching: true,
+      api_key:                   api_key,
+    )
+    build_ipa
+    deliver(
+      api_key:                    api_key,
+      app_identifier:             BUNDLE_ID,
+      submit_for_review:          false,
+      automatic_release:          false,
+      skip_metadata:              true,
+      skip_screenshots:           true,
+      run_precheck_before_submit: false,
+    )
+    UI.success "✅  Uploaded to App Store Connect — finish the version in App Store Connect (screenshots, review, submit)"
+  end
+
+  # ─────────────────────────────────────────────────────────────────
+  # CI lanes  (keychain setup + git commit/push)
+  # ─────────────────────────────────────────────────────────────────
+
+  desc "CI — Build + upload to TestFlight (triggered on staging)"
+  lane :beta do
+    api_key = load_api_key
+    create_keychain(
+      name:               KEYCHAIN_NAME,
+      password:           KEYCHAIN_PASSWORD,
+      default_keychain:   true,
+      unlock:             true,
+      timeout:            3600,
+      add_to_search_list: true,
+    )
+    sync_certs(
+      readonly:          true,
+      api_key:           api_key,
+      keychain_name:     KEYCHAIN_NAME,
+      keychain_password: KEYCHAIN_PASSWORD,
+    )
+    build_ipa
+    upload_to_testflight(
+      api_key:                           api_key,
+      app_identifier:                    BUNDLE_ID,
+      skip_waiting_for_build_processing: true,
+    )
+    commit_version_bump(message: 'bump build [skip ci]')
+    push_to_git_remote
+  end
+
+  desc "CI — Build + submit to App Store (triggered on main)"
+  lane :release do
+    api_key = load_api_key
+    create_keychain(
+      name:               KEYCHAIN_NAME,
+      password:           KEYCHAIN_PASSWORD,
+      default_keychain:   true,
+      unlock:             true,
+      timeout:            3600,
+      add_to_search_list: true,
+    )
+    sync_certs(
+      readonly:          true,
+      api_key:           api_key,
+      keychain_name:     KEYCHAIN_NAME,
+      keychain_password: KEYCHAIN_PASSWORD,
+    )
+    build_ipa
+    deliver(
+      api_key:                    api_key,
+      app_identifier:             BUNDLE_ID,
+      submit_for_review:          false,
+      automatic_release:          false,
+      skip_metadata:              true,
+      skip_screenshots:           true,
+      run_precheck_before_submit: false,
+    )
+    commit_version_bump(message: 'bump build [skip ci]')
+    push_to_git_remote
+  end
+end

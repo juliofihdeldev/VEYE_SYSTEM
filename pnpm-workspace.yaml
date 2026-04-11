@@ -1,0 +1,4 @@
+packages:
+  - "VEyeDashBoard"
+  - "veyeFirebaseApi/functions"
+  - "veyeWebApp"

@@ -1,0 +1,9 @@
+git_url("https://github.com/juliofihdeldev/VEYe-Certs-and-Profiles.git")
+
+storage_mode("git")
+
+type("appstore")
+
+app_identifier(["com.elitesoftwarestudio.veye"])
+username("julio.fils1@gmail.com")
+team_id("X3L9TQDJ62")
