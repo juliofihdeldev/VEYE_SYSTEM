@@ -10,6 +10,7 @@
     "dev:functions": "pnpm --filter @veye/firebase-functions serve",
     "supabase:serve": "supabase functions serve",
     "supabase:deploy": "supabase functions deploy",
+    "supabase:db:push": "supabase db push",
     "lint": "turbo run lint"
   },
   "devDependencies": {

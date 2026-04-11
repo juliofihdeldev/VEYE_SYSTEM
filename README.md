@@ -21,6 +21,9 @@ pnpm install
 |-----|-------------|
 | [docs/MONOREPO.md](./docs/MONOREPO.md) | Turborepo + pnpm workspace, how tasks run |
 | [docs/SUPABASE_EDGE.md](./docs/SUPABASE_EDGE.md) | Edge Functions migration notes |
+| [docs/DATABASE.md](./docs/DATABASE.md) | Postgres tables, RLS, Firestore mapping |
+| [docs/SUPABASE_MIGRATION_PLAN.md](./docs/SUPABASE_MIGRATION_PLAN.md) | Phased migration plan (what’s next) |
+| [docs/EDGE_FUNCTIONS.md](./docs/EDGE_FUNCTIONS.md) | Edge slugs, secrets, deploy |
 
 ## Branch
 
