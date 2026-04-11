@@ -1,10 +1,10 @@
 import { serviceClient } from "../_shared/supabase.ts";
-import { corsHeaders, jsonResponse } from "../_shared/http.ts";
+import { corsPreflightResponse, jsonResponse } from "../_shared/http.ts";
 import { processPost } from "../_shared/ai_pipeline.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return corsPreflightResponse();
   }
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405);

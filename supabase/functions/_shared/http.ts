@@ -1,9 +1,16 @@
+/** CORS for browser + `functions.invoke` (apikey, Authorization, X-Client-Info, optional x-region, custom secret). */
 export const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-veye-secret",
+    "authorization, x-client-info, apikey, content-type, x-veye-secret, accept, accept-profile, prefer, cache-control, pragma, x-region",
+  "Access-Control-Max-Age": "86400",
 };
+
+/** Preflight — use 200 + body like Supabase CORS guide (some stacks treat 204 oddly). */
+export function corsPreflightResponse(): Response {
+  return new Response("ok", { status: 200, headers: corsHeaders });
+}
 
 export function jsonResponse(
   body: unknown,

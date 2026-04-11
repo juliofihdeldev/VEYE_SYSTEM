@@ -59,6 +59,7 @@ export default function DangerForm({ handleClose }: { handleClose: () => void })
       confirm: formData.get('confirm'),
     };
 
+    console.log(data);
     setSubmitting(true);
     try {
       await handleSendAlert(data);
