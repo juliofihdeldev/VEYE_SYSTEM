@@ -23,7 +23,6 @@ import {
   FilterList as FilterIcon,
 } from "@mui/icons-material";
 import { handleGetIncidentStats, type IncidentStatsFilters } from "../api";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 const statCards = [
   {
@@ -62,11 +61,6 @@ export default function StatIncident() {
   const [filters, setFilters] = React.useState<IncidentStatsFilters>({ months: 6 });
   const [dateFrom, setDateFrom] = React.useState("");
   const [dateTo, setDateTo] = React.useState("");
-
-  React.useEffect(() => {
-    const auth = getAuth();
-    onAuthStateChanged(auth, () => {});
-  }, []);
 
   const loadStats = React.useCallback(async () => {
     setLoading(true);

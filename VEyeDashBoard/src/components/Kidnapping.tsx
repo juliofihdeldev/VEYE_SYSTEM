@@ -11,8 +11,6 @@ import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import { handleGetKidnapping } from '../api';
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
 import moment from 'moment';
 moment.locale('fr');
 
@@ -39,17 +37,7 @@ const columns = [
 ];
 
 export default function Kidnapping() {
-  const navigate = useNavigate();
-
-  React.useEffect(() => { 
-    const auth = getAuth();
-    onAuthStateChanged(auth, (user) => {
-      // if (!user) navigate("/");
-   });
-  },[]) 
-
-
-  const [data, setData] = React.useState([]);
+  const [data, setData] = React.useState<any[]>([]);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
@@ -99,26 +87,15 @@ export default function Kidnapping() {
                 return (
                   <TableRow hover role="checkbox" tabIndex={-1} key={row?.id}>
                     <TableCell >
-                      {row?.address}
-                    </TableCell>
-                    
-                    <TableCell >
-                      {(() => {
-                        let addr = row?.full_address;
-                        if (typeof addr === 'string') {
-                          try { addr = JSON.parse(addr); } catch { addr = null; }
-                        }
-                        return addr && typeof addr === 'object'
-                          ? [addr.county, addr.city, addr.street].filter(Boolean).join(' ') || '—'
-                          : '—';
-                      })()}
+                      {row?.zone ?? row?.name ?? '—'}
                     </TableCell>
                     <TableCell >
-                      {row?.latitude} / {row?.longitude}
+                      {row?.address ?? '—'}
                     </TableCell>
-   
                     <TableCell >
-
+                      {row?.enfomasyon ?? row?.rezon ?? '—'}
+                    </TableCell>
+                    <TableCell >
                       {row?.date?.seconds != null ? moment.unix(row.date.seconds).format("MMM Do YY") : "—"}
                     </TableCell>
                   </TableRow>

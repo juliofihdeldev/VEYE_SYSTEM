@@ -18,8 +18,8 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import ExitToApp from '@mui/icons-material/ExitToApp';
-import { signOut, getAuth } from 'firebase/auth';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { getSupabase } from './lib/supabase';
 import { BarChart, Dangerous, Error, Map, Newspaper, RawOffTwoTone, CloudSync } from '@mui/icons-material';
 
 const drawerWidth = 260;
@@ -115,11 +115,9 @@ export default function App({ children }: PropsChildren) {
   const handleDrawerOpen = () => setOpen(true);
   const handleDrawerClose = () => setOpen(false);
 
-  const fnLogout = () => {
-    const auth = getAuth();
-    signOut(auth)
-      .then(() => navigate('/'))
-      .catch(() => {});
+  const fnLogout = async () => {
+    await getSupabase().auth.signOut();
+    navigate('/');
   };
 
   const menu = [

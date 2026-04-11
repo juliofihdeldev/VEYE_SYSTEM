@@ -37,6 +37,12 @@ supabase link --project-ref <YOUR_PROJECT_REF>
 
 **CI / headless:** create a token in [Supabase Account → Access Tokens](https://supabase.com/dashboard/account/tokens), then `export SUPABASE_ACCESS_TOKEN=...` before `supabase link` / `supabase functions deploy`.
 
+## Dashboard Auth (VEyeDashBoard)
+
+The admin app uses **Supabase Auth** (`signInWithPassword`, session in localStorage). For **local Supabase** (`supabase start`), defaults live under `[auth]` in `supabase/config.toml` (site URL + `/auth/reset` redirects).
+
+For a **hosted** project: **Authentication → Providers → Email** (on), **Authentication → URL configuration** — set **Site URL** and add **Redirect URLs** matching your Vite origin (e.g. `http://localhost:5173` and `http://localhost:5173/auth/reset`). Password reset emails use `redirectTo` → `/auth/reset`.
+
 ## Local development
 
 From repo root (after `supabase link` to your project, when you have one):

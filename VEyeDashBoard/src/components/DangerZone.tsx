@@ -21,7 +21,6 @@ import Button from '@mui/material/Button';
 import { handleGetALert, handleDeletedAlert } from '../api';
 import { Delete, Edit } from '@mui/icons-material';
 import ConfirmDialog from './ConfirmDialog';
-import { getAuth, onAuthStateChanged } from "firebase/auth";
 import DangerForm from '../form/DangerForm';
 import EditDangerForm from '../form/EditDangerForm';
 import moment from 'moment';
@@ -57,14 +56,6 @@ const columns = [
 
 export default function DangerZone() {
   // const navigate = useNavigate();
-
-  React.useEffect(() => {
-    const auth = getAuth();
-    onAuthStateChanged(auth, () => {
-
-      // if (!user) navigate("/");
-    });
-  }, [])
 
   const [open, setOpen] = React.useState(false);
   const [data, setData] = React.useState<any[]>([]);

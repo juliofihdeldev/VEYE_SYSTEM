@@ -20,8 +20,6 @@ import Button from '@mui/material/Button';
 import { handleGetNews, handleDeletedNews } from '../api';
 import { Delete } from '@mui/icons-material';
 import ConfirmDialog from './ConfirmDialog';
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
 import moment from 'moment';
 import NewsForm from '../form/NewsForm';
 moment.locale('fr');
@@ -50,17 +48,8 @@ const columns= [
 ];
 
 export default function News() {
-  const navigate = useNavigate();
-
-  React.useEffect(() => { 
-    const auth = getAuth();
-    onAuthStateChanged(auth, (user) => {
-      // if (!user) navigate("/");
-   });
-  },[]) 
-
   const [open, setOpen] = React.useState(false);
-  const [data, setData] = React.useState([]);
+  const [data, setData] = React.useState<any[]>([]);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
@@ -69,7 +58,7 @@ export default function News() {
   const handleClose = () => setOpen(false);
 
 
-  const handleChangePage = ( newPage: number) => {
+  const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
 
@@ -127,7 +116,7 @@ export default function News() {
           </Button>
         </Stack>
     
-      <ModalComponent handleClose={handleClose} handleOpen={handleOpen} open={open}>
+      <ModalComponent handleClose={handleClose} open={open}>
           <Stack direction="row" spacing={2} justifyContent="space-between">
             <Typography variant="h4" component="h2">
             News
@@ -138,7 +127,7 @@ export default function News() {
             <CloseIcon />
             </IconButton>
           </Stack>
-          <NewsForm  handleOpen={handleOpen} open={open}  handleClose={handleClose}/>
+          <NewsForm handleClose={handleClose}/>
       </ModalComponent>
 
       <TableContainer sx={{ width: '100%', minHeight: 400, borderRadius: 2, overflow: 'hidden' }}>
@@ -148,7 +137,7 @@ export default function News() {
               {columns.map((column) => (
                 <TableCell
                   key={column?.id}
-                  align={column.align}
+                  align={(column.align as "left" | "right" | "center") ?? "left"}
                   style={{ minWidth: column.minWidth }}
                 >
                   {column.label}
@@ -181,7 +170,7 @@ export default function News() {
                     </TableCell>
  
                     <TableCell >
-                      {moment(row?.date?.seconds).format("MMM Do YY")}
+                      {row?.date?.seconds != null ? moment.unix(row.date.seconds).format("MMM Do YY") : "—"}
                     </TableCell>
 
                     <TableCell >

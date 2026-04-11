@@ -10,6 +10,7 @@ Deployed function folders live under `supabase/functions/<name>/index.ts`.
 | `unblock-user` | POST | Secret | Unblock `user_moderations` |
 | `send-notification` | POST | Public | OneSignal broadcast by geo |
 | `health-check` | GET | Public | Liveness |
+| `dashboard-mutate` | POST | `x-veye-secret` if `PROCESS_ALERT_SECRET` set + `Authorization: Bearer <anon>` | Dashboard-only **insert** (viktim, news) / **update** (zone_danger, news) / **delete** (all four list tables) — service role on server |
 
 Invoke URL (hosted):
 
@@ -47,6 +48,7 @@ supabase functions deploy process-admin-alert
 supabase functions deploy unblock-user
 supabase functions deploy send-notification
 supabase functions deploy health-check
+supabase functions deploy dashboard-mutate
 ```
 
 Or deploy all:

@@ -53,6 +53,8 @@ Living plan for moving backend and data from **Firebase** (Firestore + Cloud Fun
 | B3 | Point **alert processing** URLs to **Edge** (`process-global-alert` / admin) instead of Cloud Functions. | `.env` + axios base URLs. |
 | B4 | **Auth** — migrate from Firebase Auth UI to **Supabase Auth** (email magic link / password — match your choice) or keep Firebase Auth temporarily and use **only** Edge with service role for DB (not ideal long-term). | Clear login path. |
 
+**Status (in repo):** B1–B4 (dashboard) — Supabase **email + password** sign-in, **route guard** (`RequireAuth`), **password reset** flow (`/auth/reset`), logout via `supabase.auth.signOut()`. Firebase Auth **removed** from `VEyeDashBoard`. Hosted projects: mirror **`[auth]`** redirect URLs from `supabase/config.toml` under **Authentication → URL configuration** and enable the **Email** provider. |
+
 **Order:** B1 → B2 reads first → B3 → B4 (or B4 earlier if you want Supabase Auth before Firestore reads).
 
 ---

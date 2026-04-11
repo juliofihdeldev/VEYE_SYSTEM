@@ -4,8 +4,6 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 
 import { handleGetKidnapping } from '../api';
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
 
 import { GoogleMap, LoadScript } from '@react-google-maps/api';
 const containerStyle = {
@@ -36,17 +34,7 @@ const MyGreatPlace = ({  lat, lng }:any) => (
 
 
 export default function Maps() {
-  const navigate = useNavigate();
-
-  let [data, setData] = React.useState<[]>([]);
-
-  React.useEffect(() => { 
-    const auth = getAuth();
-    onAuthStateChanged(auth, () => {
-      // if (!user) navigate("/");
-   });
-  },[]) 
-
+  let [data, setData] = React.useState<any[]>([]);
 
   React.useEffect(() => {
     async function getData() {

@@ -10,7 +10,6 @@ import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 
 import { handleSendAlert } from '../api';
-import { Timestamp } from 'firebase/firestore/lite';
 
 function parseOptionalCoord(value: FormDataEntryValue | null): number | undefined {
   if (value == null || value === '') return undefined;
@@ -35,9 +34,7 @@ export default function DangerForm({ handleClose }: { handleClose: () => void })
     }
 
     const incidentDateRaw = String(formData.get('incidentDate') ?? '').trim();
-    const date = incidentDateRaw
-      ? Timestamp.fromDate(new Date(incidentDateRaw))
-      : Timestamp.now();
+    const date = incidentDateRaw ? new Date(incidentDateRaw) : new Date();
 
     const latitude = parseOptionalCoord(formData.get('latitude'));
     const longitude = parseOptionalCoord(formData.get('longitude'));

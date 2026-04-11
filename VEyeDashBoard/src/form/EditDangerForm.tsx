@@ -5,7 +5,6 @@ import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import CircularProgress from '@mui/material/CircularProgress';
-import { Timestamp } from 'firebase/firestore/lite';
 import { handleUpdatedAlert } from '../api';
 
 interface Props {
@@ -88,7 +87,7 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
     };
 
     if (incidentDate.trim()) {
-      fields.date = Timestamp.fromDate(new Date(incidentDate.trim()));
+      fields.date = new Date(incidentDate.trim()).toISOString();
     }
 
     if (hasPair) {

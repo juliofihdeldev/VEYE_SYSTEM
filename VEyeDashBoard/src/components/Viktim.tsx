@@ -22,11 +22,10 @@ import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import { handleGetViktim, handleDeletedViktim } from '../api';
 import { Delete, Edit } from '@mui/icons-material';
-import { getAuth, onAuthStateChanged } from "firebase/auth";
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
-import Select from '@mui/material/Select';
+import Select, { type SelectChangeEvent } from '@mui/material/Select';
 import moment from 'moment';
 moment.locale('fr');
 
@@ -57,15 +56,8 @@ const columns = [
 
 export default function Viktim() {
 
-  React.useEffect(() => { 
-    const auth = getAuth();
-    onAuthStateChanged(auth, () => {
-      // if (!user) navigate("/");
-   });
-  },[]) 
-
   const [open, setOpen] = React.useState(false);
-  const [data, setData] = React.useState([]);
+  const [data, setData] = React.useState<any[]>([]);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [type, setType] = React.useState('All');
@@ -125,10 +117,11 @@ export default function Viktim() {
   const handleOpen = () => setOpen(true)
   const handleClose = () => setOpen(false);
 
-  const handleChange =  async (event: unknown) => {
-    setType(event.target.value as string);
+  const handleChange = async (event: SelectChangeEvent<string>) => {
+    const value = event.target.value;
+    setType(value);
 
-    const viktim = await handleGetViktim(event.target.value);
+    const viktim = await handleGetViktim(value);
     setData(viktim)
   };
 
@@ -242,7 +235,7 @@ export default function Viktim() {
           }}
         />
     
-      <ModalComponent handleClose={handleClose} handleOpen={handleOpen} open={open}>
+      <ModalComponent handleClose={handleClose} open={open}>
           <Stack direction="row" spacing={2} justifyContent="space-between">
             <Typography variant="h4" component="h2">
             Viktim
@@ -253,7 +246,7 @@ export default function Viktim() {
             <CloseIcon />
             </IconButton>
           </Stack>
-          <ViktimForm  handleOpen={handleOpen} open={open}  handleClose={handleClose}/>
+          <ViktimForm handleClose={handleClose}/>
       </ModalComponent>
 
       <TableContainer sx={{ width: '100%', minHeight: 400, borderRadius: 2, overflow: 'hidden' }}>
@@ -263,7 +256,7 @@ export default function Viktim() {
               {columns.map((column) => (
                 <TableCell
                   key={column?.id}
-                  align={column.align}
+                  align={(column.align as "left" | "right" | "center") ?? "left"}
                   style={{ minWidth: column.minWidth }}
                 >
                   {column.label}

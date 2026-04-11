@@ -84,7 +84,7 @@ pnpm dev:dashboard
 pnpm --filter veye-dashboard dev
 ```
 
-Opens the Vite dev server (see `VEyeDashBoard/package.json`).
+Opens the Vite dev server (see `VEyeDashBoard/package.json`). **Supabase (Phase B):** copy `VEyeDashBoard/.env.example` to **`VEyeDashBoard/.env`** (same folder as `vite.config.ts` — not only the repo root). Set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_PROCESS_ALERT_SECRET` (must match Edge `PROCESS_ALERT_SECRET` when set). Deploy Edge `dashboard-mutate` for admin inserts/deletes/zone updates. **Auth:** dashboard sign-in is **Supabase Auth** (email + password); create users in the Supabase dashboard (or invite) and add `/auth/reset` to allowed redirect URLs for password reset emails.
 
 ### Public web app (`veyeWebApp`)
 
