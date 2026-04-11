@@ -7,19 +7,20 @@ import android.net.Uri
 import com.elitesoftwarestudio.veye.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.functions.functions
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
-
-private val JsonMedia = "application/json; charset=utf-8".toMediaType()
 
 private const val PLACEHOLDER_IMAGE =
     "https://cdn-icons-png.flaticon.com/512/1088/1088372.png"
@@ -42,14 +43,8 @@ sealed class SubmitGlobalAlertResult {
 class GlobalAlertRepository @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val auth: FirebaseAuth,
+    private val supabase: SupabaseClient,
 ) {
-    private val client =
-        OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .writeTimeout(60, TimeUnit.SECONDS)
-            .build()
-
     suspend fun submitUserReport(
         selectedTypeKey: String,
         description: String,
@@ -96,29 +91,30 @@ class GlobalAlertRepository @Inject constructor(
                     )
                 }
 
-            val body = json.toString().toRequestBody(JsonMedia)
-            val request =
-                Request.Builder()
-                    .url(BuildConfig.PROCESS_GLOBAL_ALERT_URL)
-                    .post(body)
-                    .build()
-
             try {
-                client.newCall(request).execute().use { response ->
-                    when {
-                        response.isSuccessful -> SubmitGlobalAlertResult.Success
-                        response.code == 403 -> {
-                            val raw = response.body?.string().orEmpty()
-                            val j = runCatching { JSONObject(raw) }.getOrNull()
-                            if (j?.optString("skipped") == "user_blocked") {
-                                val unblocked = j.optLong("unblockedAt", 0L).takeIf { it > 0 }
-                                SubmitGlobalAlertResult.UserBlocked(unblocked)
-                            } else {
-                                SubmitGlobalAlertResult.NetworkError
-                            }
+                val response =
+                    supabase.functions.invoke("process-global-alert") {
+                        contentType(ContentType.Application.Json)
+                        val secret = BuildConfig.PROCESS_ALERT_SECRET
+                        if (secret.isNotBlank()) {
+                            headers.append("x-veye-secret", secret)
                         }
-                        else -> SubmitGlobalAlertResult.NetworkError
+                        setBody(json.toString())
                     }
+
+                when {
+                    response.status.isSuccess() -> SubmitGlobalAlertResult.Success
+                    response.status == HttpStatusCode.Forbidden -> {
+                        val raw = response.bodyAsText()
+                        val j = runCatching { JSONObject(raw) }.getOrNull()
+                        if (j?.optString("skipped") == "user_blocked") {
+                            val unblocked = j.optLong("unblockedAt", 0L).takeIf { it > 0 }
+                            SubmitGlobalAlertResult.UserBlocked(unblocked)
+                        } else {
+                            SubmitGlobalAlertResult.NetworkError
+                        }
+                    }
+                    else -> SubmitGlobalAlertResult.NetworkError
                 }
             } catch (_: Exception) {
                 SubmitGlobalAlertResult.NetworkError

@@ -29,6 +29,7 @@ port = 54323
 
 [auth]
 enabled = true
+enable_anonymous_sign_ins = true
 # Vite default; add your production dashboard URL in hosted project (Auth → URL configuration).
 site_url = "http://127.0.0.1:5173"
 additional_redirect_urls = [
@@ -59,6 +60,18 @@ deno_version = 2
 verify_jwt = false
 
 [functions.process-global-alert]
+verify_jwt = false
+
+[functions.process-demanti]
+verify_jwt = false
+
+[functions.process-user-merge]
+verify_jwt = false
+
+[functions.get-user-moderation]
+verify_jwt = false
+
+[functions.process-veye-comment]
 verify_jwt = false
 
 [functions.process-admin-alert]

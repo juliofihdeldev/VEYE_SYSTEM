@@ -25,7 +25,7 @@ class DangerZoneDetailViewModel @Inject constructor(
 
     private val zoneId: String = checkNotNull(savedStateHandle.get<String>("zoneId"))
 
-    /** True after the first Firestore snapshot (even if empty). */
+    /** True after the first zone list emission (even if empty). */
     val hasReceivedZonesSnapshot: StateFlow<Boolean> =
         zoneDangerRepository.zones
             .map { true }

@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
@@ -43,16 +44,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = googleMapsApiKey
 
-        val processGlobalAlertUrl =
-            localProperties.getProperty("PROCESS_GLOBAL_ALERT_URL")
-                ?: "https://us-central1-edel-34e48.cloudfunctions.net/processGlobalAlert"
-        buildConfigField("String", "PROCESS_GLOBAL_ALERT_URL", "\"$processGlobalAlertUrl\"")
         buildConfigField("boolean", "MAPS_API_KEY_CONFIGURED", "${googleMapsApiKey.isNotEmpty()}")
 
         val oneSignalAppId =
             localProperties.getProperty("ONESIGNAL_APP_ID")
                 ?: "1766902d-eca3-4350-aaaa-bd8704a47548"
         buildConfigField("String", "ONESIGNAL_APP_ID", "\"$oneSignalAppId\"")
+
+        // Phase C — Supabase (defaults: local CLI `supabase start`; override in local.properties / env)
+        val demoSupabaseAnon =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+        // Phase C: local Supabase only from Gradle (no env fallback — avoids accidental hosted keys on device CI).
+        val supabaseUrl =
+            (localProperties.getProperty("SUPABASE_URL") ?: "http://127.0.0.1:54321").trim()
+        val supabaseAnonKey =
+            (localProperties.getProperty("SUPABASE_ANON_KEY") ?: demoSupabaseAnon).trim()
+        fun esc(s: String) = s.replace("\\", "\\\\").replace("\"", "\\\"")
+        buildConfigField("String", "SUPABASE_URL", "\"${esc(supabaseUrl)}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${esc(supabaseAnonKey)}\"")
+        val processAlertSecret = (localProperties.getProperty("PROCESS_ALERT_SECRET") ?: "").trim()
+        buildConfigField("String", "PROCESS_ALERT_SECRET", "\"${esc(processAlertSecret)}\"")
     }
 
     buildTypes {
@@ -100,7 +111,6 @@ dependencies {
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth.ktx)
-    implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.analytics)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.onesignal)
@@ -113,6 +123,14 @@ dependencies {
     implementation(libs.maps.compose.utils)
     implementation(libs.android.maps.utils)
     implementation(libs.okhttp)
+
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.auth)
+    implementation(libs.supabase.functions)
+    implementation(libs.supabase.realtime)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.kotlinx.serialization.json)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 

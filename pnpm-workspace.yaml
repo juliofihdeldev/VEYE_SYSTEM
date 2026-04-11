@@ -2,3 +2,5 @@ packages:
   - "VEyeDashBoard"
   - "veyeLegacyApi/functions"
   - "veyeWebApp"
+  - "scripts/firestore-export"
+  - "scripts/firestore-supabase-import"

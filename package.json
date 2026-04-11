@@ -11,6 +11,8 @@
     "supabase:serve": "supabase functions serve",
     "supabase:deploy": "supabase functions deploy",
     "supabase:db:push": "supabase db push",
+    "firestore:export": "pnpm --filter @veye/firestore-export run export",
+    "firestore:import": "pnpm install --filter @veye/firestore-supabase-import && pnpm --filter @veye/firestore-supabase-import run import",
     "lint": "turbo run lint"
   },
   "devDependencies": {

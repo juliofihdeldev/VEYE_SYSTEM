@@ -1,0 +1,12 @@
+{
+  "name": "@veye/firestore-supabase-import",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "import": "node import.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4"
+  }
+}

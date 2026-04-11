@@ -27,7 +27,7 @@ export function jsonResponse(
   });
 }
 
-/** Header `x-veye-secret` or JSON body `secret` must match PROCESS_ALERT_SECRET when set. */
+/** Header `x-veye-secret` or JSON body `secret` must match PROCESS_ALERT_SECRET when set (e.g. `process-demanti`, `process-user-merge`, `get-user-moderation`, `process-veye-comment`, `dashboard-mutate`, `telegram-monitor`). */
 export async function verifySecret(req: Request): Promise<boolean> {
   const expected = Deno.env.get("PROCESS_ALERT_SECRET");
   if (!expected) return true;

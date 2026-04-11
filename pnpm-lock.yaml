@@ -32,9 +32,6 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.49.4
         version: 2.103.0
-      axios:
-        specifier: ^1.3.5
-        version: 1.15.0
       google-map-react:
         specifier: ^2.2.0
         version: 2.2.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -100,6 +97,18 @@ importers:
       serve:
         specifier: ^14.2.4
         version: 14.2.6
+
+  scripts/firestore-export:
+    dependencies:
+      firebase-admin:
+        specifier: ^11.11.1
+        version: 11.11.1
+
+  scripts/firestore-supabase-import:
+    dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.49.4
+        version: 2.103.0
 
 packages:
 

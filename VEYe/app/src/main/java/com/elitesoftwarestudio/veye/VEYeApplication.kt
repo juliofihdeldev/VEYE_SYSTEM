@@ -65,7 +65,7 @@ class VEYeApplication : Application() {
                 OneSignal.login(uid)
                 runCatching { oneSignalDeviceRepository.syncOnesignalIdToFirestore() }
                     .exceptionOrNull()?.let { e ->
-                        Log.w(TAG, "OneSignal id → Firestore sync skipped", e)
+                        Log.w(TAG, "OneSignal id → user merge (Postgres) skipped", e)
                     }
             }
         }

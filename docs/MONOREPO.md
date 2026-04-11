@@ -136,6 +136,22 @@ supabase functions serve
 
 Not part of pnpm. Open `VEYe/` in **Android Studio** and sync Gradle, then Run on a device or emulator.
 
+**Supabase (Phase C):** optional keys in **`VEYe/local.properties` only** (Gradle does **not** read `SUPABASE_*` from the environment — avoids hosted URLs on device/CI). Defaults target **local** `supabase start` (`http://127.0.0.1:54321` + demo anon).
+
+- **Android Emulator** hitting Docker on the host: set `SUPABASE_URL=http://10.0.2.2:54321` (AVD loopback).
+- **Physical device** on the same LAN: use your machine’s LAN IP, e.g. `http://192.168.x.x:54321`.
+
+```properties
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_ANON_KEY=
+# Optional; if Edge `PROCESS_ALERT_SECRET` is set, match it here so `process-global-alert` receives x-veye-secret from the app.
+PROCESS_ALERT_SECRET=
+```
+
+Leave `SUPABASE_ANON_KEY` empty to use the bundled **local demo** anon, or paste `ANON_KEY` from `supabase status -o env` if your CLI uses a different key format.
+
+- **Realtime + Auth:** run **`supabase db push`** so migration **`20260412140000_realtime_veye_comments_zone_danger.sql`** adds tables to **`supabase_realtime`**. Local **`supabase/config.toml`** sets **`enable_anonymous_sign_ins = true`** for **Supabase Auth** anonymous sessions on the app (JWT for Realtime). On **hosted** Supabase, turn on **Anonymous sign-ins** under **Authentication → Providers** if the Android log warns about anonymous sign-in.
+
 ## Branch: `SuperbaseMigration`
 
 Supabase-related structural work and Edge Function scaffolding land on this branch. Commit after each major step to keep history reviewable.

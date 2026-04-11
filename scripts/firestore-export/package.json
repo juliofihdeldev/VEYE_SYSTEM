@@ -1,0 +1,12 @@
+{
+  "name": "@veye/firestore-export",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "export": "node export.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^11.11.1"
+  }
+}

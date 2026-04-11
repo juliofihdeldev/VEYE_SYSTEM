@@ -12,6 +12,7 @@ build/
 .env
 .env.*
 !.env.example
+!supabase/functions/.env.example
 
 # OS / IDE
 .DS_Store
@@ -29,6 +30,11 @@ VEYe/.kotlin/
 # Supabase local (generated when you run supabase start)
 supabase/.branches/
 supabase/.temp/
+supabase/functions/.env
 
 # Legacy / misc
 .git-test-mono/
+
+# Firestore scripted export output (local)
+firestore-export-out/
+scripts/firestore-export/out/

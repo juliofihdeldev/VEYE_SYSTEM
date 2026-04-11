@@ -1,68 +1,125 @@
 package com.elitesoftwarestudio.veye.data.user
 
+import android.util.Log
+import com.elitesoftwarestudio.veye.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.functions.functions
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
+import io.ktor.http.isSuccess
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private const val COOLDOWN_MS = 72L * 60L * 60L * 1000L
+private const val MODERATION_POLL_MS = 15L * 60L * 1000L
 
 data class UserModerationState(
     val isBlocked: Boolean,
-    /** Epoch millis when posting is allowed again (RN `unblockedAt`). */
+    /** Epoch millis when posting is allowed again (RN `unblockedAt`); from Edge `isUserBlocked` + 72h rule. */
     val unblockedAtMs: Long?,
 )
 
 @Singleton
 class UserModerationRepository @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore,
+    private val supabase: SupabaseClient,
 ) {
-    /** RN `UserContext` / `UserModerations/{uid}` snapshot. */
+    /**
+     * Polls Edge **`get-user-moderation`** every **15 minutes** (Postgres `user_moderations`, same
+     * cooldown behaviour as **`process-global-alert`**). Replaces Firestore `UserModerations/{uid}` snapshots.
+     */
     val moderation: Flow<UserModerationState> = callbackFlow {
-        var moderationReg: ListenerRegistration? = null
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        var pollJob: Job? = null
 
-        fun clearModeration() {
-            moderationReg?.remove()
-            moderationReg = null
+        fun stopPoll() {
+            pollJob?.cancel()
+            pollJob = null
+        }
+
+        fun startPoll(uid: String) {
+            stopPoll()
+            pollJob =
+                scope.launch {
+                    while (isActive) {
+                        delay(MODERATION_POLL_MS)
+                        trySend(fetchModeration(uid))
+                    }
+                }
         }
 
         val listener =
             FirebaseAuth.AuthStateListener { fa ->
-                clearModeration()
+                stopPoll()
                 val uid = fa.currentUser?.uid
                 if (uid == null) {
                     trySend(UserModerationState(isBlocked = false, unblockedAtMs = null))
-                    return@AuthStateListener
+                } else {
+                    scope.launch {
+                        trySend(fetchModeration(uid))
+                        startPoll(uid)
+                    }
                 }
-                moderationReg =
-                    firestore.collection("UserModerations")
-                        .document(uid)
-                        .addSnapshotListener { snap, _ ->
-                            if (snap == null || !snap.exists()) {
-                                trySend(UserModerationState(false, null))
-                                return@addSnapshotListener
-                            }
-                            val blocked = snap.getBoolean("blocked") == true
-                            val blockedAtMs = snap.getTimestamp("blockedAt")?.toDate()?.time
-                            val unblockedAt =
-                                if (blocked && blockedAtMs != null) {
-                                    blockedAtMs + COOLDOWN_MS
-                                } else {
-                                    null
-                                }
-                            trySend(UserModerationState(blocked, unblockedAt))
-                        }
             }
         auth.addAuthStateListener(listener)
         awaitClose {
             auth.removeAuthStateListener(listener)
-            clearModeration()
+            stopPoll()
+            scope.cancel()
         }
     }.distinctUntilChanged()
+
+    private suspend fun fetchModeration(uid: String): UserModerationState {
+        return try {
+            val json = JSONObject().put("userId", uid)
+            val response =
+                supabase.functions.invoke("get-user-moderation") {
+                    contentType(ContentType.Application.Json)
+                    val secret = BuildConfig.PROCESS_ALERT_SECRET
+                    if (secret.isNotBlank()) {
+                        headers.append("x-veye-secret", secret)
+                    }
+                    setBody(json.toString())
+                }
+            if (!response.status.isSuccess()) {
+                if (response.status != HttpStatusCode.Unauthorized) {
+                    Log.w(TAG, "get-user-moderation http=${response.status}")
+                }
+                return UserModerationState(false, null)
+            }
+            val raw = response.bodyAsText()
+            val j = runCatching { JSONObject(raw) }.getOrNull() ?: return UserModerationState(false, null)
+            val blocked = j.optBoolean("blocked", false)
+            val unblockedAt =
+                when {
+                    j.has("unblockedAtMs") && !j.isNull("unblockedAtMs") ->
+                        j.optLong("unblockedAtMs", 0L).takeIf { it > 0 }
+                    else -> null
+                }
+            UserModerationState(isBlocked = blocked, unblockedAtMs = unblockedAt)
+        } catch (e: Exception) {
+            Log.w(TAG, "get-user-moderation", e)
+            UserModerationState(false, null)
+        }
+    }
+
+    private companion object {
+        const val TAG = "UserModerationRepository"
+    }
 }

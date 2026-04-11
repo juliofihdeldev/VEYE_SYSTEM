@@ -36,7 +36,7 @@ class MapViewModel @Inject constructor(
         )
 
     /**
-     * All zones from Firestore (no radius). Used for map pins + heatmap so the map stays useful
+     * All zones from Supabase `zone_danger` (no radius). Used for map pins + heatmap so the map stays useful
      * when the device GPS is far from Haiti while the camera is still on Haiti (radius filter
      * would hide every marker — looks like a “blank” map).
      */

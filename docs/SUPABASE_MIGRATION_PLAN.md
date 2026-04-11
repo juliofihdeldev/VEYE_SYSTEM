@@ -61,14 +61,16 @@ Living plan for moving backend and data from **Firebase** (Firestore + Cloud Fun
 
 ## Phase C — VEYe (Android)
 
-**Goal:** Kotlin app uses Supabase for the same flows as Firestore today.
+**Goal:** Kotlin app (`VEYe/`, Kotlin — **not** deprecated `VEYeApp/`) uses Supabase for the same flows as Firestore today.
 
 | # | Task | Output |
 |---|------|--------|
 | C1 | Add Supabase Kotlin client (or Ktor + REST) + secure storage for session. | DI module alongside / replacing `FirebaseModule` for data. |
-| C2 | Migrate **repositories** in order: read-only streams (`ZoneDanger`, `Viktim`, …) → writes (`GlobalAlert`, comments, demanti, user doc). | Parity with current UX. |
-| C3 | **Push** — keep **OneSignal**; only change how device/user ids link if backend changes. | No regression on notifications. |
-| C4 | Remove Firestore dependencies when unused. | Smaller app, no Firestore rules drift. |
+| C2 | Migrate **repositories** in order: read-only streams (`ZoneDanger`, `Viktim`, …) → writes (`GlobalAlert`, comments, demanti, user doc). | **Done** in `VEYe/` — see **Status** below. |
+| C3 | **Push** — keep **OneSignal**; only change how device/user ids link if backend changes. | **Unchanged:** OneSignal + `users.device_token` via **`process-user-merge`**; revisit if notification targeting moves off Firebase uid. |
+| C4 | Remove Firestore dependencies when unused. | **Done** for `VEYe/` — no `firebase-firestore-ktx`; Firebase **Auth + Analytics** only. |
+
+**Status (in repo):** **C1** — `VEYe/` uses **supabase-kt** (`postgrest-kt`, `auth-kt`, **`realtime-kt`**, `functions-kt`) + **Ktor OkHttp** + **Kotlin Serialization**; `SupabaseModule` installs **Realtime**. **C2** — **`ZoneDangerRepository`** and **`CommentsRepository.observeThread`** use **Realtime** postgres changes (refetch on change; requires publication migration). **`ViktimRepository`** still polls. **Supabase Auth:** **`AuthRepository`** calls **`signInAnonymously()`** after Firebase (JWT for Realtime; Firebase uid still sent to Edge). **User reports:** **`process-global-alert`**. **Comments writes:** **`process-veye-comment`**. **Demanti / users / moderation:** Edge as before. Secured Edge calls use optional **`PROCESS_ALERT_SECRET`**. **Gradle** does not read **`SUPABASE_*`** from env. **Next:** RLS + **`auth.uid()`** for direct comment paths; **D3**; optional Firebase removal. See [MONOREPO.md](./MONOREPO.md) § Android.
 
 ---
 
@@ -84,14 +86,14 @@ Living plan for moving backend and data from **Firebase** (Firestore + Cloud Fun
 
 ## Suggested order (next 2–4 weeks)
 
-1. **`supabase db push`** — apply latest migrations; **`supabase functions deploy`** — deploy all Edge functions; set **secrets**.  
+1. **`supabase db push`** — apply latest migrations; **`supabase functions deploy`** — deploy **all** Edge slugs (including **`process-demanti`**, **`process-user-merge`**, **`get-user-moderation`**, **`process-veye-comment`**); set **secrets** (`PROCESS_ALERT_SECRET`, AI keys, OneSignal, etc.).  
 2. **Cron** — [SCHEDULE_TELEGRAM.md](./SCHEDULE_TELEGRAM.md): GitHub Actions **Telegram monitor (15 min)** workflow + repository secrets.  
-3. **Smoke test** — workflow **Smoke Edge functions** or `./scripts/smoke-edge.sh` (see [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md)).  
-4. **B2 reads + B3** — dashboard loads from Postgres, submits to Edge URLs.  
-5. **C2 reads** — Android map/lists from Supabase.  
+3. **Smoke test** — workflow **Smoke Edge functions** or `./scripts/smoke-edge.sh` (extends to **`get-user-moderation`** when secret matches).  
+4. **B2 + B3** — **Done** in repo for `VEyeDashBoard`; re-verify against your hosted project.  
+5. **C2 Android** — **Done** in repo for `VEYe/` data paths; verify devices against **hosted** Supabase + deployed Edge.  
 6. **A5** — turn off Firebase Functions deploys when happy.  
-7. **B4 / C1 Auth** — when you are ready to leave Firebase Auth.  
-8. **D*** — cost and RLS hardening.
+7. **Supabase Auth on Android** (or keep Firebase Auth + accept Edge trust model) — when you are ready to align **RLS** with clients.  
+8. **D*** — cost and RLS hardening (**D3**).
 
 ---
 

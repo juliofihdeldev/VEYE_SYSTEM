@@ -7,7 +7,7 @@ The repo includes **`app/google-services.json`** with **two** Android clients:
 1. **`tech.transitiondigitaleht.veye`** — React Native Android (unchanged).
 2. **`com.elitesoftwarestudio.veye`** — Kotlin app.
 
-The Kotlin client uses a **placeholder** `mobilesdk_app_id` so Gradle can merge resources. **Before relying on Auth / Firestore in production:**
+The Kotlin client uses a **placeholder** `mobilesdk_app_id` so Gradle can merge resources. **Before relying on Auth in production:**
 
 1. Open [Firebase Console](https://console.firebase.google.com/) → project **edel-34e48** (or your project).
 2. **Project settings → Your apps → Add app → Android** with package **`com.elitesoftwarestudio.veye`**.
@@ -18,6 +18,6 @@ Until the app is registered, **anonymous sign-in may fail** at runtime; check Lo
 
 ## What the app does today
 
-- **Google Services** Gradle plugin + **Firebase BoM** (Auth, Firestore, Analytics). Push delivery uses **OneSignal** (see `VEYeApplication` / `README.md`); the app does not depend on `firebase-messaging` directly.
-- **`AuthRepository`**: `signInAnonymously()` when there is no current user (same idea as `VEYeApp/App.tsx`).
+- **Google Services** Gradle plugin + **Firebase BoM** (**Auth**, **Analytics**). App data uses **Supabase** (PostgREST + **Realtime** + Edge Functions); push delivery uses **OneSignal** (see `VEYeApplication` / `README.md`); the app does not depend on `firebase-messaging` directly.
+- **`AuthRepository`**: **Firebase** `signInAnonymously()` when needed, then **Supabase Auth** `signInAnonymously()` for a JWT (Realtime). Firebase **uid** remains the stable id sent to Edge functions (`userId` / merges).
 - **`UserPreferencesRepository`**: DataStore for map session, theme, locale, radii, notifications toggle, etc. (Profile screen wired).

@@ -33,6 +33,14 @@ curl -sfS -X POST "${BASE}/process-global-alert" \
   -w "\nHTTP %{http_code}\n" | head -c 4000
 echo
 
+echo "==> POST ${BASE}/get-user-moderation (requires x-veye-secret when PROCESS_ALERT_SECRET is set on project)"
+curl -sfS -X POST "${BASE}/get-user-moderation" \
+  "${HDR[@]}" \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"local-smoke-moderation"}' \
+  -w "\nHTTP %{http_code}\n" | head -c 2000
+echo
+
 echo "==> POST ${BASE}/telegram-monitor (may take up to ~2 min)"
 curl -sfS -X POST "${BASE}/telegram-monitor" \
   "${HDR[@]}" \

@@ -2,7 +2,7 @@
 # Secrets (same as cron + optional alert body):
 #   SUPABASE_FUNCTIONS_BASE — e.g. https://<project-ref>.supabase.co/functions/v1  (no trailing slash)
 #   SUPABASE_ANON_KEY
-#   PROCESS_ALERT_SECRET — optional for telegram-monitor / if your process-global path required it (it does not)
+#   PROCESS_ALERT_SECRET — optional for telegram-monitor; required for get-user-moderation / process-veye-comment / etc. when set on the project
 
 name: Smoke Edge functions
 
@@ -40,6 +40,22 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$BODY" \
             -w "\nHTTP %{http_code}\n" | head -c 4000
+          echo
+
+      - name: get-user-moderation (POST, optional secret)
+        env:
+          BASE: ${{ secrets.SUPABASE_FUNCTIONS_BASE }}
+          ANON: ${{ secrets.SUPABASE_ANON_KEY }}
+          SECRET: ${{ secrets.PROCESS_ALERT_SECRET }}
+        run: |
+          set -euo pipefail
+          HDR=( -H "Authorization: Bearer ${ANON}" -H "Content-Type: application/json" )
+          if [ -n "${SECRET:-}" ]; then
+            HDR+=( -H "x-veye-secret: ${SECRET}" )
+          fi
+          curl -sfS -X POST "${BASE}/get-user-moderation" "${HDR[@]}" \
+            -d '{"userId":"github-actions-smoke-moderation"}' \
+            -w "\nHTTP %{http_code}\n" | head -c 2000
           echo
 
       - name: telegram-monitor (POST, optional secret)
