@@ -7,8 +7,18 @@ import react from "@vitejs/plugin-react";
 // (e.g. `yarn dev` or `vite` with cwd ≠ VEyeDashBoard).
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
 
-export default defineConfig({
-  root: packageDir,
-  envDir: packageDir,
-  plugins: [react()],
+export default defineConfig(({ mode }) => {
+  /** Tauri injects TAURI_* during `beforeBuildCommand`; `--mode desktop` is the desktop/live build (see package.json). */
+  const tauriBundle = Boolean(
+    process.env.TAURI_PLATFORM || process.env.TAURI_FAMILY || process.env.TAURI_ARCH
+  );
+  const desktopMode = mode === "desktop";
+  const useRelativeBase = tauriBundle || desktopMode;
+
+  return {
+    root: packageDir,
+    envDir: packageDir,
+    base: useRelativeBase ? "./" : "/",
+    plugins: [react()],
+  };
 });

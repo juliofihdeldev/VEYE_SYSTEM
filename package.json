@@ -6,6 +6,8 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "dev:dashboard": "pnpm --filter veye-dashboard dev",
+    "dev:dashboard:tauri": "pnpm --filter veye-dashboard tauri:dev",
+    "build:dashboard:tauri": "pnpm --filter veye-dashboard tauri:build",
     "dev:webapp": "pnpm --filter veye-web-app dev",
     "dev:functions": "pnpm --filter @veye/legacy-functions serve",
     "supabase:serve": "supabase functions serve",

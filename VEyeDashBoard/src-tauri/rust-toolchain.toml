@@ -1,0 +1,6 @@
+# Tauri 2’s dependency graph includes crates using Rust edition 2024, which needs
+# Cargo/rustc from 1.85+ (edition 2024 stabilized in 1.85). If you see
+# "feature `edition2024` is required" with an older toolchain, run:
+#   rustup update stable
+[toolchain]
+channel = "stable"

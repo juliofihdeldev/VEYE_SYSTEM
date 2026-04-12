@@ -1,0 +1,15 @@
+[package]
+name = "veye_dashboard"
+version = "0.0.0"
+description = "VEYe Dashboard (Tauri)"
+authors = ["VEYE"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

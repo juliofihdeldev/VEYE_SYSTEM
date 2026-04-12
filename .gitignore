@@ -12,6 +12,8 @@ build/
 .env
 .env.*
 !.env.example
+!**/.env.example
+!**/.env.*.example
 !supabase/functions/.env.example
 
 # OS / IDE
@@ -38,3 +40,6 @@ supabase/functions/.env
 # Firestore scripted export output (local)
 firestore-export-out/
 scripts/firestore-export/out/
+
+# Tauri (Rust)
+VEyeDashBoard/src-tauri/target/
