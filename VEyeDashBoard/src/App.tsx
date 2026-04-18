@@ -30,7 +30,6 @@ import LanguageIcon from '@mui/icons-material/Language';
 import {
   DashboardOutlined,
   ErrorOutline,
-  ReportProblemOutlined,
   PlaceOutlined,
   ArticleOutlined,
   GroupsOutlined,
@@ -43,6 +42,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getSupabase } from './lib/supabase';
+import { useCurrentUser } from './auth/useCurrentUser';
 
 const drawerWidth = 248;
 
@@ -139,7 +139,6 @@ const sections: NavSection[] = [
     items: [
       { name: 'Dashboard', icon: <DashboardOutlined />, link: '/home' },
       { name: 'Viktim', icon: <ErrorOutline />, link: '/viktim', badge: 142, badgeColor: 'error' },
-      { name: 'Incidents', icon: <ReportProblemOutlined />, link: '/stat-incident', badge: 28, badgeColor: 'warning' },
       { name: 'Zon Danje', icon: <PlaceOutlined />, link: '/zone-danger' },
       { name: 'Nouvo', icon: <ArticleOutlined />, link: '/news' },
     ],
@@ -177,6 +176,7 @@ export default function App({ children }: PropsChildren) {
   const [lang, setLang] = React.useState<'FR' | 'KR' | 'EN'>('FR');
   const navigate = useNavigate();
   const location = useLocation();
+  const { displayName, email, roleLabel, initials } = useCurrentUser();
 
   const openLink = (link: string) => navigate(link);
   const handleDrawerOpen = () => setOpen(true);
@@ -473,13 +473,17 @@ export default function App({ children }: PropsChildren) {
         <Box sx={{ p: 1.5 }}>
           {open ? (
             <Stack direction="row" alignItems="center" spacing={1.25}>
-              <Avatar sx={{ bgcolor: '#0f766e', width: 36, height: 36, fontWeight: 700 }}>KR</Avatar>
+              <Tooltip title={email || displayName}>
+                <Avatar sx={{ bgcolor: '#0f766e', width: 36, height: 36, fontWeight: 700 }}>
+                  {initials}
+                </Avatar>
+              </Tooltip>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }} noWrap>
-                  Kerby R.
+                  {displayName}
                 </Typography>
                 <Typography sx={{ fontSize: 11, color: 'text.secondary' }} noWrap>
-                  Administratè
+                  {email || roleLabel}
                 </Typography>
               </Box>
               <Tooltip title="Dekonekte">
@@ -490,9 +494,13 @@ export default function App({ children }: PropsChildren) {
             </Stack>
           ) : (
             <Stack alignItems="center" spacing={1}>
-              <Avatar sx={{ bgcolor: '#0f766e', width: 32, height: 32, fontWeight: 700, fontSize: 13 }}>
-                KR
-              </Avatar>
+              <Tooltip title={email || displayName}>
+                <Avatar
+                  sx={{ bgcolor: '#0f766e', width: 32, height: 32, fontWeight: 700, fontSize: 13 }}
+                >
+                  {initials}
+                </Avatar>
+              </Tooltip>
               <IconButton size="small" onClick={fnLogout}>
                 <ExitToApp fontSize="small" />
               </IconButton>

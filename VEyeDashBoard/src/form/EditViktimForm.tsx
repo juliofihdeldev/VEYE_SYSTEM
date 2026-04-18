@@ -14,30 +14,35 @@ import {
   Typography,
 } from '@mui/material';
 import {
+  AccessTimeRounded,
   AttachMoneyRounded,
   BadgeRounded,
   BrokenImageRounded,
-  CheckCircleRounded,
   DescriptionRounded,
   HelpOutlineRounded,
   LinkRounded,
   PersonOutlineRounded,
   PlaceOutlined,
-  WarningAmberRounded,
 } from '@mui/icons-material';
-import { handleSendViktim } from '../api';
+import { handleUpdatedViktim } from '../api';
 import { Field, FieldLabel } from './Field';
 
-type ViktimType = '' | 'kidnaping' | 'Pedi' | 'byBandi';
+interface Props {
+  item: any;
+  handleClose: () => void;
+  onSaved: () => void;
+}
+
+type ViktimType = '' | 'kidnaping' | 'Pedi' | 'byBandi' | 'disparut' | 'bandi-touye';
 type ViktimStatus = '' | 'Captive' | 'Relache';
 
-const TYPE_OPTIONS: { value: ViktimType; label: string; color: string; bg: string }[] = [
+const TYPE_OPTIONS: { value: Exclude<ViktimType, ''>; label: string; color: string; bg: string }[] = [
   { value: 'kidnaping', label: 'Kidnaping', color: '#b91c1c', bg: '#fee2e2' },
   { value: 'Pedi', label: 'Pedi', color: '#b45309', bg: '#fef3c7' },
   { value: 'byBandi', label: 'Bandi', color: '#7c3aed', bg: '#ede9fe' },
 ];
 
-const STATUS_OPTIONS: { value: ViktimStatus; label: string; color: string; bg: string }[] = [
+const STATUS_OPTIONS: { value: Exclude<ViktimStatus, ''>; label: string; color: string; bg: string }[] = [
   { value: 'Captive', label: 'Captive', color: '#b91c1c', bg: '#fee2e2' },
   { value: 'Relache', label: 'Relache', color: '#15803d', bg: '#dcfce7' },
 ];
@@ -55,6 +60,32 @@ const colorFor = (s: string) => {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % colorPalette.length;
   return colorPalette[h];
 };
+
+function dateToDatetimeLocal(raw: unknown): string {
+  if (raw == null) return '';
+  let ms: number | null = null;
+  const d = raw as { seconds?: number; nanoseconds?: number; toDate?: () => Date };
+  if (typeof d.seconds === 'number') {
+    ms = d.seconds * 1000 + Math.floor((d.nanoseconds ?? 0) / 1e6);
+  } else if (typeof d.toDate === 'function') {
+    ms = d.toDate().getTime();
+  } else if (raw instanceof Date) {
+    ms = raw.getTime();
+  } else if (typeof raw === 'string') {
+    const t = new Date(raw).getTime();
+    if (!Number.isNaN(t)) ms = t;
+  }
+  if (ms == null || Number.isNaN(ms)) return '';
+  const date = new Date(ms);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function nowLocalIso() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
 
 function SectionHeader({
   icon,
@@ -91,16 +122,22 @@ function SectionHeader({
   );
 }
 
-export default function ViktimForm({ handleClose }: { handleClose: () => void }) {
-  const [fullName, setFullName] = React.useState('');
-  const [imageSource, setImageSource] = React.useState('');
+export default function EditViktimForm({ item, handleClose, onSaved }: Props) {
+  const [fullName, setFullName] = React.useState<string>(item?.fullName ?? item?.full_name ?? '');
+  const [imageSource, setImageSource] = React.useState<string>(
+    item?.imageSource ?? item?.image_source ?? '',
+  );
   const [imgError, setImgError] = React.useState(false);
-  const [amount, setAmount] = React.useState('');
-  const [status, setStatus] = React.useState<ViktimStatus>('');
-  const [zone, setZone] = React.useState('');
-  const [type, setType] = React.useState<ViktimType>('');
-  const [details, setDetails] = React.useState('');
-  const [confirm, setConfirm] = React.useState(false);
+  const [amount, setAmount] = React.useState<string>(
+    item?.amount != null ? String(item.amount) : '',
+  );
+  const [status, setStatus] = React.useState<ViktimStatus>((item?.status as ViktimStatus) ?? '');
+  const [zone, setZone] = React.useState<string>(item?.zone ?? item?.city ?? '');
+  const [type, setType] = React.useState<ViktimType>((item?.type as ViktimType) ?? '');
+  const [details, setDetails] = React.useState<string>(item?.details ?? '');
+  const [incidentDate, setIncidentDate] = React.useState<string>(
+    () => dateToDatetimeLocal(item?.date),
+  );
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [submitting, setSubmitting] = React.useState(false);
@@ -111,8 +148,23 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
   }>({ open: false, severity: 'success', msg: '' });
 
   React.useEffect(() => {
+    setFullName(item?.fullName ?? item?.full_name ?? '');
+    setImageSource(item?.imageSource ?? item?.image_source ?? '');
+    setAmount(item?.amount != null ? String(item.amount) : '');
+    setStatus((item?.status as ViktimStatus) ?? '');
+    setZone(item?.zone ?? item?.city ?? '');
+    setType((item?.type as ViktimType) ?? '');
+    setDetails(item?.details ?? '');
+    setIncidentDate(dateToDatetimeLocal(item?.date));
+    setErrors({});
     setImgError(false);
-  }, [imageSource]);
+  }, [item?.id]);
+
+  const formatAmount = (raw: string) => {
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return new Intl.NumberFormat('fr-HT').format(n);
+  };
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -122,41 +174,36 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
       e.imageSource = 'Lyen foto a dwe kòmanse ak http(s)://';
     }
     if (amount && Number(amount) < 0) e.amount = 'Kantite a pa ka negatif.';
-    if (!confirm) e.confirm = 'Ou dwe konfime ou verifye enfòmasyon yo.';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const formatAmount = (raw: string) => {
-    const n = Number(raw);
-    if (!Number.isFinite(n) || n <= 0) return null;
-    return new Intl.NumberFormat('fr-HT').format(n);
-  };
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!validate()) return;
 
-    const payload = {
+    const fields: Record<string, unknown> = {
       fullName: fullName.trim(),
       details: details.trim(),
-      imageSource: imageSource.trim() || undefined,
-      amount: amount ? Number(amount) : undefined,
-      type: type || undefined,
-      status: status || undefined,
-      zone: zone.trim() || undefined,
-      confirm: 'confirme',
-      date: new Date(),
+      imageSource: imageSource.trim() || null,
+      amount: amount ? amount.trim() : null,
+      type: type || null,
+      status: status || null,
+      zone: zone.trim() || null,
     };
+    if (incidentDate.trim()) {
+      fields.date = new Date(incidentDate.trim()).toISOString();
+    }
 
     setSubmitting(true);
     try {
-      await handleSendViktim(payload);
-      setToast({ open: true, severity: 'success', msg: 'Viktim lan anrejistre, mèsi.' });
-      window.setTimeout(handleClose, 600);
+      await handleUpdatedViktim(item.id, fields);
+      setToast({ open: true, severity: 'success', msg: 'Mizajou anrejistre.' });
+      onSaved();
+      window.setTimeout(handleClose, 500);
     } catch (e) {
       console.error(e);
-      setToast({ open: true, severity: 'error', msg: 'Echèk nan anrejistre viktim lan. Eseye ankò.' });
+      setToast({ open: true, severity: 'error', msg: 'Echèk nan mizajou. Eseye ankò.' });
     } finally {
       setSubmitting(false);
     }
@@ -164,6 +211,10 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
 
   const formattedAmount = formatAmount(amount);
   const showPreview = !!fullName.trim() || !!imageSource.trim();
+
+  React.useEffect(() => {
+    setImgError(false);
+  }, [imageSource]);
 
   return (
     <Box component="form" noValidate onSubmit={handleSubmit} sx={{ width: '100%' }}>
@@ -390,7 +441,25 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
             }
           />
         </Stack>
+      </Stack>
 
+      <SectionHeader icon={<AccessTimeRounded sx={{ fontSize: 16 }} />} title="Lè ensidan" />
+
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'flex-end' }}>
+        <Field
+          label="Dat / lè"
+          type="datetime-local"
+          value={incidentDate}
+          onChange={(e) => setIncidentDate(e.target.value)}
+          helperText="Vid = pa chanje dat la nan baz la."
+        />
+        <Button
+          variant="text"
+          onClick={() => setIncidentDate(nowLocalIso())}
+          sx={{ height: 42, alignSelf: { xs: 'flex-start', sm: 'flex-end' }, mb: { sm: 3 } }}
+        >
+          Kounye a
+        </Button>
       </Stack>
 
       <SectionHeader icon={<DescriptionRounded sx={{ fontSize: 16 }} />} title="Eksplikasyon" />
@@ -407,43 +476,6 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
         error={!!errors.details}
         helperText={errors.details || `${details.length} karaktè`}
       />
-
-      <Box
-        sx={{
-          mt: 2.5,
-          p: 1.5,
-          borderRadius: 2,
-          bgcolor: confirm ? '#f0fdfa' : '#fff7ed',
-          border: `1px solid ${confirm ? 'rgba(13,148,136,0.25)' : 'rgba(245,158,11,0.3)'}`,
-          transition: 'all 180ms ease',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1.25,
-          cursor: 'pointer',
-        }}
-        onClick={() => setConfirm((c) => !c)}
-        role="checkbox"
-        aria-checked={confirm}
-      >
-        {confirm ? (
-          <CheckCircleRounded sx={{ color: 'primary.main', mt: 0.25 }} />
-        ) : (
-          <WarningAmberRounded sx={{ color: 'warning.main', mt: 0.25 }} />
-        )}
-        <Box sx={{ flex: 1 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-            Mwen verifye enfòmasyon sa yo anvan m soumèt.
-          </Typography>
-          <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-            Pwoteje fanmi yo: pa pibliye fo enfòmasyon sou yon viktim.
-          </Typography>
-          {errors.confirm && (
-            <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
-              {errors.confirm}
-            </Typography>
-          )}
-        </Box>
-      </Box>
 
       <Stack
         direction="row"
@@ -480,7 +512,7 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
             }
             sx={{ minWidth: 140 }}
           >
-            {submitting ? 'An voye…' : 'Ajoute viktim'}
+            {submitting ? 'Ankou…' : 'Mete ajou'}
           </Button>
         </Stack>
       </Stack>

@@ -271,6 +271,81 @@ export const handleGetViktim = async (type: string) => {
 	}
 };
 
+export type ViktimSearchParams = {
+	query?: string;
+	type?: string;
+	status?: string;
+	dateFrom?: string | null;
+	dateTo?: string | null;
+	limit?: number;
+	offset?: number;
+};
+
+export type ViktimSearchResult = {
+	rows: ReturnType<typeof mapViktimRow>[];
+	total: number;
+};
+
+/**
+ * Search viktim using Postgres Full-Text Search (tsvector + GIN index).
+ *
+ * Mirrors `searchDangerZones`: server-side `websearch` query, exact count,
+ * date range and pagination all pushed to Postgres so the dashboard list
+ * stays snappy as the table grows.
+ */
+export const searchViktim = async ({
+	query,
+	type,
+	status,
+	dateFrom,
+	dateTo,
+	limit = 10,
+	offset = 0,
+}: ViktimSearchParams): Promise<ViktimSearchResult> => {
+	try {
+		let q = getSupabase()
+			.from("viktim")
+			.select("*", { count: "exact" })
+			.order("date", { ascending: false });
+
+		const trimmed = (query ?? "").trim();
+		if (trimmed) {
+			q = q.textSearch("search_tsv", trimmed, {
+				type: "websearch",
+				config: "simple",
+			});
+		}
+
+		if (type && type !== "All") {
+			q = q.eq("type", type);
+		}
+		if (status) {
+			q = q.eq("status", status);
+		}
+		if (dateFrom) {
+			const fromIso = new Date(`${dateFrom}T00:00:00.000Z`).toISOString();
+			q = q.gte("date", fromIso);
+		}
+		if (dateTo) {
+			const toIso = new Date(`${dateTo}T23:59:59.999Z`).toISOString();
+			q = q.lte("date", toIso);
+		}
+
+		q = q.range(offset, offset + limit - 1);
+
+		const { data, error, count } = await q;
+		if (error) throw error;
+
+		return {
+			rows: (data ?? []).map((r) => mapViktimRow(r as Record<string, unknown>)),
+			total: count ?? 0,
+		};
+	} catch (error) {
+		console.error("searchViktim failed", error);
+		return { rows: [], total: 0 };
+	}
+};
+
 export const handleSendViktim = async (data: any) => {
 	if (!data) return;
 	const row = typeof data === "string" ? JSON.parse(data) : { ...data };
@@ -293,6 +368,19 @@ export const handleDeletedViktim = async (data: any) => {
 	} catch (error) {
 		console.error(error);
 	}
+};
+
+export const handleUpdatedViktim = async (id: string, fields: Record<string, any>) => {
+	if (!id) return;
+	const patch: Record<string, unknown> = { ...fields };
+	if (patch.date != null) {
+		if (typeof patch.date === "object" && patch.date !== null && "seconds" in patch.date) {
+			patch.date = new Date((patch.date as { seconds: number }).seconds * 1000).toISOString();
+		} else if (patch.date instanceof Date) {
+			patch.date = patch.date.toISOString();
+		}
+	}
+	await edgeMutate({ action: "update", table: "viktim", id, patch });
 };
 
 // --- News ---
@@ -460,4 +548,198 @@ export const handleSendALertNotification = async (message: string) => {
 	} catch (error) {
 		console.error(error);
 	}
+};
+
+// ---------------------------------------------------------------------------
+// Moderation
+// ---------------------------------------------------------------------------
+
+export type ModerationStatus = "PENDING" | "APPROVED" | "REJECTED" | "ESCALATED";
+export type ModerationReason =
+	| "MISINFORMATION"
+	| "HATE_SPEECH"
+	| "SPAM"
+	| "GRAPHIC"
+	| "DUPLICATE"
+	| "OTHER";
+export type ModerationContentType = "POST" | "REPORT" | "NEWS" | "COMMENT";
+export type ModeratorAction = "approve" | "reject" | "escalate";
+
+export type ModerationItem = {
+	id: string;
+	authorId: string | null;
+	authorName: string;
+	authorHandle: string | null;
+	authorAnonymous: boolean;
+	contentType: ModerationContentType;
+	contentRef: string | null;
+	preview: string;
+	thumbnail: string | null;
+	location: string | null;
+	reason: ModerationReason;
+	reportsCount: number;
+	status: ModerationStatus;
+	decidedBy: string | null;
+	decidedAt: string | null;
+	decisionNote: string | null;
+	submittedAt: string;
+};
+
+function mapModerationRow(r: Record<string, unknown>): ModerationItem {
+	return {
+		id: String(r.id),
+		authorId: (r.author_id as string | null) ?? null,
+		authorName: String(r.author_name ?? ""),
+		authorHandle: (r.author_handle as string | null) ?? null,
+		authorAnonymous: Boolean(r.author_anonymous),
+		contentType: r.content_type as ModerationContentType,
+		contentRef: (r.content_ref as string | null) ?? null,
+		preview: String(r.preview ?? ""),
+		thumbnail: (r.thumbnail_url as string | null) ?? null,
+		location: (r.location as string | null) ?? null,
+		reason: r.reason as ModerationReason,
+		reportsCount: Number(r.reports_count ?? 0),
+		status: r.status as ModerationStatus,
+		decidedBy: (r.decided_by as string | null) ?? null,
+		decidedAt: (r.decided_at as string | null) ?? null,
+		decisionNote: (r.decision_note as string | null) ?? null,
+		submittedAt: String(r.submitted_at ?? new Date().toISOString()),
+	};
+}
+
+export type ModeratorRole = "admin" | "moderator" | "viewer" | null;
+
+/** Returns the current Supabase user's dashboard role, or null if no row exists. */
+export const getCurrentUserRole = async (): Promise<ModeratorRole> => {
+	try {
+		const sb = getSupabase();
+		const { data: userRes } = await sb.auth.getUser();
+		if (!userRes.user) return null;
+		const { data, error } = await sb
+			.from("user_roles")
+			.select("role")
+			.eq("user_id", userRes.user.id)
+			.maybeSingle();
+		if (error) {
+			console.error("getCurrentUserRole", error.message);
+			return null;
+		}
+		return (data?.role as ModeratorRole) ?? null;
+	} catch (error) {
+		console.error("getCurrentUserRole failed", error);
+		return null;
+	}
+};
+
+export type ModerationQueueFilters = {
+	status?: ModerationStatus;
+	reason?: ModerationReason;
+	limit?: number;
+};
+
+export const fetchModerationQueue = async (
+	filters: ModerationQueueFilters = {},
+): Promise<ModerationItem[]> => {
+	try {
+		let q = getSupabase()
+			.from("moderation_queue")
+			.select("*")
+			.order("submitted_at", { ascending: false })
+			.limit(filters.limit ?? 200);
+		if (filters.status) q = q.eq("status", filters.status);
+		if (filters.reason) q = q.eq("reason", filters.reason);
+		const { data, error } = await q;
+		if (error) throw error;
+		return (data ?? []).map((r) => mapModerationRow(r as Record<string, unknown>));
+	} catch (error) {
+		console.error("fetchModerationQueue failed", error);
+		return [];
+	}
+};
+
+/**
+ * Decide on a single moderation item (atomic, audited).
+ *
+ * Calls the SECURITY DEFINER RPC `moderation_decide` which:
+ *   1. Checks caller role (admin required for `escalate`, moderator+ for the rest).
+ *   2. Updates `moderation_queue` (status, decided_by, decided_at, decision_note).
+ *   3. Inserts a `moderation_audit` row.
+ */
+export const decideModeration = async (
+	itemId: string,
+	action: ModeratorAction,
+	note?: string,
+): Promise<{ id: string; status: ModerationStatus } | null> => {
+	const { data, error } = await getSupabase().rpc("moderation_decide", {
+		p_item_id: itemId,
+		p_action: action,
+		p_note: note ?? null,
+	});
+	if (error) throw new Error(error.message);
+	const row = Array.isArray(data) ? data[0] : data;
+	if (!row) return null;
+	return { id: String(row.id), status: row.status as ModerationStatus };
+};
+
+export const bulkDecideModeration = async (
+	itemIds: string[],
+	action: ModeratorAction,
+	note?: string,
+): Promise<{ succeeded: string[]; failed: { id: string; error: string }[] }> => {
+	const succeeded: string[] = [];
+	const failed: { id: string; error: string }[] = [];
+	const results = await Promise.allSettled(
+		itemIds.map((id) => decideModeration(id, action, note)),
+	);
+	results.forEach((r, i) => {
+		if (r.status === "fulfilled" && r.value) {
+			succeeded.push(r.value.id);
+		} else {
+			failed.push({
+				id: itemIds[i],
+				error: r.status === "rejected" ? String(r.reason?.message ?? r.reason) : "unknown",
+			});
+		}
+	});
+	return { succeeded, failed };
+};
+
+export type ModerationChangeEvent =
+	| { kind: "INSERT"; item: ModerationItem }
+	| { kind: "UPDATE"; item: ModerationItem }
+	| { kind: "DELETE"; id: string };
+
+/**
+ * Subscribe to live changes on `moderation_queue`. Returns an unsubscribe fn.
+ *
+ * Requires the table to be in the `supabase_realtime` publication
+ * (the moderation migration adds it).
+ */
+export const subscribeToModerationQueue = (
+	handler: (event: ModerationChangeEvent) => void,
+): (() => void) => {
+	const sb = getSupabase();
+	const channel = sb
+		.channel("moderation_queue_changes")
+		.on(
+			"postgres_changes",
+			{ event: "*", schema: "public", table: "moderation_queue" },
+			(payload) => {
+				if (payload.eventType === "DELETE") {
+					const oldRow = payload.old as Record<string, unknown>;
+					if (oldRow?.id) handler({ kind: "DELETE", id: String(oldRow.id) });
+					return;
+				}
+				const row = payload.new as Record<string, unknown>;
+				if (!row?.id) return;
+				handler({
+					kind: payload.eventType === "INSERT" ? "INSERT" : "UPDATE",
+					item: mapModerationRow(row),
+				});
+			},
+		)
+		.subscribe();
+	return () => {
+		sb.removeChannel(channel);
+	};
 };

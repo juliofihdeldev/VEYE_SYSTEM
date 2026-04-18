@@ -13,9 +13,9 @@ import DangerZone from './components/DangerZone.tsx';
 import Kidnapping from './components/Kidnapping.tsx';
 import News from './components/News.tsx';
 import Maps from './components/Maps.tsx';
-import StatIncident from './components/StatIncident.tsx';
 import TelegramMonitorTool from './components/TelegramMonitorTool.tsx';
 import Dashboard from './components/Dashboard.tsx';
+import Moderation from './components/Moderation.tsx';
 import ErrorPage from './components/ErrorPage.tsx';
 
 const router = createBrowserRouter([
@@ -34,8 +34,8 @@ const router = createBrowserRouter([
           { path: 'zone-danger', element: <App><DangerZone /></App> },
           { path: 'maps', element: <App><Maps /></App> },
           { path: 'kidnapping', element: <App><Kidnapping /></App> },
-          { path: 'stat-incident', element: <App><StatIncident /></App> },
           { path: 'telegram', element: <App><TelegramMonitorTool /></App> },
+          { path: 'moderation', element: <App><Moderation /></App> },
         ],
       },
       { path: '*', element: <ErrorPage /> },
