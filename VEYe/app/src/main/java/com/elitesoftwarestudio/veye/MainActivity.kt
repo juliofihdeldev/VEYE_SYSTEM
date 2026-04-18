@@ -27,7 +27,6 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
     private val themeViewModel: ThemeViewModel by viewModels()
     private val mainViewModel: MainViewModel by viewModels()
 

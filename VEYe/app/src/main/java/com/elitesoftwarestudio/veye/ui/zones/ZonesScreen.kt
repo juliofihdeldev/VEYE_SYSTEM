@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -52,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -62,9 +62,10 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elitesoftwarestudio.veye.R
-import com.elitesoftwarestudio.veye.ui.BottomSheetMaxHeightFraction
+import com.elitesoftwarestudio.veye.ui.theme.VEYeTheme
 import com.elitesoftwarestudio.veye.data.map.DangerZone
 import com.elitesoftwarestudio.veye.data.pending.PendingReport
+import com.elitesoftwarestudio.veye.data.pending.PendingReportStatus
 import com.elitesoftwarestudio.veye.data.map.DemantiRepository
 import com.elitesoftwarestudio.veye.data.map.MapTimeRange
 import com.elitesoftwarestudio.veye.data.map.filterItemsByMapTimeRange
@@ -210,11 +211,8 @@ fun ZonesScreen(
             sheetPeekHeight = 120.dp,
             sheetDragHandle = { BottomSheetDefaults.DragHandle() },
             containerColor = Color.Transparent,
-            modifier =
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .fillMaxHeight(BottomSheetMaxHeightFraction),
+            sheetContainerColor = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxSize(),
             sheetContent = {
                 ZonesSheetList(
                     pendingReports = pendingReports,
@@ -513,6 +511,104 @@ private fun ZonesSheetList(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+        }
+    }
+}
+
+private fun sampleZone(
+    id: String,
+    name: String,
+    rezon: String,
+    minutesAgo: Long,
+    incidentType: String? = "shooting",
+): DangerZone =
+    DangerZone(
+        id = id,
+        name = name,
+        latitude = 18.5944,
+        longitude = -72.3074,
+        rezon = rezon,
+        date = System.currentTimeMillis() - minutesAgo * 60_000L,
+        incidentType = incidentType,
+        tag = null,
+    )
+
+private val sampleZones: List<DangerZone> =
+    listOf(
+        sampleZone("z1", "Delmas 32", "high", minutesAgo = 12),
+        sampleZone("z2", "Pétion-Ville", "medium", minutesAgo = 95),
+        sampleZone("z3", "Carrefour", "low", minutesAgo = 60 * 26, incidentType = "kidnapping"),
+    )
+
+private val samplePending: List<PendingReport> =
+    listOf(
+        PendingReport(
+            id = "p1",
+            rezon = "high",
+            name = "Champ de Mars",
+            status = PendingReportStatus.Sending,
+            createdAt = System.currentTimeMillis() - 5_000L,
+        ),
+    )
+
+@Preview(name = "Sheet — populated", showBackground = true, widthDp = 380, heightDp = 700)
+@Composable
+private fun ZonesSheetListPreview() {
+    VEYeTheme {
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            ZonesSheetList(
+                pendingReports = samplePending,
+                onDismissPending = {},
+                zones = sampleZones,
+                selectedZoneId = "z1",
+                openSwipeZoneId = null,
+                onOpenSwipeChange = {},
+                onZoneClick = {},
+                onOpenComments = {},
+                onRequestFlag = {},
+                formatTime = { z ->
+                    when (z.id) {
+                        "z1" -> "12 min"
+                        "z2" -> "1 h 35 min"
+                        else -> "1 d"
+                    }
+                },
+            )
+        }
+    }
+}
+
+@Preview(name = "Sheet — empty", showBackground = true, widthDp = 380, heightDp = 360)
+@Composable
+private fun ZonesSheetListEmptyPreview() {
+    VEYeTheme {
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            ZonesSheetList(
+                pendingReports = emptyList(),
+                onDismissPending = {},
+                zones = emptyList(),
+                selectedZoneId = null,
+                openSwipeZoneId = null,
+                onOpenSwipeChange = {},
+                onZoneClick = {},
+                onOpenComments = {},
+                onRequestFlag = {},
+                formatTime = { "" },
+            )
+        }
+    }
+}
+
+@Preview(name = "Map legend", showBackground = true, widthDp = 220, heightDp = 110)
+@Composable
+private fun LegendDotPreview() {
+    VEYeTheme {
+        Surface(tonalElevation = 2.dp, shape = RoundedCornerShape(10.dp)) {
+            Column(Modifier.padding(10.dp)) {
+                LegendDot(Color(0xFFC41E3A), "High risk")
+                LegendDot(Color(0xFFE85D04), "Medium risk")
+                LegendDot(Color(0xFFEAB308), "Low risk")
             }
         }
     }
