@@ -581,27 +581,15 @@ export default function Viktim() {
         />
       </Paper>
 
-      <ModalComponent handleClose={handleClose} open={open}>
-        <Stack direction="row" spacing={2} justifyContent="space-between" mb={2}>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Ajoute yon viktim
-          </Typography>
-          <IconButton aria-label="close" onClick={handleClose}>
-            <CloseIcon />
-          </IconButton>
-        </Stack>
+      <ModalComponent handleClose={handleClose} open={open} title="Ajoute yon viktim">
         <ViktimForm handleClose={handleClose} />
       </ModalComponent>
 
-      <ModalComponent handleClose={handleEditClose} open={!!editItem}>
-        <Stack direction="row" spacing={2} justifyContent="space-between" mb={2}>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Modifye viktim
-          </Typography>
-          <IconButton aria-label="close" onClick={handleEditClose}>
-            <CloseIcon />
-          </IconButton>
-        </Stack>
+      <ModalComponent
+        handleClose={handleEditClose}
+        open={!!editItem}
+        title="Modifye viktim"
+      >
         {editItem && (
           <EditViktimForm
             item={editItem}

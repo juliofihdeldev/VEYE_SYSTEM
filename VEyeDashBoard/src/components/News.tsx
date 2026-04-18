@@ -13,7 +13,6 @@ import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import ModalComponent from './Modal';
-import CloseIcon from '@mui/icons-material/Close';
 import Add from '@mui/icons-material/Add';
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
@@ -116,18 +115,8 @@ export default function News() {
           </Button>
         </Stack>
     
-      <ModalComponent handleClose={handleClose} open={open}>
-          <Stack direction="row" spacing={2} justifyContent="space-between">
-            <Typography variant="h4" component="h2">
-            News
-            </Typography>
-          <IconButton aria-label="delete"
-           onClick={handleClose}
-          >
-            <CloseIcon />
-            </IconButton>
-          </Stack>
-          <NewsForm handleClose={handleClose}/>
+      <ModalComponent handleClose={handleClose} open={open} title="Ajoute yon nouvèl">
+        <NewsForm handleClose={handleClose}/>
       </ModalComponent>
 
       <TableContainer sx={{ width: '100%', minHeight: 400, borderRadius: 2, overflow: 'hidden' }}>

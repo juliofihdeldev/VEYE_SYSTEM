@@ -478,27 +478,15 @@ export default function DangerZone() {
         />
       </Paper>
 
-      <ModalComponent handleClose={handleClose} open={open}>
-        <Stack direction="row" spacing={2} justifyContent="space-between" mb={2}>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Signaler yon zon danje
-          </Typography>
-          <IconButton aria-label="close" onClick={handleClose}>
-            <CloseIcon />
-          </IconButton>
-        </Stack>
+      <ModalComponent handleClose={handleClose} open={open} title="Signaler yon zon danje">
         <DangerForm handleClose={handleClose} />
       </ModalComponent>
 
-      <ModalComponent handleClose={handleEditClose} open={!!editItem}>
-        <Stack direction="row" spacing={2} justifyContent="space-between" mb={2}>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Modifye zon danje
-          </Typography>
-          <IconButton aria-label="close" onClick={handleEditClose}>
-            <CloseIcon />
-          </IconButton>
-        </Stack>
+      <ModalComponent
+        handleClose={handleEditClose}
+        open={!!editItem}
+        title="Modifye zon danje"
+      >
         {editItem && (
           <EditDangerForm
             item={editItem}
