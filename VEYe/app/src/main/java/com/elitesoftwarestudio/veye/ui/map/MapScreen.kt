@@ -16,8 +16,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material3.BottomSheetDefaults
@@ -25,6 +26,7 @@ import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
@@ -67,6 +69,9 @@ import kotlinx.coroutines.launch
 
 private val HaitiCenter = LatLng(18.5944, -72.3074)
 
+/** Shared default camera zoom used for the initial position and recenters across map screens. */
+internal const val DefaultMapZoom = 19f
+
 /** Same sources as markers / RN `heatmapPoints`. */
 private fun buildHeatmapLatLngs(zones: List<DangerZone>, victims: List<ViktimMapRow>): List<LatLng> {
     val z = zones.mapNotNull { zone ->
@@ -95,7 +100,7 @@ fun MapScreen(
     var timeRange by remember { mutableStateOf(MapTimeRange.All) }
     var showHeatmap by rememberSaveable { mutableStateOf(true) }
     var mapSatellite by rememberSaveable { mutableStateOf(false) }
-    var map3d by rememberSaveable { mutableStateOf(false) }
+    var map3d by rememberSaveable { mutableStateOf(true) }
     val dangerZonesForMap by viewModel.dangerZonesForMap.collectAsStateWithLifecycle()
     val dangerZonesNearby by viewModel.dangerZonesNearby.collectAsStateWithLifecycle()
     val viktims by viewModel.viktims.collectAsStateWithLifecycle()
@@ -117,9 +122,10 @@ fun MapScreen(
 
     val scope = rememberCoroutineScope()
     var shouldAutoCenterOnce by rememberSaveable { mutableStateOf(true) }
+    val initialZoom = DefaultMapZoom
 
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(HaitiCenter, 8.2f)
+        position = CameraPosition.fromLatLngZoom(HaitiCenter, initialZoom)
     }
 
     LaunchedEffect(hasFineLocation) {
@@ -127,7 +133,7 @@ fun MapScreen(
         val c = viewModel.fetchAndPersistLocation() ?: return@LaunchedEffect
         shouldAutoCenterOnce = false
         cameraPositionState.animate(
-            CameraUpdateFactory.newLatLngZoom(LatLng(c.first, c.second), 11f),
+            CameraUpdateFactory.newLatLngZoom(LatLng(c.first, c.second), DefaultMapZoom),
             durationMs = 900,
         )
     }
@@ -289,11 +295,13 @@ fun MapScreen(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(end = 16.dp, bottom = 88.dp + paddingValues.calculateBottomPadding()),
-                        shape = CircleShape,
-                        tonalElevation = 3.dp,
-                        shadowElevation = 3.dp,
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp,
+                        shadowElevation = 4.dp,
                     ) {
                         IconButton(
+                            modifier = Modifier.size(44.dp),
                             onClick = {
                                 if (!hasFineLocation) {
                                     permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -301,7 +309,7 @@ fun MapScreen(
                                     scope.launch {
                                         val c = viewModel.fetchAndPersistLocation() ?: return@launch
                                         cameraPositionState.animate(
-                                            CameraUpdateFactory.newLatLngZoom(LatLng(c.first, c.second), 11f),
+                                            CameraUpdateFactory.newLatLngZoom(LatLng(c.first, c.second), DefaultMapZoom),
                                             durationMs = 900,
                                         )
                                     }
@@ -311,6 +319,7 @@ fun MapScreen(
                             Icon(
                                 Icons.Outlined.MyLocation,
                                 contentDescription = stringResource(R.string.map_my_location),
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     }

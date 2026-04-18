@@ -1,12 +1,11 @@
 package com.elitesoftwarestudio.veye.ui.map
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -17,7 +16,6 @@ import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Satellite
 import androidx.compose.material.icons.outlined.ViewInAr
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -90,123 +88,70 @@ fun MapRightControlColumn(
     onRefreshClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val scheme = MaterialTheme.colorScheme
-    val primary = scheme.primary
-    val onPrimary = scheme.onPrimary
-    val shape = RoundedCornerShape(14.dp)
-
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.End,
     ) {
-        Surface(
-            shape = CircleShape,
-            color = scheme.surface,
-            shadowElevation = 4.dp,
-            tonalElevation = 0.dp,
-        ) {
-            IconButton(onClick = onRefreshClick) {
-                Icon(
-                    Icons.Outlined.Refresh,
-                    contentDescription = stringResource(R.string.map_refresh_viktims),
-                    tint = scheme.onSurfaceVariant,
-                )
-            }
-        }
-        MapControlPill(
-            label = stringResource(R.string.map_heatmap),
+        MapControlIconButton(
+            selected = false,
+            onClick = onRefreshClick,
+            imageVector = Icons.Outlined.Refresh,
+            contentDescription = stringResource(R.string.map_refresh_viktims),
+        )
+        MapControlIconButton(
             selected = showHeatmap,
-            primary = primary,
-            onPrimary = onPrimary,
             onClick = onHeatmapClick,
-            shape = shape,
             imageVector = Icons.Outlined.LocalFireDepartment,
-            filledToggle = true,
+            contentDescription = stringResource(R.string.map_heatmap),
         )
-        MapControlPill(
-            label = stringResource(R.string.map_view_3d),
+        MapControlIconButton(
             selected = map3d,
-            primary = primary,
-            onPrimary = onPrimary,
             onClick = on3dClick,
-            shape = shape,
             imageVector = Icons.Outlined.ViewInAr,
-            filledToggle = false,
+            contentDescription = stringResource(R.string.map_view_3d),
         )
-        MapControlPill(
-            label = stringResource(R.string.map_satellite),
+        MapControlIconButton(
             selected = mapSatellite,
-            primary = primary,
-            onPrimary = onPrimary,
             onClick = onSatelliteClick,
-            shape = shape,
             imageVector = Icons.Outlined.Satellite,
-            filledToggle = false,
+            contentDescription = stringResource(R.string.map_satellite),
         )
     }
 }
 
+/**
+ * Square-ish rounded button used for every map overlay control.
+ * - Inactive: surface (white in light theme) with on-surface icon tint.
+ * - Active:   inverseSurface (near-black) with inverseOnSurface icon tint.
+ */
 @Composable
-private fun MapControlPill(
-    label: String,
+private fun MapControlIconButton(
     selected: Boolean,
-    primary: Color,
-    onPrimary: Color,
     onClick: () -> Unit,
-    shape: RoundedCornerShape,
     imageVector: ImageVector,
-    filledToggle: Boolean,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val mutedBorder = scheme.outlineVariant
-    val idleFg = scheme.onSurface
-    val idleBg = scheme.surface
-    val (bg, fg, borderMod) = if (filledToggle) {
-        Triple(
-            if (selected) primary else idleBg,
-            if (selected) onPrimary else idleFg,
-            Modifier.border(
-                width = 1.dp,
-                color = if (selected) primary else mutedBorder,
-                shape = shape,
-            ),
-        )
-    } else {
-        Triple(
-            idleBg,
-            idleFg,
-            Modifier.border(
-                width = if (selected) 2.dp else 1.dp,
-                color = if (selected) primary else mutedBorder,
-                shape = shape,
-            ),
-        )
-    }
+    val shape = RoundedCornerShape(14.dp)
+    val bg = if (selected) scheme.inverseSurface else scheme.surface
+    val fg = if (selected) scheme.inverseOnSurface else scheme.onSurface
     Surface(
-        modifier = Modifier
-            .then(borderMod)
+        modifier = modifier
+            .size(44.dp)
             .clickable(onClick = onClick),
         shape = shape,
         color = bg,
         shadowElevation = 4.dp,
         tonalElevation = 0.dp,
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+        Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = imageVector,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                contentDescription = contentDescription,
                 tint = fg,
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = fg,
+                modifier = Modifier.size(22.dp),
             )
         }
     }

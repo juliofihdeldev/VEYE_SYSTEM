@@ -45,7 +45,7 @@ Do **not** commit production secrets if the repo is public.
 
 `versionCode` / `versionName` live in `app/build.gradle.kts`. Align with release process and Play Console.
 
-RUn the app local
+Run the app local
 
 cd VEYe && ./gradlew --stop && ./gradlew clean assembleDebug
 

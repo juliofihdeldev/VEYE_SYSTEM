@@ -20,16 +20,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.MyLocation
-import androidx.compose.material.icons.outlined.Satellite
-import androidx.compose.material.icons.outlined.ViewInAr
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -70,9 +66,11 @@ import com.elitesoftwarestudio.veye.data.map.DemantiRepository
 import com.elitesoftwarestudio.veye.data.map.MapTimeRange
 import com.elitesoftwarestudio.veye.data.map.filterItemsByMapTimeRange
 import com.elitesoftwarestudio.veye.data.map.nearestDangerBearingWithinKm
+import com.elitesoftwarestudio.veye.ui.map.DefaultMapZoom
 import com.elitesoftwarestudio.veye.ui.map.MapClusteringLayer
 import com.elitesoftwarestudio.veye.ui.map.MapHeatmapOverlay
 import com.elitesoftwarestudio.veye.ui.map.MapPinKind
+import com.elitesoftwarestudio.veye.ui.map.MapRightControlColumn
 import com.elitesoftwarestudio.veye.ui.map.buildClusterItems
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -116,7 +114,7 @@ fun ZonesScreen(
     var timeRange by remember { mutableStateOf(MapTimeRange.All) }
     var showHeatmap by rememberSaveable { mutableStateOf(true) }
     var mapSatellite by rememberSaveable { mutableStateOf(false) }
-    var map3d by rememberSaveable { mutableStateOf(false) }
+    var map3d by rememberSaveable { mutableStateOf(true) }
     var selectedZoneId by rememberSaveable { mutableStateOf<String?>(null) }
     var flagTarget by remember { mutableStateOf<DangerZone?>(null) }
     var flagMessage by remember { mutableStateOf<String?>(null) }
@@ -141,8 +139,9 @@ fun ZonesScreen(
     val scope = rememberCoroutineScope()
     var shouldAutoCenterOnce by rememberSaveable { mutableStateOf(true) }
 
+    val initialZoom = DefaultMapZoom
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(HaitiCenter, 8.2f)
+        position = CameraPosition.fromLatLngZoom(HaitiCenter, initialZoom)
     }
 
     LaunchedEffect(hasFineLocation) {
@@ -150,7 +149,7 @@ fun ZonesScreen(
         val c = viewModel.fetchAndPersistLocation() ?: return@LaunchedEffect
         shouldAutoCenterOnce = false
         cameraPositionState.animate(
-            CameraUpdateFactory.newLatLngZoom(LatLng(c.first, c.second), 11f),
+            CameraUpdateFactory.newLatLngZoom(LatLng(c.first, c.second), DefaultMapZoom),
             durationMs = 900,
         )
     }
@@ -307,73 +306,53 @@ fun ZonesScreen(
                         }
                     }
 
-                    Column(
+                    MapRightControlColumn(
+                        showHeatmap = showHeatmap,
+                        onHeatmapClick = { showHeatmap = !showHeatmap },
+                        map3d = map3d,
+                        on3dClick = { map3d = !map3d },
+                        mapSatellite = mapSatellite,
+                        onSatelliteClick = { mapSatellite = !mapSatellite },
+                        onRefreshClick = { viewModel.refreshUserLocation() },
                         modifier =
                             Modifier
                                 .align(Alignment.TopEnd)
                                 .windowInsetsPadding(WindowInsets.statusBars)
                                 .padding(end = 16.dp, top = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        horizontalAlignment = Alignment.End,
-                    ) {
-                        FilterChip(
-                            selected = showHeatmap,
-                            onClick = { showHeatmap = !showHeatmap },
-                            label = { Text(stringResource(R.string.map_heatmap)) },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Outlined.LocalFireDepartment,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            },
-                        )
-                        FilterChip(
-                            selected = map3d,
-                            onClick = { map3d = !map3d },
-                            label = { Text(stringResource(R.string.map_view_3d)) },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Outlined.ViewInAr,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            },
-                        )
-                        FilterChip(
-                            selected = mapSatellite,
-                            onClick = { mapSatellite = !mapSatellite },
-                            label = { Text(stringResource(R.string.map_satellite)) },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Outlined.Satellite,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            },
-                        )
-                    }
+                    )
 
-                    IconButton(
-                        onClick = {
-                            if (!hasFineLocation) {
-                                permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                            } else {
-                                scope.launch {
-                                    val c = viewModel.fetchAndPersistLocation() ?: return@launch
-                                    cameraPositionState.animate(
-                                        CameraUpdateFactory.newLatLngZoom(LatLng(c.first, c.second), 11f),
-                                        durationMs = 900,
-                                    )
-                                }
-                            }
-                        },
+                    Surface(
                         modifier =
                             Modifier
                                 .align(Alignment.BottomEnd)
                                 .padding(end = 16.dp, bottom = 88.dp + paddingValues.calculateBottomPadding()),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 4.dp,
+                        tonalElevation = 0.dp,
                     ) {
-                        Icon(Icons.Outlined.MyLocation, contentDescription = stringResource(R.string.map_my_location))
+                        IconButton(
+                            modifier = Modifier.size(44.dp),
+                            onClick = {
+                                if (!hasFineLocation) {
+                                    permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                } else {
+                                    scope.launch {
+                                        val c = viewModel.fetchAndPersistLocation() ?: return@launch
+                                        cameraPositionState.animate(
+                                            CameraUpdateFactory.newLatLngZoom(LatLng(c.first, c.second), DefaultMapZoom),
+                                            durationMs = 900,
+                                        )
+                                    }
+                                }
+                            },
+                        ) {
+                            Icon(
+                                Icons.Outlined.MyLocation,
+                                contentDescription = stringResource(R.string.map_my_location),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
                     }
                 }
             },
