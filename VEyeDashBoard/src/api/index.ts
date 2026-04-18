@@ -704,6 +704,136 @@ export const bulkDecideModeration = async (
 	return { succeeded, failed };
 };
 
+// --- Analytics views & RPCs ------------------------------------------------
+
+export type ReasonCount = {
+	reason: ModerationReason;
+	count: number;
+};
+
+export const fetchReasonCounts24h = async (): Promise<ReasonCount[]> => {
+	try {
+		const { data, error } = await getSupabase()
+			.from("moderation_reason_counts_24h")
+			.select("*");
+		if (error) throw error;
+		return (data ?? []).map((r: any) => ({
+			reason: r.reason as ModerationReason,
+			count: Number(r.item_count ?? 0),
+		}));
+	} catch (error) {
+		console.error("fetchReasonCounts24h failed", error);
+		return [];
+	}
+};
+
+export type AuditFeedItem = {
+	id: number;
+	itemId: string;
+	moderatorId: string | null;
+	moderatorEmail: string | null;
+	action: ModeratorAction;
+	prevStatus: ModerationStatus | null;
+	nextStatus: ModerationStatus;
+	note: string | null;
+	createdAt: string;
+	contentType: ModerationContentType;
+	preview: string;
+	reason: ModerationReason;
+	authorName: string;
+	reportsCount: number;
+};
+
+export const fetchAuditFeed = async (limit = 8): Promise<AuditFeedItem[]> => {
+	try {
+		const { data, error } = await getSupabase()
+			.from("moderation_audit_feed")
+			.select("*")
+			.order("created_at", { ascending: false })
+			.limit(limit);
+		if (error) throw error;
+		return (data ?? []).map((r: any) => ({
+			id: Number(r.id),
+			itemId: String(r.item_id),
+			moderatorId: (r.moderator_id as string | null) ?? null,
+			moderatorEmail: (r.moderator_email as string | null) ?? null,
+			action: r.action as ModeratorAction,
+			prevStatus: (r.prev_status as ModerationStatus | null) ?? null,
+			nextStatus: r.next_status as ModerationStatus,
+			note: (r.note as string | null) ?? null,
+			createdAt: String(r.created_at),
+			contentType: r.content_type as ModerationContentType,
+			preview: String(r.preview ?? ""),
+			reason: r.reason as ModerationReason,
+			authorName: String(r.author_name ?? ""),
+			reportsCount: Number(r.reports_count ?? 0),
+		}));
+	} catch (error) {
+		console.error("fetchAuditFeed failed", error);
+		return [];
+	}
+};
+
+export type LeaderboardEntry = {
+	moderatorId: string;
+	moderatorEmail: string | null;
+	actions: number;
+	approves: number;
+	rejects: number;
+	escalates: number;
+	approvalPct: number;
+};
+
+export const fetchLeaderboard = async (limit = 5): Promise<LeaderboardEntry[]> => {
+	try {
+		const { data, error } = await getSupabase()
+			.from("moderator_leaderboard_7d")
+			.select("*")
+			.order("actions", { ascending: false })
+			.limit(limit);
+		if (error) throw error;
+		return (data ?? []).map((r: any) => ({
+			moderatorId: String(r.moderator_id),
+			moderatorEmail: (r.moderator_email as string | null) ?? null,
+			actions: Number(r.actions ?? 0),
+			approves: Number(r.approves ?? 0),
+			rejects: Number(r.rejects ?? 0),
+			escalates: Number(r.escalates ?? 0),
+			approvalPct: Number(r.approval_pct ?? 0),
+		}));
+	} catch (error) {
+		console.error("fetchLeaderboard failed", error);
+		return [];
+	}
+};
+
+export type HourlyMetric = {
+	bucket: string;
+	pendingAdded: number;
+	flaggedAdded: number;
+	approved: number;
+	rejected: number;
+};
+
+export const fetchHourlyMetrics = async (hours = 17): Promise<HourlyMetric[]> => {
+	try {
+		const { data, error } = await getSupabase().rpc("moderation_hourly_metrics", {
+			p_hours: hours,
+		});
+		if (error) throw error;
+		return (data ?? []).map((r: any) => ({
+			bucket: String(r.bucket),
+			pendingAdded: Number(r.pending_added ?? 0),
+			flaggedAdded: Number(r.flagged_added ?? 0),
+			approved: Number(r.approved ?? 0),
+			rejected: Number(r.rejected ?? 0),
+		}));
+	} catch (error) {
+		console.error("fetchHourlyMetrics failed", error);
+		return [];
+	}
+};
+
 export type ModerationChangeEvent =
 	| { kind: "INSERT"; item: ModerationItem }
 	| { kind: "UPDATE"; item: ModerationItem }

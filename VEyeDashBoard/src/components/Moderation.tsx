@@ -39,7 +39,6 @@ import {
   WarningAmberOutlined as WarningIcon,
   BlockOutlined as BlockIcon,
   TrendingUp as TrendingUpIcon,
-  Verified as VerifiedIcon,
   HourglassEmpty as HourglassIcon,
   LockOutlined as LockIcon,
 } from '@mui/icons-material';
@@ -49,15 +48,23 @@ import ModalComponent from './Modal';
 import {
   bulkDecideModeration,
   decideModeration,
+  fetchAuditFeed,
+  fetchHourlyMetrics,
+  fetchLeaderboard,
   fetchModerationQueue,
+  fetchReasonCounts24h,
   getCurrentUserRole,
   subscribeToModerationQueue,
+  type AuditFeedItem,
+  type HourlyMetric,
+  type LeaderboardEntry,
   type ModerationContentType,
   type ModerationItem,
   type ModerationReason,
   type ModerationStatus,
   type ModeratorAction,
   type ModeratorRole,
+  type ReasonCount,
 } from '../api';
 
 moment.locale('fr');
@@ -107,76 +114,44 @@ function initialsFor(name: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Static side-rail content (purely visual; would also become a query later).
+// Visual maps for derived data
 // ---------------------------------------------------------------------------
 
-type ActivityItem = {
-  id: string;
-  icon: React.ReactNode;
-  iconBg: string;
-  title: string;
-  detail: string;
-  time: string;
+// Bar colors for "Pa rezon · 24h" — same palette as the row chips,
+// but slightly stronger so they read as standalone bars.
+const reasonBarColor: Record<ModerationReason, string> = {
+  MISINFORMATION: '#ef4444',
+  HATE_SPEECH: '#f59e0b',
+  SPAM: '#6366f1',
+  GRAPHIC: '#dc2626',
+  DUPLICATE: '#94a3b8',
+  OTHER: '#64748b',
 };
 
-type ModeratorLeader = {
-  id: string;
-  name: string;
-  initials: string;
-  avatarColor: string;
-  actions: number;
-  approvalRate: number;
+// Activity feed: pick an icon + tint per moderator action.
+const activityIconFor = (action: ModeratorAction) => {
+  switch (action) {
+    case 'approve':
+      return { icon: <CheckCircleOutlineIcon sx={{ fontSize: 18 }} />, bg: '#dcfce7' };
+    case 'reject':
+      return { icon: <BlockIcon sx={{ fontSize: 18 }} />, bg: '#fee2e2' };
+    case 'escalate':
+      return { icon: <WarningIcon sx={{ fontSize: 18 }} />, bg: '#fef3c7' };
+  }
 };
 
-const reasonBars = [
-  { label: 'Misinformation', value: 72, color: '#ef4444' },
-  { label: 'Hate speech', value: 54, color: '#f59e0b' },
-  { label: 'Spam', value: 48, color: '#6366f1' },
-  { label: 'Graphic content', value: 30, color: '#dc2626' },
-  { label: 'Duplicate', value: 18, color: '#94a3b8' },
-];
+const actionLabelKR: Record<ModeratorAction, string> = {
+  approve: 'apwouve',
+  reject: 'rejte',
+  escalate: 'eskalade',
+};
 
-const moderatorActivity: ActivityItem[] = [
-  {
-    id: 'ma1',
-    icon: <CheckCircleOutlineIcon sx={{ fontSize: 18 }} />,
-    iconBg: '#dcfce7',
-    title: 'Kerby R. apwouve yon rapò',
-    detail: '#R-2814 · "Fizyad nan Bel-Air" · verifye pa 3 sous',
-    time: '6 min pase',
-  },
-  {
-    id: 'ma2',
-    icon: <BlockIcon sx={{ fontSize: 18 }} />,
-    iconBg: '#fee2e2',
-    title: 'Naïka J. rejte yon post',
-    detail: 'Misinformation · @anon · 14 rapò',
-    time: '22 min pase',
-  },
-  {
-    id: 'ma3',
-    icon: <WarningIcon sx={{ fontSize: 18 }} />,
-    iconBg: '#fef3c7',
-    title: 'Watson A. eskalade nan Admin',
-    detail: 'Graphic content · #P-9921',
-    time: '48 min pase',
-  },
-  {
-    id: 'ma4',
-    icon: <VerifiedIcon sx={{ fontSize: 18 }} />,
-    iconBg: '#e0f2fe',
-    title: 'Marie L. verifye yon News',
-    detail: '"Lekòl yo fèmen jodi a" · sous: MENFP',
-    time: '1 è pase',
-  },
-];
-
-const topModerators: ModeratorLeader[] = [
-  { id: 't1', name: 'Kerby R.', initials: 'KR', avatarColor: '#0f766e', actions: 184, approvalRate: 0.78 },
-  { id: 't2', name: 'Naïka J.', initials: 'NJ', avatarColor: '#34d399', actions: 142, approvalRate: 0.65 },
-  { id: 't3', name: 'Marie L.', initials: 'ML', avatarColor: '#a78bfa', actions: 121, approvalRate: 0.84 },
-  { id: 't4', name: 'Watson A.', initials: 'WA', avatarColor: '#60a5fa', actions: 96, approvalRate: 0.71 },
-];
+// Display name for a moderator: short prefix of email when no profile yet.
+const moderatorDisplayName = (email: string | null): string => {
+  if (!email) return 'Anonim moderatè';
+  const at = email.indexOf('@');
+  return at > 0 ? email.slice(0, at) : email;
+};
 
 // ---------------------------------------------------------------------------
 // Small UI building blocks (Sparkline, KpiCard, chips)
@@ -356,6 +331,10 @@ type PendingAction =
 export default function Moderation() {
   const theme = useTheme();
   const [items, setItems] = React.useState<ModerationItem[]>([]);
+  const [reasonCounts, setReasonCounts] = React.useState<ReasonCount[]>([]);
+  const [auditFeed, setAuditFeed] = React.useState<AuditFeedItem[]>([]);
+  const [leaderboard, setLeaderboard] = React.useState<LeaderboardEntry[]>([]);
+  const [hourly, setHourly] = React.useState<HourlyMetric[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [role, setRole] = React.useState<ModeratorRole>(null);
@@ -374,19 +353,36 @@ export default function Moderation() {
   const isAdmin = role === 'admin';
 
   // Load --------------------------------------------------------------------
+  const loadDerived = React.useCallback(async () => {
+    try {
+      const [r, a, l, h] = await Promise.all([
+        fetchReasonCounts24h(),
+        fetchAuditFeed(),
+        fetchLeaderboard(),
+        fetchHourlyMetrics(17),
+      ]);
+      setReasonCounts(r);
+      setAuditFeed(a);
+      setLeaderboard(l);
+      setHourly(h);
+    } catch (e) {
+      console.error('loadDerived failed', e);
+    }
+  }, []);
+
   const load = React.useCallback(async () => {
     setError(null);
     setLoading(true);
     try {
-      const data = await fetchModerationQueue();
-      setItems(data);
+      const [queue] = await Promise.all([fetchModerationQueue(), loadDerived()]);
+      setItems(queue);
       setUpdatedAgo(0);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadDerived]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -407,6 +403,14 @@ export default function Moderation() {
   // Realtime --------------------------------------------------------------
   React.useEffect(() => {
     if (!isModerator) return;
+    let pending: number | null = null;
+    const scheduleDerivedRefetch = () => {
+      if (pending != null) return;
+      pending = window.setTimeout(() => {
+        pending = null;
+        loadDerived();
+      }, 250);
+    };
     const unsubscribe = subscribeToModerationQueue((event) => {
       setItems((prev) => {
         if (event.kind === 'DELETE') {
@@ -416,13 +420,16 @@ export default function Moderation() {
           if (prev.some((it) => it.id === event.item.id)) return prev;
           return [event.item, ...prev];
         }
-        // UPDATE
         return prev.map((it) => (it.id === event.item.id ? event.item : it));
       });
       setUpdatedAgo(0);
+      scheduleDerivedRefetch();
     });
-    return unsubscribe;
-  }, [isModerator]);
+    return () => {
+      if (pending != null) window.clearTimeout(pending);
+      unsubscribe();
+    };
+  }, [isModerator, loadDerived]);
 
   // Last-updated ticker ---------------------------------------------------
   React.useEffect(() => {
@@ -455,6 +462,64 @@ export default function Moderation() {
     return c;
   }, [items]);
 
+  // Sparkline arrays + derived 24h totals straight from the hourly RPC.
+  const series = React.useMemo(() => {
+    const fallback = [0, 0];
+    if (hourly.length === 0) {
+      return {
+        pending: fallback,
+        flagged: fallback,
+        approved: fallback,
+        rejected: fallback,
+        approved24: 0,
+        rejected24: 0,
+        flagged24: 0,
+        pending24: 0,
+      };
+    }
+    const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
+    const pending = hourly.map((h) => h.pendingAdded);
+    const flagged = hourly.map((h) => h.flaggedAdded);
+    const approved = hourly.map((h) => h.approved);
+    const rejected = hourly.map((h) => h.rejected);
+    return {
+      pending,
+      flagged,
+      approved,
+      rejected,
+      pending24: sum(pending),
+      flagged24: sum(flagged),
+      approved24: sum(approved),
+      rejected24: sum(rejected),
+    };
+  }, [hourly]);
+
+  const trendOf = (arr: number[]): 'up' | 'down' | 'flat' => {
+    if (arr.length < 2) return 'flat';
+    const half = Math.floor(arr.length / 2);
+    const first = arr.slice(0, half).reduce((a, b) => a + b, 0);
+    const second = arr.slice(half).reduce((a, b) => a + b, 0);
+    if (second > first) return 'up';
+    if (second < first) return 'down';
+    return 'flat';
+  };
+
+  // "Pa rezon · 24h" — fixed display order with normalized bar widths.
+  const reasonBars = React.useMemo(() => {
+    const order: ModerationReason[] = [
+      'MISINFORMATION', 'HATE_SPEECH', 'SPAM', 'GRAPHIC', 'DUPLICATE', 'OTHER',
+    ];
+    const byKey = new Map(reasonCounts.map((r) => [r.reason, r.count]));
+    const max = Math.max(1, ...Array.from(byKey.values()));
+    return order.map((key) => ({
+      key,
+      label: reasonStyles[key].label,
+      value: byKey.get(key) ?? 0,
+      color: reasonBarColor[key],
+      pct: ((byKey.get(key) ?? 0) / max) * 100,
+    }));
+  }, [reasonCounts]);
+
   // Mutations -------------------------------------------------------------
   const confirmAction = async () => {
     if (!pendingAction) return;
@@ -486,6 +551,7 @@ export default function Moderation() {
       setItems((prev) =>
         prev.map((it) => (pendingAction.ids.includes(it.id) ? { ...it, status: nextStatus } : it)),
       );
+      loadDerived();
     } catch (e) {
       setSnack({
         msg: e instanceof Error ? e.message : 'Aksyon echwe',
@@ -670,36 +736,56 @@ export default function Moderation() {
         }}
       >
         <KpiCard
-          label="Pending review" value={counts.pending}
-          delta="Live · Supabase realtime" deltaColor="#b45309"
+          label="Pending review"
+          value={counts.pending}
+          delta={`+${series.pending24} soumèt · 17h`}
+          deltaColor="#b45309"
           icon={<HourglassIcon sx={{ fontSize: 18 }} />}
-          iconBg="#f59e0b" iconColor="#fff" sparkColor="#f59e0b"
-          spark={[8, 10, 9, 12, 11, 13, 12, 14, 15, 14, 16, 17, 18, 18, 19, 20, 21]}
-          trend="up"
+          iconBg="#f59e0b"
+          iconColor="#fff"
+          sparkColor="#f59e0b"
+          spark={series.pending}
+          trend={trendOf(series.pending)}
         />
         <KpiCard
-          label="Auto-flagged · 24h" value={counts.flagged}
-          delta="≥ 5 rapò" deltaColor="#ef4444"
+          label="Auto-flagged · 24h"
+          value={counts.flagged}
+          delta={`+${series.flagged24} ≥ 5 rapò · 17h`}
+          deltaColor="#ef4444"
           icon={<ReportIcon sx={{ fontSize: 18 }} />}
-          iconBg="#ef4444" iconColor="#fff" sparkColor="#ef4444"
-          spark={[3, 5, 4, 7, 8, 9, 11, 12, 14, 13, 15, 16, 18, 19, 20, 22, 23]}
-          trend="up"
+          iconBg="#ef4444"
+          iconColor="#fff"
+          sparkColor="#ef4444"
+          spark={series.flagged}
+          trend={trendOf(series.flagged)}
         />
         <KpiCard
-          label="Apwouve · total" value={counts.approved}
-          delta="↑ taux" deltaColor="#10b981"
+          label="Apwouve · 17h"
+          value={series.approved24}
+          delta={
+            series.approved24 + series.rejected24 > 0
+              ? `${Math.round((series.approved24 / (series.approved24 + series.rejected24)) * 100)}% taux`
+              : 'Pa gen aksyon'
+          }
+          deltaColor="#10b981"
           icon={<CheckCircleOutlineIcon sx={{ fontSize: 18 }} />}
-          iconBg="#10b981" iconColor="#fff" sparkColor="#10b981"
-          spark={[12, 14, 16, 18, 19, 21, 23, 24, 26, 28, 30, 33, 35, 38, 41, 44, 47]}
-          trend="up"
+          iconBg="#10b981"
+          iconColor="#fff"
+          sparkColor="#10b981"
+          spark={series.approved}
+          trend={trendOf(series.approved)}
         />
         <KpiCard
-          label="Rejte · total" value={counts.rejected}
-          delta="Tout tan" deltaColor="#0369a1"
+          label="Rejte · 17h"
+          value={series.rejected24}
+          delta={`Total tout tan: ${counts.rejected}`}
+          deltaColor="#0369a1"
           icon={<BlockIcon sx={{ fontSize: 18 }} />}
-          iconBg="#6366f1" iconColor="#fff" sparkColor="#6366f1"
-          spark={[6, 8, 7, 9, 8, 10, 11, 12, 11, 13, 14, 13, 15, 16, 17, 18, 19]}
-          trend="up"
+          iconBg="#6366f1"
+          iconColor="#fff"
+          sparkColor="#6366f1"
+          spark={series.rejected}
+          trend={trendOf(series.rejected)}
         />
       </Box>
 
@@ -967,74 +1053,110 @@ export default function Moderation() {
         {/* Right rail -------------------------------------------------- */}
         <Stack spacing={2}>
           <Paper sx={{ p: 2.5 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-              Pa rezon ·{' '}
-              <Typography
-                component="span"
-                sx={{ color: 'text.secondary', fontWeight: 500, fontSize: 14 }}
-              >
-                24 h
+            <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                Pa rezon ·{' '}
+                <Typography
+                  component="span"
+                  sx={{ color: 'text.secondary', fontWeight: 500, fontSize: 14 }}
+                >
+                  24 h
+                </Typography>
               </Typography>
-            </Typography>
-            <Stack spacing={1.5}>
-              {reasonBars.map((b) => (
-                <Box key={b.label}>
-                  <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-                    <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{b.label}</Typography>
-                    <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{b.value}</Typography>
-                  </Stack>
-                  <Box
-                    sx={{
-                      width: '100%', height: 8, borderRadius: 4,
-                      bgcolor: '#f1f5f9', overflow: 'hidden',
-                    }}
-                  >
+              <Typography sx={{ fontSize: 11, color: 'text.disabled' }}>
+                Live · DB
+              </Typography>
+            </Stack>
+            {reasonBars.every((b) => b.value === 0) ? (
+              <Typography variant="body2" color="text.secondary">
+                Pa gen kontni soumèt nan 24 dènye èdtan yo.
+              </Typography>
+            ) : (
+              <Stack spacing={1.5}>
+                {reasonBars.map((b) => (
+                  <Box key={b.key}>
+                    <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{b.label}</Typography>
+                      <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{b.value}</Typography>
+                    </Stack>
                     <Box
                       sx={{
-                        width: `${b.value}%`, height: '100%',
-                        bgcolor: b.color, borderRadius: 4,
-                        transition: 'width 600ms ease',
+                        width: '100%', height: 8, borderRadius: 4,
+                        bgcolor: '#f1f5f9', overflow: 'hidden',
                       }}
-                    />
+                    >
+                      <Box
+                        sx={{
+                          width: `${b.pct}%`, height: '100%',
+                          bgcolor: b.color, borderRadius: 4,
+                          transition: 'width 600ms ease',
+                        }}
+                      />
+                    </Box>
                   </Box>
-                </Box>
-              ))}
-            </Stack>
+                ))}
+              </Stack>
+            )}
           </Paper>
 
           <Paper sx={{ p: 2.5 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1.5 }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>Aktivite modere</Typography>
               <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-                Auto-refresh · 30 s
+                Live · DB · {auditFeed.length}
               </Typography>
             </Stack>
-            <Stack divider={<Divider flexItem />} spacing={0}>
-              {moderatorActivity.map((a) => (
-                <Stack
-                  key={a.id} direction="row" spacing={1.5}
-                  alignItems="flex-start" sx={{ py: 1.25 }}
-                >
-                  <Box
-                    sx={{
-                      width: 32, height: 32, borderRadius: 1.5,
-                      bgcolor: a.iconBg,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      flexShrink: 0, color: theme.palette.text.primary,
-                    }}
-                  >
-                    {a.icon}
-                  </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{a.title}</Typography>
-                    <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{a.detail}</Typography>
-                    <Typography sx={{ fontSize: 11, color: 'text.disabled', mt: 0.25 }}>
-                      {a.time}
-                    </Typography>
-                  </Box>
-                </Stack>
-              ))}
-            </Stack>
+            {auditFeed.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                Poko gen aksyon modere. Apwouve / Rejte / Eskalade yon kontni pou kòmanse.
+              </Typography>
+            ) : (
+              <Stack divider={<Divider flexItem />} spacing={0}>
+                {auditFeed.map((a) => {
+                  const ico = activityIconFor(a.action);
+                  const who = moderatorDisplayName(a.moderatorEmail);
+                  const reasonLabel = reasonStyles[a.reason].label;
+                  return (
+                    <Stack
+                      key={a.id}
+                      direction="row"
+                      spacing={1.5}
+                      alignItems="flex-start"
+                      sx={{ py: 1.25 }}
+                    >
+                      <Box
+                        sx={{
+                          width: 32, height: 32, borderRadius: 1.5,
+                          bgcolor: ico.bg,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0, color: theme.palette.text.primary,
+                        }}
+                      >
+                        {ico.icon}
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontSize: 13, fontWeight: 700 }} noWrap>
+                          {who} {actionLabelKR[a.action]} yon {a.contentType.toLowerCase()}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: 12, color: 'text.secondary',
+                            overflow: 'hidden', textOverflow: 'ellipsis',
+                            display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical',
+                          }}
+                        >
+                          {reasonLabel} · {a.reportsCount} rapò · {a.preview}
+                        </Typography>
+                        <Typography sx={{ fontSize: 11, color: 'text.disabled', mt: 0.25 }}>
+                          {moment(a.createdAt).fromNow()}
+                          {a.note ? ` · "${a.note}"` : ''}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  );
+                })}
+              </Stack>
+            )}
           </Paper>
 
           <Paper sx={{ p: 2.5 }}>
@@ -1042,34 +1164,44 @@ export default function Moderation() {
               <Typography variant="h6" sx={{ fontWeight: 700 }}>Top moderatè · semèn</Typography>
               <TrendingUpIcon sx={{ color: 'success.main', fontSize: 20 }} />
             </Stack>
-            <Stack spacing={1.25}>
-              {topModerators.map((m, i) => (
-                <Stack key={m.id} direction="row" spacing={1.5} alignItems="center">
-                  <Typography
-                    sx={{
-                      width: 18, fontSize: 12, fontWeight: 700,
-                      color: 'text.disabled', textAlign: 'right',
-                    }}
-                  >
-                    {i + 1}
-                  </Typography>
-                  <Avatar
-                    sx={{
-                      bgcolor: m.avatarColor, color: '#fff',
-                      width: 32, height: 32, fontSize: 12, fontWeight: 700,
-                    }}
-                  >
-                    {m.initials}
-                  </Avatar>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 700 }} noWrap>{m.name}</Typography>
-                    <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
-                      {m.actions} aksyon · {Math.round(m.approvalRate * 100)}% apwouve
-                    </Typography>
-                  </Box>
-                </Stack>
-              ))}
-            </Stack>
+            {leaderboard.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                Pa gen statistik moderatè pou semèn nan poko.
+              </Typography>
+            ) : (
+              <Stack spacing={1.25}>
+                {leaderboard.map((m, i) => {
+                  const name = moderatorDisplayName(m.moderatorEmail);
+                  return (
+                    <Stack key={m.moderatorId} direction="row" spacing={1.5} alignItems="center">
+                      <Typography
+                        sx={{
+                          width: 18, fontSize: 12, fontWeight: 700,
+                          color: 'text.disabled', textAlign: 'right',
+                        }}
+                      >
+                        {i + 1}
+                      </Typography>
+                      <Avatar
+                        sx={{
+                          bgcolor: avatarColorFor(m.moderatorEmail ?? m.moderatorId),
+                          color: '#fff',
+                          width: 32, height: 32, fontSize: 12, fontWeight: 700,
+                        }}
+                      >
+                        {initialsFor(name)}
+                      </Avatar>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontSize: 13, fontWeight: 700 }} noWrap>{name}</Typography>
+                        <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
+                          {m.actions} aksyon · {m.approvalPct}% apwouve · {m.escalates} eskalad
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  );
+                })}
+              </Stack>
+            )}
           </Paper>
         </Stack>
       </Box>
