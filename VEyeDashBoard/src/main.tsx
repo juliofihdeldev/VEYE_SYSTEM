@@ -15,21 +15,30 @@ import News from './components/News.tsx';
 import Maps from './components/Maps.tsx';
 import StatIncident from './components/StatIncident.tsx';
 import TelegramMonitorTool from './components/TelegramMonitorTool.tsx';
+import Dashboard from './components/Dashboard.tsx';
+import ErrorPage from './components/ErrorPage.tsx';
 
 const router = createBrowserRouter([
-  { path: '/', element: <Login /> },
-  { path: 'auth/reset', element: <AuthRecovery /> },
   {
-    element: <RequireAuth />,
+    errorElement: <ErrorPage />,
     children: [
-      { path: 'home', element: <App><Viktim /></App> },
-      { path: 'viktim', element: <App><Viktim /></App> },
-      { path: 'news', element: <App><News /></App> },
-      { path: 'zone-danger', element: <App><DangerZone /></App> },
-      { path: 'maps', element: <App><Maps /></App> },
-      { path: 'kidnapping', element: <App><Kidnapping /></App> },
-      { path: 'stat-incident', element: <App><StatIncident /></App> },
-      { path: 'telegram', element: <App><TelegramMonitorTool /></App> },
+      { path: '/', element: <Login /> },
+      { path: 'auth/reset', element: <AuthRecovery /> },
+      {
+        element: <RequireAuth />,
+        children: [
+          { path: 'home', element: <App><Dashboard /></App> },
+          { path: 'dashboard', element: <App><Dashboard /></App> },
+          { path: 'viktim', element: <App><Viktim /></App> },
+          { path: 'news', element: <App><News /></App> },
+          { path: 'zone-danger', element: <App><DangerZone /></App> },
+          { path: 'maps', element: <App><Maps /></App> },
+          { path: 'kidnapping', element: <App><Kidnapping /></App> },
+          { path: 'stat-incident', element: <App><StatIncident /></App> },
+          { path: 'telegram', element: <App><TelegramMonitorTool /></App> },
+        ],
+      },
+      { path: '*', element: <ErrorPage /> },
     ],
   },
 ]);

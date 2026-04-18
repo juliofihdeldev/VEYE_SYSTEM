@@ -1,184 +1,221 @@
 import * as React from 'react';
-import { Stack } from '@mui/material';
-import Paper from '@mui/material/Paper';
-import Table from '@mui/material/Table';
-import Box from '@mui/material/Box';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TablePagination from '@mui/material/TablePagination';
-import TableRow from '@mui/material/TableRow';
-import Typography from '@mui/material/Typography';
-import TextField from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
-import SearchIcon from '@mui/icons-material/Search';
+import {
+  Avatar,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+  Paper,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  TextField,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Close as CloseIcon,
+  DeleteOutline as DeleteIcon,
+  EditOutlined as EditIcon,
+  PlaceOutlined as PlaceIcon,
+  Search as SearchIcon,
+  CheckCircleRounded as VerifiedIcon,
+  HourglassEmptyRounded as PendingIcon,
+  EventOutlined as DateIcon,
+} from '@mui/icons-material';
+import moment from 'moment';
 import ModalComponent from './Modal';
-import CloseIcon from '@mui/icons-material/Close';
-import Add from '@mui/icons-material/Add';
-import IconButton from '@mui/material/IconButton';
-import Button from '@mui/material/Button';
-import { handleGetALert, handleDeletedAlert } from '../api';
-import { Delete, Edit } from '@mui/icons-material';
 import ConfirmDialog from './ConfirmDialog';
 import DangerForm from '../form/DangerForm';
 import EditDangerForm from '../form/EditDangerForm';
-import moment from 'moment';
+import { handleDeletedAlert, searchDangerZones } from '../api';
+
 moment.locale('fr');
 
-const columns = [
-  {
-    id: 'name', label: 'Zone',
-    align: 'left',
-    minWidth: 170
-  },
-  {
-    id: 'rezon', label: 'Rezon',
-    align: 'left',
-    minWidth: 100
-  },
-  {
-    id: 'address',
-    label: 'Address',
-    minWidth: 100,
-    align: 'left',
-    format: (value: number) => value.toLocaleString('en-US'),
-  },
-  {
-    id: 'date',
-    label: 'Date',
-    minWidth: 70,
-    align: 'left',
-    format: (value: number) => value.toFixed(2),
-  },
+type ZoneRow = {
+  id: string;
+  name?: string;
+  rezon?: string;
+  address?: string;
+  city?: string;
+  latitude?: number | string;
+  longitude?: number | string;
+  level?: string;
+  incident_type?: string;
+  verified?: boolean;
+  date?: { seconds: number };
+};
 
-];
+const levelStyles: Record<string, { bg: string; color: string }> = {
+  high: { bg: '#fee2e2', color: '#b91c1c' },
+  medium: { bg: '#fef3c7', color: '#b45309' },
+  low: { bg: '#dcfce7', color: '#15803d' },
+  default: { bg: '#e2e8f0', color: '#334155' },
+};
+
+const initialsOf = (name?: string) => {
+  if (!name) return 'ZD';
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]).join('').toUpperCase() || 'ZD';
+};
+
+const avatarColors = ['#a78bfa', '#f59e0b', '#fb923c', '#34d399', '#f472b6', '#60a5fa', '#ef4444', '#0ea5e9'];
+const colorFor = (id?: string) => {
+  if (!id) return avatarColors[0];
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % avatarColors.length;
+  return avatarColors[h];
+};
+
+function useDebouncedValue<T>(value: T, delay = 300): T {
+  const [debounced, setDebounced] = React.useState(value);
+  React.useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
 
 export default function DangerZone() {
-  // const navigate = useNavigate();
-
-  const [open, setOpen] = React.useState(false);
-  const [data, setData] = React.useState<any[]>([]);
   const [search, setSearch] = React.useState('');
   const [dateFrom, setDateFrom] = React.useState('');
   const [dateTo, setDateTo] = React.useState('');
-
-  const filteredData = React.useMemo(() => {
-    let result = data || [];
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      result = result.filter(
-        (row: any) =>
-          (row?.name || '').toLowerCase().includes(q) ||
-          (row?.rezon || '').toLowerCase().includes(q) ||
-          (row?.address || '').toLowerCase().includes(q) ||
-          String(row?.latitude || '').includes(q) ||
-          String(row?.longitude || '').includes(q)
-      );
-    }
-    if (dateFrom) {
-      const from = new Date(dateFrom).getTime() / 1000;
-      result = result.filter((row: any) => (row?.date?.seconds ?? 0) >= from);
-    }
-    if (dateTo) {
-      const to = new Date(dateTo).getTime() / 1000 + 86399;
-      result = result.filter((row: any) => (row?.date?.seconds ?? 0) <= to);
-    }
-    return result;
-  }, [data, search, dateFrom, dateTo]);
-
-  const handleOpen = () => setOpen(true)
-  const handleClose = () => setOpen(false);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
-  const handleChangePage = (_: unknown, newPage: number) => {
-    setPage(newPage);
-  };
+  const [data, setData] = React.useState<ZoneRow[]>([]);
+  const [total, setTotal] = React.useState(0);
+  const [loading, setLoading] = React.useState(false);
 
-  const paginatedData = React.useMemo(
-    () => filteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
-    [filteredData, page, rowsPerPage]
+  const [open, setOpen] = React.useState(false);
+  const [editItem, setEditItem] = React.useState<ZoneRow | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = React.useState<{ open: boolean; item: ZoneRow | null }>(
+    { open: false, item: null },
   );
 
-  const [editItem, setEditItem] = React.useState<any>(null);
+  const debouncedSearch = useDebouncedValue(search, 300);
 
-  const handleEditClick = (item: any) => setEditItem(item);
+  const fetchData = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await searchDangerZones({
+        query: debouncedSearch,
+        dateFrom: dateFrom || null,
+        dateTo: dateTo || null,
+        limit: rowsPerPage,
+        offset: page * rowsPerPage,
+      });
+      setData(res.rows as ZoneRow[]);
+      setTotal(res.total);
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedSearch, dateFrom, dateTo, page, rowsPerPage]);
+
+  React.useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch, dateFrom, dateTo]);
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => {
+    setOpen(false);
+    fetchData();
+  };
   const handleEditClose = () => setEditItem(null);
   const handleEditSaved = async () => {
-    const list = await handleGetALert();
-    setData(list ?? []);
-  };
-
-  const [deleteConfirm, setDeleteConfirm] = React.useState<{ open: boolean; item: any }>({ open: false, item: null });
-
-  const handleDeleteClick = (item: any) => {
-    setDeleteConfirm({ open: true, item });
+    setEditItem(null);
+    await fetchData();
   };
 
   const handleDeleteConfirm = async () => {
     if (!deleteConfirm.item) return;
     await handleDeletedAlert(deleteConfirm.item);
     setDeleteConfirm({ open: false, item: null });
-    const list = await handleGetALert();
-    setData(list ?? []);
+    fetchData();
   };
 
-  const handleDeleteCancel = () => {
-    setDeleteConfirm({ open: false, item: null });
+  const clearFilters = () => {
+    setSearch('');
+    setDateFrom('');
+    setDateTo('');
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
-  };
-
-  React.useEffect(() => {
-    async function getData() {
-      const viktim = await handleGetALert();
-      setData(viktim ?? [])
-    }
-    getData()
-  }, [])
-
+  const hasFilters = !!(search || dateFrom || dateTo);
 
   return (
-    <Paper sx={{ p: 3, width: '100%', overflow: 'hidden' }} elevation={0}>
-      <Box sx={{ width: '100%' }}>
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={2}
-          mb={3}
-          justifyContent="space-between"
-          alignItems={{ xs: 'stretch', sm: 'center' }}
-        >
-          <Typography variant="h5" component="h2" fontWeight={600}>
-            Zone danger
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+        spacing={2}
+      >
+        <Box>
+          <Typography variant="h2" sx={{ fontSize: '1.75rem', fontWeight: 700 }}>
+            Zon danje
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={handleOpen}
-            sx={{ borderRadius: 2, alignSelf: { xs: 'stretch', sm: 'center' } }}
-          >
-            Signaler
-          </Button>
-        </Stack>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                bgcolor: 'error.main',
+                boxShadow: '0 0 0 4px rgba(239,68,68,0.18)',
+              }}
+            />
+            <Typography variant="body2" color="text.secondary">
+              {total} {total === 1 ? 'zon aktif' : 'zon aktif yo'} · live tracking
+            </Typography>
+          </Stack>
+        </Box>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          size="large"
+          onClick={handleOpen}
+        >
+          Signaler
+        </Button>
+      </Stack>
 
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2} alignItems={{ sm: 'center' }}>
+      <Paper sx={{ p: { xs: 2, md: 2.5 } }}>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={1.5}
+          alignItems={{ xs: 'stretch', md: 'center' }}
+          sx={{ mb: 2 }}
+        >
           <TextField
-            placeholder="Chache zon, rezon, adrès..."
+            placeholder="Chache zon, rezon, adrès… (full-text search)"
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(0);
-            }}
+            onChange={(e) => setSearch(e.target.value)}
             size="small"
-            sx={{ maxWidth: 360 }}
+            sx={{ flex: 1, maxWidth: { md: 420 } }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon color="action" />
+                  <SearchIcon color="action" fontSize="small" />
+                </InputAdornment>
+              ),
+              endAdornment: search && (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setSearch('')}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
                 </InputAdornment>
               ),
             }}
@@ -188,7 +225,7 @@ export default function DangerZone() {
             type="date"
             size="small"
             value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
+            onChange={(e) => setDateFrom(e.target.value)}
             InputLabelProps={{ shrink: true }}
             sx={{ minWidth: 160 }}
           />
@@ -197,104 +234,227 @@ export default function DangerZone() {
             type="date"
             size="small"
             value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
+            onChange={(e) => setDateTo(e.target.value)}
             InputLabelProps={{ shrink: true }}
             sx={{ minWidth: 160 }}
           />
-          {(dateFrom || dateTo) && (
+          {hasFilters && (
             <Button
-              size="small"
               variant="outlined"
-              onClick={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+              size="small"
+              startIcon={<CloseIcon fontSize="small" />}
+              onClick={clearFilters}
+              sx={{
+                borderColor: 'rgba(15,23,42,0.12)',
+                color: 'text.secondary',
+                '&:hover': { borderColor: 'rgba(15,23,42,0.24)', bgcolor: '#f8fafc' },
+              }}
             >
               Efase filtre
             </Button>
           )}
+          {loading && <CircularProgress size={18} thickness={5} sx={{ ml: 1 }} />}
         </Stack>
 
-        <ModalComponent handleClose={handleClose} open={open}>
-          <Stack direction="row" spacing={2} justifyContent="space-between">
-            <Typography variant="h4" component="h2">
-              Signaler yn bagay
-            </Typography>
-            <IconButton aria-label="delete" onClick={handleClose}>
-              <CloseIcon />
-            </IconButton>
-          </Stack>
-          <DangerForm handleClose={handleClose} />
-        </ModalComponent>
-
-        <ModalComponent handleClose={handleEditClose} open={!!editItem}>
-          <Stack direction="row" spacing={2} justifyContent="space-between" mb={2}>
-            <Typography variant="h5" component="h2" fontWeight={600}>
-              Modifye zon danje
-            </Typography>
-            <IconButton aria-label="close" onClick={handleEditClose}>
-              <CloseIcon />
-            </IconButton>
-          </Stack>
-          {editItem && (
-            <EditDangerForm
-              item={editItem}
-              handleClose={handleEditClose}
-              onSaved={handleEditSaved}
-            />
-          )}
-        </ModalComponent>
-
-        <TableContainer sx={{ width: '100%', minHeight: 400, borderRadius: 2, overflow: 'hidden' }}>
-          <Table stickyHeader aria-label="sticky table">
+        <TableContainer
+          sx={{
+            borderRadius: 2,
+            border: '1px solid rgba(15,23,42,0.06)',
+            overflow: 'hidden',
+          }}
+        >
+          <Table sx={{ minWidth: 720 }}>
             <TableHead>
               <TableRow>
-                {columns.map((column: any) => (
+                {['Zone', 'Rezon', 'Adrès', 'Estati', 'Dat', ''].map((h) => (
                   <TableCell
-                    key={column?.id}
-                    align={column.align}
-                    style={{ minWidth: column.minWidth }}
+                    key={h}
+                    sx={{
+                      textTransform: 'uppercase',
+                      fontSize: 11,
+                      letterSpacing: '0.08em',
+                      color: 'text.secondary',
+                      bgcolor: '#f8fafc',
+                      borderBottom: '1px solid rgba(15,23,42,0.06)',
+                    }}
                   >
-                    {column.label}
+                    {h}
                   </TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedData?.map((row: any) => {
+              {data.length === 0 && !loading && (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                    <Stack alignItems="center" spacing={1}>
+                      <PlaceIcon sx={{ fontSize: 36, color: 'text.disabled' }} />
+                      <Typography color="text.secondary">
+                        {hasFilters ? 'Pa gen rezilta pou filtre yo.' : 'Pa gen okenn zon danje.'}
+                      </Typography>
+                      {hasFilters && (
+                        <Button size="small" onClick={clearFilters}>
+                          Efase filtre
+                        </Button>
+                      )}
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {data.map((row) => {
+                const lvlKey = (row.level || '').toLowerCase();
+                const lvl = levelStyles[lvlKey] || levelStyles.default;
                 return (
-                  <TableRow hover role="checkbox" tabIndex={-1} key={row?.id}>
-                    <TableCell >
-                      {row?.name}
+                  <TableRow
+                    key={row.id}
+                    hover
+                    sx={{
+                      '& td': {
+                        borderBottom: '1px solid rgba(15,23,42,0.06)',
+                        py: 1.5,
+                        verticalAlign: 'top',
+                      },
+                    }}
+                  >
+                    <TableCell>
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Avatar
+                          variant="rounded"
+                          sx={{
+                            bgcolor: colorFor(row.id),
+                            color: '#fff',
+                            width: 36,
+                            height: 36,
+                            fontSize: 13,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {initialsOf(row.name)}
+                        </Avatar>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography sx={{ fontWeight: 600, fontSize: 14 }} noWrap>
+                            {row.name || '—'}
+                          </Typography>
+                          {row.incident_type && (
+                            <Typography sx={{ fontSize: 12, color: 'text.secondary' }} noWrap>
+                              {row.incident_type}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Stack>
                     </TableCell>
 
-                    <TableCell >
-                      {row?.rezon}
+                    <TableCell sx={{ maxWidth: 360 }}>
+                      <Typography
+                        sx={{
+                          fontSize: 13,
+                          color: 'text.primary',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {row.rezon || '—'}
+                      </Typography>
+                      {row.level && (
+                        <Chip
+                          size="small"
+                          label={row.level.toUpperCase()}
+                          sx={{
+                            mt: 0.75,
+                            bgcolor: lvl.bg,
+                            color: lvl.color,
+                            fontWeight: 700,
+                            fontSize: 10,
+                            height: 20,
+                            letterSpacing: '0.06em',
+                          }}
+                        />
+                      )}
                     </TableCell>
 
-                    <TableCell >
-                      {row?.address}
-                      <br />
-                      latitude: {row?.latitude} <br /> longitude: {row?.longitude}
-                    </TableCell>
-
-                    <TableCell >
-
-
-                      {moment((row?.date?.seconds ?? 0) * 1000).format("MMM Do YY")}
-
+                    <TableCell sx={{ maxWidth: 220 }}>
+                      <Stack direction="row" spacing={0.75} alignItems="flex-start">
+                        <PlaceIcon sx={{ fontSize: 16, color: 'text.disabled', mt: 0.25 }} />
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
+                            {row.address || row.city || '—'}
+                          </Typography>
+                          {(row.latitude != null || row.longitude != null) && (
+                            <Typography
+                              sx={{
+                                fontSize: 11,
+                                color: 'text.secondary',
+                                fontFamily:
+                                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                              }}
+                            >
+                              {Number(row.latitude).toFixed?.(4) ?? row.latitude},{' '}
+                              {Number(row.longitude).toFixed?.(4) ?? row.longitude}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Stack>
                     </TableCell>
 
                     <TableCell>
-                      <IconButton aria-label="edit" onClick={() => handleEditClick(row)}>
-                        <Edit />
-                      </IconButton>
+                      {row.verified ? (
+                        <Chip
+                          size="small"
+                          icon={<VerifiedIcon sx={{ fontSize: '14px !important', color: '#15803d !important' }} />}
+                          label="Verified"
+                          sx={{
+                            bgcolor: '#dcfce7',
+                            color: '#15803d',
+                            fontWeight: 600,
+                            fontSize: 12,
+                            height: 24,
+                          }}
+                        />
+                      ) : (
+                        <Chip
+                          size="small"
+                          icon={<PendingIcon sx={{ fontSize: '14px !important', color: '#b45309 !important' }} />}
+                          label="Pending"
+                          sx={{
+                            bgcolor: '#fef3c7',
+                            color: '#b45309',
+                            fontWeight: 600,
+                            fontSize: 12,
+                            height: 24,
+                          }}
+                        />
+                      )}
                     </TableCell>
 
-                    <TableCell >
-                      <IconButton
-                        aria-label="delete"
-                        onClick={() => handleDeleteClick(row)}
-                      >
-                        <Delete />
-                      </IconButton>
+                    <TableCell>
+                      <Stack direction="row" spacing={0.75} alignItems="center">
+                        <DateIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+                        <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                          {moment((row?.date?.seconds ?? 0) * 1000).format('MMM Do YY')}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                        <Tooltip title="Modifye">
+                          <IconButton size="small" onClick={() => setEditItem(row)} sx={{ color: 'text.secondary' }}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Efase">
+                          <IconButton
+                            size="small"
+                            onClick={() => setDeleteConfirm({ open: true, item: row })}
+                            sx={{ color: '#ef4444' }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 );
@@ -302,25 +462,60 @@ export default function DangerZone() {
             </TableBody>
           </Table>
         </TableContainer>
+
         <TablePagination
-          rowsPerPageOptions={[10, 25, 100]}
+          rowsPerPageOptions={[10, 25, 50, 100]}
           component="div"
-          count={filteredData?.length}
+          count={total}
           rowsPerPage={rowsPerPage}
           page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
+          onPageChange={(_, p) => setPage(p)}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(+e.target.value);
+            setPage(0);
+          }}
+          sx={{ borderTop: 'none', '& .MuiTablePagination-toolbar': { px: 0 } }}
         />
+      </Paper>
 
-        <ConfirmDialog
-          open={deleteConfirm.open}
-          title="Efase zon danje"
-          message="Ou sèten ou vle efase zon danje sa a? Aksyon sa a pa ka defèt."
-          confirmLabel="Efase"
-          onConfirm={handleDeleteConfirm}
-          onCancel={handleDeleteCancel}
-        />
-      </Box>
-    </Paper>
+      <ModalComponent handleClose={handleClose} open={open}>
+        <Stack direction="row" spacing={2} justifyContent="space-between" mb={2}>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            Signaler yon zon danje
+          </Typography>
+          <IconButton aria-label="close" onClick={handleClose}>
+            <CloseIcon />
+          </IconButton>
+        </Stack>
+        <DangerForm handleClose={handleClose} />
+      </ModalComponent>
+
+      <ModalComponent handleClose={handleEditClose} open={!!editItem}>
+        <Stack direction="row" spacing={2} justifyContent="space-between" mb={2}>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            Modifye zon danje
+          </Typography>
+          <IconButton aria-label="close" onClick={handleEditClose}>
+            <CloseIcon />
+          </IconButton>
+        </Stack>
+        {editItem && (
+          <EditDangerForm
+            item={editItem}
+            handleClose={handleEditClose}
+            onSaved={handleEditSaved}
+          />
+        )}
+      </ModalComponent>
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Efase zon danje"
+        message="Ou sèten ou vle efase zon danje sa a? Aksyon sa a pa ka defèt."
+        confirmLabel="Efase"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteConfirm({ open: false, item: null })}
+      />
+    </Box>
   );
 }

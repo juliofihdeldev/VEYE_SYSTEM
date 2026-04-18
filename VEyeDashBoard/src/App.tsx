@@ -9,6 +9,12 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
+import Avatar from '@mui/material/Avatar';
+import Badge from '@mui/material/Badge';
+import Button from '@mui/material/Button';
+import InputBase from '@mui/material/InputBase';
+import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -18,11 +24,27 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import ExitToApp from '@mui/icons-material/ExitToApp';
+import SearchIcon from '@mui/icons-material/Search';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+import LanguageIcon from '@mui/icons-material/Language';
+import {
+  DashboardOutlined,
+  ErrorOutline,
+  ReportProblemOutlined,
+  PlaceOutlined,
+  ArticleOutlined,
+  GroupsOutlined,
+  GavelOutlined,
+  AssessmentOutlined,
+  CloudSyncOutlined,
+  SettingsOutlined,
+  Map as MapIcon,
+  RawOffTwoTone,
+} from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getSupabase } from './lib/supabase';
-import { BarChart, Dangerous, Error, Map, Newspaper, RawOffTwoTone, CloudSync } from '@mui/icons-material';
 
-const drawerWidth = 260;
+const drawerWidth = 248;
 
 const openedMixin = (theme: Theme): CSSObject => ({
   width: drawerWidth,
@@ -48,8 +70,7 @@ const closedMixin = (theme: Theme): CSSObject => ({
 const DrawerHeader = styled('div')(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  justifyContent: 'flex-end',
-  padding: theme.spacing(0, 1),
+  padding: theme.spacing(0, 1.5),
   ...theme.mixins.toolbar,
 }));
 
@@ -62,6 +83,7 @@ const AppBar = styled(MuiAppBar, {
 })<AppBarProps>(({ theme, open }) => ({
   zIndex: theme.zIndex.drawer + 1,
   backgroundColor: theme.palette.primary.main,
+  color: '#fff',
   transition: theme.transitions.create(['width', 'margin'], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -84,8 +106,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
     boxSizing: 'border-box',
     '& .MuiDrawer-paper': {
       backgroundColor: theme.palette.background.paper,
-      borderRight: '1px solid',
-      borderColor: 'rgba(15, 23, 42, 0.08)',
+      borderRight: '1px solid rgba(15, 23, 42, 0.08)',
+      borderRadius: 0,
     },
     ...(open && {
       ...openedMixin(theme),
@@ -98,6 +120,53 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
   }),
 );
 
+type NavItem = {
+  name: string;
+  icon: React.ReactNode;
+  link: string;
+  badge?: number;
+  badgeColor?: 'primary' | 'error' | 'warning' | 'info';
+};
+
+type NavSection = {
+  title: string;
+  items: NavItem[];
+};
+
+const sections: NavSection[] = [
+  {
+    title: 'Operations',
+    items: [
+      { name: 'Dashboard', icon: <DashboardOutlined />, link: '/home' },
+      { name: 'Viktim', icon: <ErrorOutline />, link: '/viktim', badge: 142, badgeColor: 'error' },
+      { name: 'Incidents', icon: <ReportProblemOutlined />, link: '/stat-incident', badge: 28, badgeColor: 'warning' },
+      { name: 'Zon Danje', icon: <PlaceOutlined />, link: '/zone-danger' },
+      { name: 'Nouvo', icon: <ArticleOutlined />, link: '/news' },
+    ],
+  },
+  {
+    title: 'Community',
+    items: [
+      { name: 'Itilizatè', icon: <GroupsOutlined />, link: '/users' },
+      { name: 'Moderasyon', icon: <GavelOutlined />, link: '/moderation' },
+      { name: 'Rapò', icon: <AssessmentOutlined />, link: '/reports' },
+    ],
+  },
+  {
+    title: 'System',
+    items: [
+      { name: 'Sync Supabase', icon: <CloudSyncOutlined />, link: '/sync' },
+      { name: 'Paramèt', icon: <SettingsOutlined />, link: '/settings' },
+    ],
+  },
+];
+
+const legacyExtras: NavItem[] = [
+  { name: 'Kidnapping', icon: <RawOffTwoTone />, link: '/kidnapping' },
+  { name: 'Maps', icon: <MapIcon />, link: '/maps' },
+  { name: 'Telegram', icon: <CloudSyncOutlined />, link: '/telegram' },
+];
+
 export interface PropsChildren {
   children?: React.ReactNode;
 }
@@ -105,13 +174,11 @@ export interface PropsChildren {
 export default function App({ children }: PropsChildren) {
   const theme = useTheme();
   const [open, setOpen] = React.useState(true);
+  const [lang, setLang] = React.useState<'FR' | 'KR' | 'EN'>('FR');
   const navigate = useNavigate();
   const location = useLocation();
 
-  const openLink = (link: string) => {
-    navigate(link);
-  };
-
+  const openLink = (link: string) => navigate(link);
   const handleDrawerOpen = () => setOpen(true);
   const handleDrawerClose = () => setOpen(false);
 
@@ -120,125 +187,320 @@ export default function App({ children }: PropsChildren) {
     navigate('/');
   };
 
-  const menu = [
-    { name: 'Stat Ensidan', icon: <BarChart />, link: '/stat-incident' },
-    { name: 'Viktim', icon: <Error />, link: '/viktim' },
-    { name: 'Zone Danger', icon: <Dangerous />, link: '/zone-danger' },
-    { name: 'Kidnapping', icon: <RawOffTwoTone />, link: '/kidnapping' },
-    { name: 'News', icon: <Newspaper />, link: '/news' },
-    { name: 'Maps', icon: <Map />, link: '/maps' },
-    { name: 'Telegram', icon: <CloudSync />, link: '/telegram' },
-  ];
+  const cycleLang = () => {
+    setLang((l) => (l === 'FR' ? 'KR' : l === 'KR' ? 'EN' : 'FR'));
+  };
+
+  const isActiveLink = (link: string) => {
+    if (link === '/home') {
+      return location.pathname === '/home' || location.pathname === '/';
+    }
+    return location.pathname === link;
+  };
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
       <CssBaseline />
       <AppBar position="fixed" open={open}>
-        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, minHeight: 64 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0 }}>
             <IconButton
               color="inherit"
               aria-label="open drawer"
               onClick={handleDrawerOpen}
               edge="start"
-              sx={{
-                mr: 2,
-                ...(open && { display: 'none' }),
-              }}
+              sx={{ ...(open && { display: 'none' }) }}
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
-              VEYe Dashboard
+            <Typography
+              variant="overline"
+              sx={{ color: 'rgba(255,255,255,0.85)', letterSpacing: '0.12em', fontWeight: 700 }}
+            >
+              OPERATIONS
             </Typography>
-          </Box>
-          <IconButton
-            color="inherit"
-            aria-label="logout"
-            onClick={fnLogout}
+            <Typography variant="h6" sx={{ fontWeight: 700, ml: 1 }}>
+              Viktim dashboard
+            </Typography>
+          </Stack>
+
+          <Box
             sx={{
-              bgcolor: 'rgba(255,255,255,0.15)',
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+              flex: 1,
+              maxWidth: 520,
+              display: { xs: 'none', md: 'flex' },
+              alignItems: 'center',
+              bgcolor: 'rgba(255,255,255,0.16)',
+              borderRadius: 2,
+              px: 1.5,
+              py: 0.5,
+              '&:focus-within': { bgcolor: 'rgba(255,255,255,0.24)' },
             }}
           >
-            <ExitToApp />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-      <Drawer variant="permanent" open={open}>
-        <DrawerHeader sx={{ px: 2, justifyContent: 'space-between' }}>
-          {open && (
-            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
-              Menu
-            </Typography>
-          )}
-          <IconButton onClick={handleDrawerClose} size="small">
-            {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-          </IconButton>
-        </DrawerHeader>
-        <Divider />
-        <List sx={{ pt: 1 }}>
-          {menu.map((item) => {
-            const isActive = location.pathname === item.link || (item.link === '/viktim' && location.pathname === '/home');
-            return (
-              <ListItem key={item.link} disablePadding sx={{ display: 'block', mb: 0.5 }}>
-                <ListItemButton
-                  onClick={() => openLink(item.link)}
-                  sx={{
-                    minHeight: 48,
-                    justifyContent: open ? 'initial' : 'center',
-                    px: 2.5,
-                    mx: 1,
-                    borderRadius: 2,
-                    bgcolor: isActive ? 'primary.main' : 'transparent',
-                    color: isActive ? 'primary.contrastText' : 'text.primary',
-                    '&:hover': {
-                      bgcolor: isActive ? 'primary.dark' : 'action.hover',
-                    },
-                  }}
-                >
-                  <ListItemIcon
-                    sx={{
-                      minWidth: 0,
-                      mr: open ? 2 : 'auto',
-                      justifyContent: 'center',
-                      color: 'inherit',
-                    }}
-                  >
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText primary={item.name} sx={{ opacity: open ? 1 : 0 }} />
-                </ListItemButton>
-              </ListItem>
-            );
-          })}
-        </List>
-        <Divider sx={{ mt: 2 }} />
-        <List>
-          <ListItem disablePadding sx={{ display: 'block' }}>
-            <ListItemButton
+            <SearchIcon sx={{ color: 'rgba(255,255,255,0.85)', mr: 1 }} />
+            <InputBase
+              placeholder="Chache non, zòn, enfòmasyon, tip…"
               sx={{
-                minHeight: 48,
-                justifyContent: open ? 'initial' : 'center',
-                px: 2.5,
-                mx: 1,
-                borderRadius: 2,
+                color: '#fff',
+                flex: 1,
+                fontSize: 14,
+                '& input::placeholder': { color: 'rgba(255,255,255,0.7)', opacity: 1 },
               }}
-            >
-              <ListItemIcon
-                sx={{
-                  minWidth: 0,
-                  mr: open ? 2 : 'auto',
-                  justifyContent: 'center',
-                }}
+            />
+          </Box>
+
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Tooltip title="Notifications">
+              <IconButton
+                color="inherit"
+                sx={{ bgcolor: 'rgba(255,255,255,0.15)', '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' } }}
+              >
+                <Badge color="error" variant="dot" overlap="circular">
+                  <NotificationsNoneIcon />
+                </Badge>
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Aide">
+              <IconButton
+                color="inherit"
+                sx={{ bgcolor: 'rgba(255,255,255,0.15)', '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' } }}
               >
                 <HelpOutlineIcon />
-              </ListItemIcon>
-              <ListItemText primary="Aide" sx={{ opacity: open ? 1 : 0 }} />
-            </ListItemButton>
-          </ListItem>
-        </List>
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={`Lang: ${lang}`}>
+              <Button
+                onClick={cycleLang}
+                startIcon={<LanguageIcon />}
+                sx={{
+                  color: '#fff',
+                  bgcolor: 'rgba(255,255,255,0.15)',
+                  minWidth: 0,
+                  px: 1.5,
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+                }}
+              >
+                {lang}
+              </Button>
+            </Tooltip>
+          </Stack>
+        </Toolbar>
+      </AppBar>
+
+      <Drawer variant="permanent" open={open}>
+        <DrawerHeader sx={{ justifyContent: open ? 'space-between' : 'center', py: 1 }}>
+          {open ? (
+            <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+              <Avatar
+                variant="rounded"
+                sx={{
+                  bgcolor: 'primary.main',
+                  width: 36,
+                  height: 36,
+                  fontWeight: 800,
+                  fontSize: 16,
+                }}
+              >
+                V
+              </Avatar>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography sx={{ fontWeight: 700, lineHeight: 1.1 }}>VEYe Admin</Typography>
+                <Typography sx={{ fontSize: 11, color: 'text.secondary', letterSpacing: '0.05em' }}>
+                  OPS · PORT-AU-PRINCE
+                </Typography>
+              </Box>
+            </Stack>
+          ) : (
+            <Avatar
+              variant="rounded"
+              sx={{ bgcolor: 'primary.main', width: 36, height: 36, fontWeight: 800 }}
+            >
+              V
+            </Avatar>
+          )}
+          {open && (
+            <IconButton onClick={handleDrawerClose} size="small">
+              {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+            </IconButton>
+          )}
+        </DrawerHeader>
+        <Divider />
+
+        <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', py: 1 }}>
+          {sections.map((section, idx) => (
+            <Box key={section.title} sx={{ mb: 1 }}>
+              {open && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    px: 3,
+                    py: 1,
+                    display: 'block',
+                    color: 'text.secondary',
+                    letterSpacing: '0.12em',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    fontSize: 10,
+                  }}
+                >
+                  {section.title}
+                </Typography>
+              )}
+              <List sx={{ py: 0 }}>
+                {section.items.map((item) => {
+                  const isActive = isActiveLink(item.link);
+                  return (
+                    <ListItem key={item.link} disablePadding sx={{ display: 'block', mb: 0.25 }}>
+                      <ListItemButton
+                        onClick={() => openLink(item.link)}
+                        sx={{
+                          minHeight: 40,
+                          justifyContent: open ? 'initial' : 'center',
+                          px: 2,
+                          mx: 1,
+                          borderRadius: 2,
+                          bgcolor: isActive ? 'primary.main' : 'transparent',
+                          color: isActive ? 'primary.contrastText' : 'text.primary',
+                          '&:hover': {
+                            bgcolor: isActive ? 'primary.dark' : 'action.hover',
+                          },
+                        }}
+                      >
+                        <ListItemIcon
+                          sx={{
+                            minWidth: 0,
+                            mr: open ? 1.75 : 'auto',
+                            justifyContent: 'center',
+                            color: 'inherit',
+                          }}
+                        >
+                          {item.icon}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={item.name}
+                          primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }}
+                          sx={{ opacity: open ? 1 : 0 }}
+                        />
+                        {open && item.badge != null && (
+                          <Box
+                            sx={{
+                              minWidth: 28,
+                              height: 20,
+                              px: 0.75,
+                              borderRadius: 999,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              bgcolor: isActive
+                                ? 'rgba(255,255,255,0.22)'
+                                : item.badgeColor === 'warning'
+                                  ? '#fef3c7'
+                                  : '#fee2e2',
+                              color: isActive
+                                ? '#fff'
+                                : item.badgeColor === 'warning'
+                                  ? '#b45309'
+                                  : '#b91c1c',
+                              fontSize: 11,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {item.badge}
+                          </Box>
+                        )}
+                      </ListItemButton>
+                    </ListItem>
+                  );
+                })}
+              </List>
+              {idx < sections.length - 1 && open && <Divider sx={{ mx: 2, mt: 1, opacity: 0.6 }} />}
+            </Box>
+          ))}
+
+          {open && (
+            <Box sx={{ mt: 2 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  px: 3,
+                  py: 1,
+                  display: 'block',
+                  color: 'text.disabled',
+                  letterSpacing: '0.12em',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  fontSize: 10,
+                }}
+              >
+                More tools
+              </Typography>
+              <List sx={{ py: 0 }}>
+                {legacyExtras.map((item) => {
+                  const isActive = isActiveLink(item.link);
+                  return (
+                    <ListItem key={item.link} disablePadding sx={{ display: 'block', mb: 0.25 }}>
+                      <ListItemButton
+                        onClick={() => openLink(item.link)}
+                        sx={{
+                          minHeight: 36,
+                          px: 2,
+                          mx: 1,
+                          borderRadius: 2,
+                          bgcolor: isActive ? 'primary.main' : 'transparent',
+                          color: isActive ? 'primary.contrastText' : 'text.secondary',
+                          '&:hover': {
+                            bgcolor: isActive ? 'primary.dark' : 'action.hover',
+                          },
+                        }}
+                      >
+                        <ListItemIcon sx={{ minWidth: 0, mr: 1.75, color: 'inherit' }}>
+                          {item.icon}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={item.name}
+                          primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }}
+                        />
+                      </ListItemButton>
+                    </ListItem>
+                  );
+                })}
+              </List>
+            </Box>
+          )}
+        </Box>
+
+        <Divider />
+        <Box sx={{ p: 1.5 }}>
+          {open ? (
+            <Stack direction="row" alignItems="center" spacing={1.25}>
+              <Avatar sx={{ bgcolor: '#0f766e', width: 36, height: 36, fontWeight: 700 }}>KR</Avatar>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }} noWrap>
+                  Kerby R.
+                </Typography>
+                <Typography sx={{ fontSize: 11, color: 'text.secondary' }} noWrap>
+                  Administratè
+                </Typography>
+              </Box>
+              <Tooltip title="Dekonekte">
+                <IconButton size="small" onClick={fnLogout}>
+                  <ExitToApp fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          ) : (
+            <Stack alignItems="center" spacing={1}>
+              <Avatar sx={{ bgcolor: '#0f766e', width: 32, height: 32, fontWeight: 700, fontSize: 13 }}>
+                KR
+              </Avatar>
+              <IconButton size="small" onClick={fnLogout}>
+                <ExitToApp fontSize="small" />
+              </IconButton>
+            </Stack>
+          )}
+        </Box>
       </Drawer>
+
       <Box
         component="main"
         sx={{

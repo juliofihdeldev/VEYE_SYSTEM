@@ -138,6 +138,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.08)',
+          borderRadius: 0,
         },
       },
     },

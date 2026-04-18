@@ -85,6 +85,72 @@ export const handleGetALert = async () => {
 	}
 };
 
+export type ZoneDangerSearchParams = {
+	query?: string;
+	dateFrom?: string | null;
+	dateTo?: string | null;
+	limit?: number;
+	offset?: number;
+};
+
+export type ZoneDangerSearchResult = {
+	rows: ReturnType<typeof mapZoneRow>[];
+	total: number;
+};
+
+/**
+ * Search zone_danger using Postgres Full-Text Search (tsvector + GIN index).
+ *
+ * - Uses Supabase `textSearch` with `type: 'websearch'`, so the user's text is
+ *   parsed like a Google query (supports quoted phrases, OR, -term).
+ * - Falls back to a plain ordered list when no query is provided.
+ * - Date filtering is applied on the server with btree-indexed `date` column.
+ */
+export const searchDangerZones = async ({
+	query,
+	dateFrom,
+	dateTo,
+	limit = 10,
+	offset = 0,
+}: ZoneDangerSearchParams): Promise<ZoneDangerSearchResult> => {
+	try {
+		let q = getSupabase()
+			.from("zone_danger")
+			.select("*", { count: "exact" })
+			.order("date", { ascending: false });
+
+		const trimmed = (query ?? "").trim();
+		if (trimmed) {
+			q = q.textSearch("search_tsv", trimmed, {
+				type: "websearch",
+				config: "simple",
+			});
+		}
+
+		if (dateFrom) {
+			const fromIso = new Date(`${dateFrom}T00:00:00.000Z`).toISOString();
+			q = q.gte("date", fromIso);
+		}
+		if (dateTo) {
+			const toIso = new Date(`${dateTo}T23:59:59.999Z`).toISOString();
+			q = q.lte("date", toIso);
+		}
+
+		q = q.range(offset, offset + limit - 1);
+
+		const { data, error, count } = await q;
+		if (error) throw error;
+
+		return {
+			rows: (data ?? []).map((r) => mapZoneRow(r as Record<string, unknown>)),
+			total: count ?? 0,
+		};
+	} catch (error) {
+		console.error("searchDangerZones failed", error);
+		return { rows: [], total: 0 };
+	}
+};
+
 const TELEGRAM_MONITOR_RUN_URL = import.meta.env.VITE_TELEGRAM_MONITOR_RUN_URL as string | undefined;
 
 /** Manually trigger Telegram channel monitor (Edge, or legacy URL if `VITE_TELEGRAM_MONITOR_RUN_URL` is set). */
