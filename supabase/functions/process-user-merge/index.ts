@@ -9,7 +9,7 @@ type UserRow = {
   longitude: number | null;
 };
 
-/** App merges on `users` (radius prefs, OneSignal id) — same trust model as `process-demanti` (`verifySecret` when secret set). */
+/** App merges on `users` (radius prefs, FCM device token) — same trust model as `process-demanti` (`verifySecret` when secret set). */
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return corsPreflightResponse();

@@ -7,12 +7,12 @@ Deployed function folders live under `supabase/functions/<name>/index.ts`.
 | `telegram-monitor` | GET, POST | `x-veye-secret` if `PROCESS_ALERT_SECRET` set | Telegram `getUpdates`, AI + `news` fallback |
 | `process-global-alert` | POST | Public (app) | Same contract as Firebase `processGlobalAlert` |
 | `process-demanti` | POST | `x-veye-secret` or body `secret` if `PROCESS_ALERT_SECRET` set | App “false flag” for a zone: insert `demanti_alert`, bump `zone_danger.manti_count` |
-| `process-user-merge` | POST | `x-veye-secret` or body `secret` if `PROCESS_ALERT_SECRET` set | App **partial merge** on Postgres `users` (`radius_km`, `notification_radius_km`, `device_token` / OneSignal id) |
+| `process-user-merge` | POST | `x-veye-secret` or body `secret` if `PROCESS_ALERT_SECRET` set | App **partial merge** on Postgres `users` (`radius_km`, `notification_radius_km`, `device_token` / FCM token) |
 | `get-user-moderation` | POST | `x-veye-secret` or body `secret` if `PROCESS_ALERT_SECRET` set | App read **`user_moderations`** for `{ userId }` — returns `blocked`, `unblockedAtMs` (uses shared **`isUserBlocked`** / 72h cooldown, may auto-clear block) |
 | `process-veye-comment` | POST | `x-veye-secret` or body `secret` if `PROCESS_ALERT_SECRET` set | App **`veye_comments`**: `action: append` \| `toggleLike` (service role) |
 | `process-admin-alert` | POST | `x-veye-secret` or body `secret` | Dashboard admin submit |
 | `unblock-user` | POST | Secret | Unblock `user_moderations` |
-| `send-notification` | POST | Public | OneSignal broadcast by geo |
+| `send-notification` | POST | Public | FCM HTTP v1 broadcast by geo (radius-targeted, fan-out per token) |
 | `health-check` | GET | Public | Liveness |
 | `dashboard-mutate` | POST | `x-veye-secret` if `PROCESS_ALERT_SECRET` set + `Authorization: Bearer <anon>` | Dashboard-only **insert** (viktim, news) / **update** (zone_danger, news) / **delete** (all four list tables) — service role on server |
 
@@ -29,8 +29,8 @@ Invoke URL (hosted):
 | `PROCESS_ALERT_SECRET` | `telegram-monitor`, `process-demanti`, `process-user-merge`, `get-user-moderation`, `process-veye-comment`, `process-admin-alert`, `unblock-user` |
 | `GOOGLE_GEMINI_API_KEY` | AI pipeline |
 | `GOOGLE_GEOCODING_API_KEY` | Geocoding |
-| `ONESIGNAL_API_ID` | Notifications |
-| `ONESIGNAL_REST_API_ID_KEY` | Notifications (Basic auth) |
+| `FCM_PROJECT_ID` | `send-notification` (Firebase project id, e.g. `edel-34e48`) |
+| `FCM_SERVICE_ACCOUNT_JSON` | `send-notification` — **entire** service-account JSON pasted as a single string (Firebase Console → Project Settings → Service accounts → Generate new private key) |
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically in the Edge runtime.
 

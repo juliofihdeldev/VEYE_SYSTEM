@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Pending tab from notification clicks (OneSignal) or legacy intent extras. */
+/** Pending tab from notification clicks (FCM) or legacy intent extras. */
 @Singleton
 class PushNavigationStore @Inject constructor() {
     private val _pendingTabRoute = MutableStateFlow<String?>(null)

@@ -9,8 +9,7 @@ import com.elitesoftwarestudio.veye.data.auth.AuthRepository
 import com.elitesoftwarestudio.veye.data.preferences.MapSessionPrefs
 import com.elitesoftwarestudio.veye.data.preferences.UserPreferencesRepository
 import com.elitesoftwarestudio.veye.data.user.UserDocumentRepository
-import com.elitesoftwarestudio.veye.push.OneSignalDeviceRepository
-import com.onesignal.OneSignal
+import com.elitesoftwarestudio.veye.push.FcmDeviceRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +25,7 @@ class ProfileViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val userDocumentRepository: UserDocumentRepository,
     private val authRepository: AuthRepository,
-    private val oneSignalDeviceRepository: OneSignalDeviceRepository,
+    private val fcmDeviceRepository: FcmDeviceRepository,
     private val firebaseAuth: FirebaseAuth,
 ) : ViewModel() {
 
@@ -69,13 +68,15 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Persist the "notifications on" preference and (re)push the current FCM token to Postgres
+     * so the user starts receiving radius-targeted alerts. The system POST_NOTIFICATIONS prompt
+     * is handled by the calling Composable via `ActivityResultContracts.RequestPermission`.
+     */
     fun enableNotificationsAndSyncToken() {
         viewModelScope.launch {
             userPreferencesRepository.setNotificationsEnabled(true)
-            withContext(Dispatchers.Main.immediate) {
-                runCatching { OneSignal.Notifications.requestPermission(true) }
-            }
-            runCatching { oneSignalDeviceRepository.syncOnesignalIdToFirestore() }
+            runCatching { fcmDeviceRepository.syncTokenToBackend() }
         }
     }
 
@@ -124,12 +125,10 @@ class ProfileViewModel @Inject constructor(
 
     fun logout(activity: Activity) {
         viewModelScope.launch {
-            runCatching { OneSignal.logout() }
             authRepository.signOutAndSignInAnonymously()
-            firebaseAuth.currentUser?.uid?.let { uid ->
-                OneSignal.login(uid)
-                runCatching { oneSignalDeviceRepository.syncOnesignalIdToFirestore() }
-            }
+            // After re-signing in (anonymously, with a new uid), re-bind the device's FCM
+            // token under that uid so notifications continue to land on this device.
+            runCatching { fcmDeviceRepository.syncTokenToBackend() }
             withContext(Dispatchers.Main.immediate) {
                 activity.recreate()
             }

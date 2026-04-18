@@ -21,48 +21,6 @@
       "api_key": [
         {
           "current_key": "AIzaSyBQZMz4CEwsPdLDITqTMl8VsQ81DRgdXaU"
-        },
-        {
-          "current_key": "AIzaSyAJfw1aiXm2dCrfPdhB4XtFtfNbQOpHTTQ"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "39477815142-sen1kbqujeqp3hdirkhj4cfu4got4blj.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "39477815142-t52mursk8ki1vpqk9ekpkoqb6k42jj0c.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "tech.transitiondigitale.veye"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:39477815142:android:c760ba71883f31b8258aa7",
-        "android_client_info": {
-          "package_name": "tech.transitiondigitaleht.veye"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "39477815142-sen1kbqujeqp3hdirkhj4cfu4got4blj.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBQZMz4CEwsPdLDITqTMl8VsQ81DRgdXaU"
-        },
-        {
-          "current_key": "AIzaSyAJfw1aiXm2dCrfPdhB4XtFtfNbQOpHTTQ"
         }
       ],
       "services": {

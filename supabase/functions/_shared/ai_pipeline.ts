@@ -3,7 +3,7 @@
  */
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { GoogleGenAI } from "npm:@google/genai@1.44.0";
-import { sendOneSignalNotification } from "./onesignal.ts";
+import { sendFcmNotification } from "./fcm.ts";
 
 const DEDUPE_THRESHOLD = 0.85;
 const DEDUPE_LOOKBACK_HOURS = 72;
@@ -271,7 +271,7 @@ async function writeToDb(supabase: SupabaseClient, extracted: Record<string, unk
 	const zoneId = zoneIns.id as string;
 
 	const notificationMessage = `Nan ${zoneRow.address || "Haiti"} ${zoneRow.rezon}`;
-	sendOneSignalNotification(supabase, notificationMessage, {
+	sendFcmNotification(supabase, notificationMessage, {
 		latitude: latitude ?? null,
 		longitude: longitude ?? null,
 	}).catch((err) => console.warn("notify", err));

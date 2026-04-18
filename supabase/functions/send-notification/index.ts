@@ -1,6 +1,6 @@
 import { serviceClient } from "../_shared/supabase.ts";
 import { corsHeaders, jsonResponse } from "../_shared/http.ts";
-import { sendOneSignalNotification } from "../_shared/onesignal.ts";
+import { sendFcmNotification } from "../_shared/fcm.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -24,16 +24,22 @@ Deno.serve(async (req: Request) => {
 
   try {
     const supabase = serviceClient();
-    const result = await sendOneSignalNotification(supabase, information, position);
+    const result = await sendFcmNotification(supabase, information, position);
     if (result.success) {
-      return new Response("Notification sent!", { status: 200, headers: corsHeaders });
+      return jsonResponse(
+        {
+          message: "Notification sent",
+          sent: result.sent ?? 0,
+          failed: result.failed ?? 0,
+          skipped: result.skipped,
+          invalidTokensRemoved: result.invalidTokens?.length ?? 0,
+        },
+        200,
+      );
     }
-    return new Response(result.error || "Notification failed", {
-      status: 500,
-      headers: corsHeaders,
-    });
+    return jsonResponse({ error: result.error || "Notification failed" }, 500);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return new Response(msg, { status: 500, headers: corsHeaders });
+    return jsonResponse({ error: msg }, 500);
   }
 });

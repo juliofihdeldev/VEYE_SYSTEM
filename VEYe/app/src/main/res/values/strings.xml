@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">VEYe</string>
+    <string name="default_notification_channel_id" translatable="false">veye_alerts</string>
+    <string name="default_notification_channel_name">VEYe alerts</string>
+    <string name="default_notification_channel_description">Nearby danger zones, victim reports and breaking news.</string>
     <string name="tab_map">Map</string>
     <string name="tab_alerts">Alerts</string>
     <string name="tab_report">Report</string>

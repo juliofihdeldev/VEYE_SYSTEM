@@ -20,9 +20,9 @@ Managed with the [Supabase CLI](https://supabase.com/docs/guides/cli).
 | `process-global-alert` | Mobile / public alert JSON → AI pipeline |
 | `process-admin-alert` | Dashboard admin + secret |
 | `unblock-user` | Moderation reset + secret |
-| `send-notification` | OneSignal helper |
+| `send-notification` | FCM HTTP v1 helper |
 | `health-check` | Liveness |
 
-Shared code: `supabase/functions/_shared/` (`ai_pipeline.ts`, `telegram_monitor.ts`, `onesignal.ts`, …).
+Shared code: `supabase/functions/_shared/` (`ai_pipeline.ts`, `telegram_monitor.ts`, `fcm.ts`, …).
 
 Full secret list and URLs: [docs/EDGE_FUNCTIONS.md](../docs/EDGE_FUNCTIONS.md).

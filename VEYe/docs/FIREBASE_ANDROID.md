@@ -18,6 +18,6 @@ Until the app is registered, **anonymous sign-in may fail** at runtime; check Lo
 
 ## What the app does today
 
-- **Google Services** Gradle plugin + **Firebase BoM** (**Auth**, **Analytics**). App data uses **Supabase** (PostgREST + **Realtime** + Edge Functions); push delivery uses **OneSignal** (see `VEYeApplication` / `README.md`); the app does not depend on `firebase-messaging` directly.
+- **Google Services** Gradle plugin + **Firebase BoM** (**Auth**, **Analytics**, **Cloud Messaging**). App data uses **Supabase** (PostgREST + **Realtime** + Edge Functions); push delivery uses **Firebase Cloud Messaging (FCM)** via `firebase-messaging-ktx` + `VeyeFirebaseMessagingService` (see `VEYeApplication` / `README.md`).
 - **`AuthRepository`**: **Firebase** `signInAnonymously()` when needed, then **Supabase Auth** `signInAnonymously()` for a JWT (Realtime). Firebase **uid** remains the stable id sent to Edge functions (`userId` / merges).
 - **`UserPreferencesRepository`**: DataStore for map session, theme, locale, radii, notifications toggle, etc. (Profile screen wired).

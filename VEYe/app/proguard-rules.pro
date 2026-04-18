@@ -22,6 +22,6 @@
     public static final ** CREATOR;
 }
 
-# OneSignal (when minify is enabled)
--keep class com.onesignal.** { *; }
--dontwarn com.onesignal.**
+# Firebase Cloud Messaging (when minify is enabled)
+-keep class com.google.firebase.messaging.** { *; }
+-dontwarn com.google.firebase.messaging.**

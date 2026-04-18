@@ -46,11 +46,6 @@ android {
 
         buildConfigField("boolean", "MAPS_API_KEY_CONFIGURED", "${googleMapsApiKey.isNotEmpty()}")
 
-        val oneSignalAppId =
-            localProperties.getProperty("ONESIGNAL_APP_ID")
-                ?: "1766902d-eca3-4350-aaaa-bd8704a47548"
-        buildConfigField("String", "ONESIGNAL_APP_ID", "\"$oneSignalAppId\"")
-
         // Phase C — Supabase (defaults: local CLI `supabase start`; override in local.properties / env)
         val demoSupabaseAnon =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
@@ -112,8 +107,8 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.analytics)
+    implementation(libs.firebase.messaging.ktx)
     implementation(libs.kotlinx.coroutines.play.services)
-    implementation(libs.onesignal)
 
     implementation(libs.androidx.datastore.preferences)
 
