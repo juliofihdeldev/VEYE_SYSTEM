@@ -1,0 +1,36 @@
+version: 1
+# AWS Amplify Hosting build spec for the `veye-dashboard` (Vite SPA).
+# This monorepo uses pnpm + turbo, so we build only the dashboard package
+# and publish its `dist/` output.
+#
+# Required environment variables (set in Amplify Console → App settings → Environment variables):
+#   - VITE_SUPABASE_URL
+#   - VITE_SUPABASE_ANON_KEY        (or VITE_SUPABASE_PUBLISHABLE_KEY, whichever the app reads)
+#   - VITE_GOOGLE_MAPS_API_KEY      (if the dashboard uses Google Maps)
+#   - Any other VITE_* keys your dashboard needs at build time.
+#
+# Required SPA rewrite (Amplify Console → Rewrites and redirects):
+#   Source:  </^[^.]+$|\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json|webp)$)([^.]+$)/>
+#   Target:  /index.html
+#   Type:    200 (Rewrite)
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - corepack enable
+        - corepack prepare pnpm@9.15.4 --activate
+        - pnpm config set store-dir .pnpm-store
+        - pnpm install --frozen-lockfile --filter veye-dashboard...
+    build:
+      commands:
+        - pnpm --filter veye-dashboard build
+  artifacts:
+    baseDirectory: VEyeDashBoard/dist
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - .pnpm-store/**/*
+      - node_modules/**/*
+      - VEyeDashBoard/node_modules/**/*
+      - .turbo/**/*

@@ -1,23 +1,23 @@
 {
-  "name": "veye-system",
-  "private": true,
-  "packageManager": "pnpm@9.15.4",
-  "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "dev:dashboard": "pnpm --filter veye-dashboard dev",
-    "dev:dashboard:tauri": "pnpm --filter veye-dashboard tauri:dev",
-    "build:dashboard:tauri": "pnpm --filter veye-dashboard tauri:build",
-    "dev:webapp": "pnpm --filter veye-web-app dev",
-    "dev:functions": "pnpm --filter @veye/legacy-functions serve",
-    "supabase:serve": "supabase functions serve",
-    "supabase:deploy": "supabase functions deploy",
-    "supabase:db:push": "supabase db push",
-    "firestore:export": "pnpm --filter @veye/firestore-export run export",
-    "firestore:import": "pnpm install --filter @veye/firestore-supabase-import && pnpm --filter @veye/firestore-supabase-import run import",
-    "lint": "turbo run lint"
-  },
-  "devDependencies": {
-    "turbo": "^2.3.3"
-  }
+	"name": "veye-system",
+	"private": true,
+	"packageManager": "pnpm@9.15.4",
+	"scripts": {
+		"dev": "turbo run dev",
+		"build": "turbo run build",
+		"dev:dashboard": "pnpm --filter veye-dashboard dev",
+		"dev:dashboard:tauri": "pnpm --filter veye-dashboard tauri:dev",
+		"build:dashboard:tauri": "pnpm --filter veye-dashboard tauri:build",
+		"dev:webapp": "pnpm --filter veye-web-app dev",
+		"dev:functions": "pnpm --filter @veye/legacy-functions serve",
+		"supabase:serve": "supabase functions serve",
+		"supabase:deploy": "supabase functions deploy",
+		"supabase:db:push": "supabase db push",
+		"firestore:export": "pnpm --filter @veye/firestore-export run export",
+		"firestore:import": "pnpm install --filter @veye/firestore-supabase-import && pnpm --filter @veye/firestore-supabase-import run import",
+		"lint": "turbo run lint"
+	},
+	"devDependencies": {
+		"turbo": "^2.3.3"
+	}
 }
