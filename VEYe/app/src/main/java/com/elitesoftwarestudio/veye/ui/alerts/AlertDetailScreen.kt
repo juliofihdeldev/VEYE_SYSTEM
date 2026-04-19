@@ -8,25 +8,20 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -90,7 +85,6 @@ import com.google.maps.android.compose.rememberMarkerState
 import java.text.DateFormat
 import java.util.Date
 
-private val EmergencyRed = Color(0xFFC41E3A)
 private val UserRadiusStroke = Color(0xE61BC21B)
 private val UserRadiusFill = Color(0x261BC21B)
 private val ReleasedGreen = AndroidColor.parseColor("#22C55E")
@@ -113,8 +107,6 @@ fun AlertDetailScreen(
     val commentFlow = remember(threadId) { commentsRepository.observeThread(threadId) }
     val comments by commentFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val commentCount = comments.size
-
-    val severity = rememberAlertSeverityStyle(alert)
 
     fun shareAlert() {
         val msg =

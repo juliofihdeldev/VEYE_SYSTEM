@@ -58,6 +58,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elitesoftwarestudio.veye.R
+import com.elitesoftwarestudio.veye.data.geo.distanceKm
 import com.elitesoftwarestudio.veye.ui.components.FilterPillItem
 import com.elitesoftwarestudio.veye.ui.components.FilterPillRow
 import com.elitesoftwarestudio.veye.ui.components.ScreenHeader
@@ -95,8 +96,61 @@ import kotlinx.coroutines.launch
 
 private val HaitiCenter = LatLng(18.5944, -72.3074)
 
-/** Quick filter chips on top of the Zones sheet (visual only — refines list view). */
+/** Quick filter chips on top of the Zones sheet. */
 private enum class ZoneQuickFilter { All, NearMe, Last24h, Highest }
+
+/** Higher value = more severe. Used by the "Risque max" / "Highest" quick filter. */
+private fun SeverityKind.severityWeight(): Int =
+    when (this) {
+        SeverityKind.Kidnapping -> 5
+        SeverityKind.Shooting -> 4
+        SeverityKind.DangerZone -> 3
+        SeverityKind.Suspicious -> 3
+        SeverityKind.Missing -> 2
+        SeverityKind.Info -> 1
+        SeverityKind.Released -> 0
+    }
+
+/** Reads a millisecond epoch from a zone's date-like field. */
+private fun DangerZone.epochMillisOrNull(): Long? {
+    val raw = date ?: return null
+    return when (raw) {
+        is Number -> raw.toLong()
+        is com.google.firebase.Timestamp -> raw.toDate().time
+        is java.util.Date -> raw.time
+        else -> null
+    }
+}
+
+private const val NearMeRadiusKm = 5.0
+private const val OneDayMillis = 24L * 60L * 60L * 1000L
+
+private fun applyZoneQuickFilter(
+    zones: List<DangerZone>,
+    filter: ZoneQuickFilter,
+    userLat: Double?,
+    userLon: Double?,
+): List<DangerZone> =
+    when (filter) {
+        ZoneQuickFilter.All -> zones
+        ZoneQuickFilter.NearMe -> {
+            if (userLat == null || userLon == null) zones
+            else zones.filter { z ->
+                val zLat = z.latitude
+                val zLng = z.longitude
+                if (zLat == null || zLng == null) false
+                else distanceKm(userLat, userLon, zLat, zLng) <= NearMeRadiusKm
+            }
+        }
+        ZoneQuickFilter.Last24h -> {
+            val cutoff = System.currentTimeMillis() - OneDayMillis
+            zones.filter { (it.epochMillisOrNull() ?: 0L) >= cutoff }
+        }
+        ZoneQuickFilter.Highest ->
+            zones.sortedByDescending {
+                severityFromZoneRezon(it.rezon, it.incidentType).severityWeight()
+            }
+    }
 
 @get:StringRes
 private val MapTimeRange.labelRes: Int
@@ -228,6 +282,8 @@ fun ZonesScreen(
                     pendingReports = pendingReports,
                     onDismissPending = { viewModel.removePendingReport(it) },
                     zones = nearbyZonesForSheet,
+                    userLatitude = session.latitude,
+                    userLongitude = session.longitude,
                     selectedZoneId = selectedZoneId,
                     openSwipeZoneId = openSwipeZoneId,
                     onOpenSwipeChange = { openSwipeZoneId = it },
@@ -440,6 +496,8 @@ private fun ZonesSheetList(
     pendingReports: List<PendingReport>,
     onDismissPending: (String) -> Unit,
     zones: List<DangerZone>,
+    userLatitude: Double? = null,
+    userLongitude: Double? = null,
     selectedZoneId: String?,
     openSwipeZoneId: String?,
     onOpenSwipeChange: (String?) -> Unit,
@@ -452,6 +510,9 @@ private fun ZonesSheetList(
         zones.groupingBy { severityFromZoneRezon(it.rezon, it.incidentType) }.eachCount()
     }
     var quickFilter by remember { mutableStateOf(ZoneQuickFilter.All) }
+    val visibleZones = remember(zones, quickFilter, userLatitude, userLongitude) {
+        applyZoneQuickFilter(zones, quickFilter, userLatitude, userLongitude)
+    }
     val quickFilterItems =
         listOf(
             FilterPillItem(
@@ -530,10 +591,10 @@ private fun ZonesSheetList(
                 )
             }
             items(
-                count = zones.size,
-                key = { zones[it].id },
+                count = visibleZones.size,
+                key = { visibleZones[it].id },
             ) { index ->
-                val zone = zones[index]
+                val zone = visibleZones[index]
                 val bar = zoneSeverityBarColor(zone.rezon)
                 Column(Modifier.fillMaxWidth()) {
                     ZoneSwipeRow(
@@ -548,12 +609,12 @@ private fun ZonesSheetList(
                         formatTime = formatTime,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    if (index < zones.lastIndex) {
+                    if (index < visibleZones.lastIndex) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
             }
-            if (zones.isEmpty() && pendingReports.isEmpty()) {
+            if (visibleZones.isEmpty() && pendingReports.isEmpty()) {
                 item {
                     Text(
                         stringResource(R.string.danger_zones_no_nearby),
