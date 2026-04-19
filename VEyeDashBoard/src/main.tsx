@@ -17,6 +17,7 @@ import Maps from './components/Maps.tsx';
 import TelegramMonitorTool from './components/TelegramMonitorTool.tsx';
 import Dashboard from './components/Dashboard.tsx';
 import Moderation from './components/Moderation.tsx';
+import Users from './components/Users.tsx';
 import ErrorPage from './components/ErrorPage.tsx';
 
 const router = createBrowserRouter([
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
           { path: 'kidnapping', element: <App><Kidnapping /></App> },
           { path: 'telegram', element: <App><TelegramMonitorTool /></App> },
           { path: 'moderation', element: <App><Moderation /></App> },
+          { path: 'users', element: <App><Users /></App> },
         ],
       },
       { path: '*', element: <ErrorPage /> },

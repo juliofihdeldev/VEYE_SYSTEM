@@ -21,7 +21,8 @@
     "noneDash": "—",
     "rowsPerPage": "Liy pa paj",
     "of": "sou",
-    "tryAgain": "Eseye ankò pita."
+    "tryAgain": "Eseye ankò pita.",
+    "copy": "Kopye"
   },
   "nav": {
     "operations": "Operasyon",
@@ -250,6 +251,35 @@
     "deleteMessage": "Ou sèten ou vle efase viktim sa a? Aksyon sa a pa ka defèt.",
     "tooltipEdit": "Modifye",
     "tooltipDelete": "Efase"
+  },
+  "users": {
+    "title": "Itilizatè",
+    "totalSubtitle_one": "{{count}} itilizatè · kominote VEYe",
+    "totalSubtitle_other": "{{count}} itilizatè · kominote VEYe",
+    "searchPlaceholder": "Chache yon imèl, yon idantifyan…",
+    "deviceLabel": "PUSH",
+    "deviceFilters": {
+      "all": "Tout",
+      "pushOn": "Push aktif",
+      "pushOff": "San push"
+    },
+    "columns": {
+      "user": "Itilizatè",
+      "notifications": "Notifikasyon",
+      "location": "Kote",
+      "device": "Aparèy",
+      "updated": "Dènye aktivite"
+    },
+    "anonymous": "Itilizatè anonim",
+    "pushOff": "Push pa aktive",
+    "pushOnNoRadius": "Push aktive",
+    "radiusKm": "Reyon: {{km}} km",
+    "locationKnown": "Pozisyon pataje",
+    "locationUnknown": "Pa gen pozisyon",
+    "noDevice": "Pa gen aparèy",
+    "emptyAll": "Poko gen itilizatè anrejistre.",
+    "emptyFiltered": "Pa gen rezilta pou filtre yo.",
+    "errorGeneric": "Echèk nan chaje itilizatè yo."
   },
   "zoneDanger": {
     "title": "Zon danje",

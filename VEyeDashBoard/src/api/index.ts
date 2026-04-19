@@ -875,6 +875,75 @@ export const subscribeToModerationQueue = (
 };
 
 // ---------------------------------------------------------------------------
+// App users (mobile users in public.users)
+// ---------------------------------------------------------------------------
+
+export type AppUserRow = {
+	id: string;
+	userId: string | null;
+	email: string | null;
+	radiusKm: number | null;
+	notificationRadiusKm: number | null;
+	latitude: number | null;
+	longitude: number | null;
+	deviceToken: string | null;
+	updatedAt: string | null;
+};
+
+export type AppUsersSearchParams = {
+	query?: string;
+	hasDevice?: boolean | null;
+	limit?: number;
+	offset?: number;
+};
+
+export type AppUsersSearchResult = {
+	rows: AppUserRow[];
+	total: number;
+};
+
+/**
+ * List rows from `public.users` joined with `auth.users.email`.
+ *
+ * Calls SECURITY DEFINER RPC `list_app_users` which enforces moderator/admin
+ * role server-side, so RLS on `public.users` can stay locked down.
+ */
+export const searchAppUsers = async (
+	params: AppUsersSearchParams = {},
+): Promise<AppUsersSearchResult> => {
+	const { query, hasDevice, limit = 25, offset = 0 } = params;
+	try {
+		const { data, error } = await getSupabase().rpc("list_app_users", {
+			p_query: query ?? "",
+			p_limit: limit,
+			p_offset: offset,
+			p_has_device: hasDevice ?? null,
+		});
+		if (error) throw error;
+		const rows = (data ?? []) as Array<Record<string, unknown>>;
+		const total = rows.length > 0 ? Number(rows[0].total_count ?? 0) : 0;
+		return {
+			rows: rows.map((r) => ({
+				id: String(r.id ?? ""),
+				userId: (r.user_id as string | null) ?? null,
+				email: (r.email as string | null) ?? null,
+				radiusKm: r.radius_km != null ? Number(r.radius_km) : null,
+				notificationRadiusKm:
+					r.notification_radius_km != null ? Number(r.notification_radius_km) : null,
+				latitude: r.latitude != null ? Number(r.latitude) : null,
+				longitude: r.longitude != null ? Number(r.longitude) : null,
+				deviceToken: (r.device_token as string | null) ?? null,
+				updatedAt: (r.updated_at as string | null) ?? null,
+			})),
+			total,
+		};
+	} catch (e) {
+		console.error("searchAppUsers failed", e);
+		return { rows: [], total: 0 };
+	}
+};
+
+// ---------------------------------------------------------------------------
 // Global search (app-bar)
 // ---------------------------------------------------------------------------
 

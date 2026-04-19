@@ -21,7 +21,8 @@
     "noneDash": "—",
     "rowsPerPage": "Lignes par page",
     "of": "sur",
-    "tryAgain": "Réessayez plus tard."
+    "tryAgain": "Réessayez plus tard.",
+    "copy": "Copier"
   },
   "nav": {
     "operations": "Opérations",
@@ -250,6 +251,35 @@
     "deleteMessage": "Voulez-vous vraiment supprimer cette victime ? Cette action est irréversible.",
     "tooltipEdit": "Modifier",
     "tooltipDelete": "Supprimer"
+  },
+  "users": {
+    "title": "Utilisateurs",
+    "totalSubtitle_one": "{{count}} utilisateur · communauté VEYe",
+    "totalSubtitle_other": "{{count}} utilisateurs · communauté VEYe",
+    "searchPlaceholder": "Rechercher un e-mail, un identifiant…",
+    "deviceLabel": "PUSH",
+    "deviceFilters": {
+      "all": "Tous",
+      "pushOn": "Push activé",
+      "pushOff": "Sans push"
+    },
+    "columns": {
+      "user": "Utilisateur",
+      "notifications": "Notifications",
+      "location": "Localisation",
+      "device": "Appareil",
+      "updated": "Dernière activité"
+    },
+    "anonymous": "Utilisateur anonyme",
+    "pushOff": "Push désactivé",
+    "pushOnNoRadius": "Push activé",
+    "radiusKm": "Rayon : {{km}} km",
+    "locationKnown": "Position partagée",
+    "locationUnknown": "Pas de position",
+    "noDevice": "Aucun appareil",
+    "emptyAll": "Aucun utilisateur enregistré pour le moment.",
+    "emptyFiltered": "Aucun résultat pour les filtres sélectionnés.",
+    "errorGeneric": "Impossible de charger les utilisateurs."
   },
   "zoneDanger": {
     "title": "Zones à risque",

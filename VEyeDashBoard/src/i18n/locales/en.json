@@ -21,7 +21,8 @@
     "noneDash": "—",
     "rowsPerPage": "Rows per page",
     "of": "of",
-    "tryAgain": "Please try again."
+    "tryAgain": "Please try again.",
+    "copy": "Copy"
   },
   "nav": {
     "operations": "Operations",
@@ -250,6 +251,35 @@
     "deleteMessage": "Are you sure you want to delete this victim? This action cannot be undone.",
     "tooltipEdit": "Edit",
     "tooltipDelete": "Delete"
+  },
+  "users": {
+    "title": "Users",
+    "totalSubtitle_one": "{{count}} user · VEYe community",
+    "totalSubtitle_other": "{{count}} users · VEYe community",
+    "searchPlaceholder": "Search by email or id…",
+    "deviceLabel": "PUSH",
+    "deviceFilters": {
+      "all": "All",
+      "pushOn": "Push on",
+      "pushOff": "No push"
+    },
+    "columns": {
+      "user": "User",
+      "notifications": "Notifications",
+      "location": "Location",
+      "device": "Device",
+      "updated": "Last activity"
+    },
+    "anonymous": "Anonymous user",
+    "pushOff": "Push disabled",
+    "pushOnNoRadius": "Push enabled",
+    "radiusKm": "Radius: {{km}} km",
+    "locationKnown": "Location shared",
+    "locationUnknown": "No location",
+    "noDevice": "No device",
+    "emptyAll": "No users registered yet.",
+    "emptyFiltered": "No results for the selected filters.",
+    "errorGeneric": "Failed to load users."
   },
   "zoneDanger": {
     "title": "Danger zones",
