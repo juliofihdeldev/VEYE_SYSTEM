@@ -153,7 +153,7 @@
     <string name="onboarding_aware_denied_hint">Pa pwoblèm — ou ka toujou gade alèt yo nan aplikasyon an. Aktive sa pita nan Pwofil → Notifikasyon.</string>
     <string name="onboarding_aware_skip">Pa kounye a</string>
 
-    <string name="onboarding_location_kreyol_headline">Wè sa k otou w sou kat la.</string>
+    <string name="onboarding_location_kreyol_headline">Wè sa kap pase sou kat la.</string>
     <string name="onboarding_location_subhead">N ap itilize pozisyon w pou santre kat la epi montre w alèt ki nan zòn ou an.</string>
     <string name="onboarding_location_privacy">Pozisyon w rete sou aparèy ou — li pa janm pataje ak pèsonn, menm pa ak lòt itilizatè.</string>
     <string name="onboarding_location_cta_request">Aktive pozisyon</string>
@@ -210,15 +210,12 @@
     <string name="report_section_where">Ki kote ?</string>
     <string name="report_section_evidence">Prèv</string>
     <string name="report_section_details">Detay</string>
-    <string name="report_step_label">Etap %1$d sou %2$d</string>
     <string name="report_type_missing_desc">Moun ki disparèt oswa kidnape</string>
     <string name="report_type_info_label">ENFO</string>
     <string name="report_type_info_desc">Konsèy, temwayaj oswa mizajou</string>
     <string name="report_describe_what_you_see">Dekri sa w wè</string>
     <string name="report_anonymous_desc">Non ou kache, pozisyon flou ±300 m.</string>
     <string name="report_continue">Kontinye</string>
-    <string name="report_help">Èd</string>
-    <string name="report_close">Fèmen</string>
     <string name="blocked_banner_title">Piblikasyon limite</string>
     <string name="blocked_banner_message">Ou bloke pou pibliye jiska %1$s.</string>
     <string name="blocked_banner_message_no_date">Piblikasyon bloke pou yon ti tan.</string>

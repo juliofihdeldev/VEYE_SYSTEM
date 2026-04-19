@@ -34,7 +34,6 @@ import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -285,9 +284,7 @@ fun ReportScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            ReportTopBar(stepIndex = 1, totalSteps = 3, onClose = {})
-        },
+        topBar = { ReportTopBar() },
     ) { padding ->
         Column(
             modifier =
@@ -643,54 +640,27 @@ fun ReportScreen(
 private fun formatBlockedDate(epochMs: Long): String =
     DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.SHORT).format(Date(epochMs))
 
+/**
+ * Single-line bold title for the report form. The screen used to claim "Step 1 of 3"
+ * with a non-functional close + help affordance, but the form has always been a single
+ * step — the indicator was misleading and the icons were no-ops. The bottom tab bar
+ * is the proper escape from this destination, so no header chrome is needed.
+ */
 @Composable
-private fun ReportTopBar(
-    stepIndex: Int,
-    totalSteps: Int,
-    onClose: () -> Unit,
-) {
-    androidx.compose.foundation.layout.Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .androidx_status_bar_padding()
-                .padding(horizontal = VEyeSpacing.sm, vertical = VEyeSpacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
+private fun ReportTopBar() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(horizontal = VEyeSpacing.md, vertical = VEyeSpacing.sm),
     ) {
-        IconButton(onClick = onClose) {
-            Icon(
-                Icons.Filled.Close,
-                contentDescription = stringResource(R.string.report_close),
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-        androidx.compose.foundation.layout.Column(
-            modifier = Modifier.weight(1f).padding(start = VEyeSpacing.xs),
-        ) {
-            Text(
-                text = stringResource(R.string.report_title),
-                style =
-                    MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                    ),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = stringResource(R.string.report_step_label, stepIndex, totalSteps),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        IconButton(onClick = { /* help link in future */ }) {
-            Icon(
-                Icons.Outlined.HelpOutline,
-                contentDescription = stringResource(R.string.report_help),
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
-        }
+        Text(
+            text = stringResource(R.string.report_title),
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            ),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.align(Alignment.CenterStart),
+        )
     }
 }
-
-@Composable
-private fun Modifier.androidx_status_bar_padding(): Modifier =
-    this.windowInsetsPadding(WindowInsets.statusBars)

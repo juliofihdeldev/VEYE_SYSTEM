@@ -219,15 +219,12 @@
     <string name="report_section_where">Where?</string>
     <string name="report_section_evidence">Evidence</string>
     <string name="report_section_details">Details</string>
-    <string name="report_step_label">Step %1$d of %2$d</string>
     <string name="report_type_missing_desc">Missing or abducted person</string>
     <string name="report_type_info_label">INFO</string>
     <string name="report_type_info_desc">Tip, sighting, or update</string>
     <string name="report_describe_what_you_see">Describe what you see</string>
     <string name="report_anonymous_desc">Name hidden, location obscured to ±300 m.</string>
     <string name="report_continue">Continue</string>
-    <string name="report_help">Help</string>
-    <string name="report_close">Close</string>
     <string name="blocked_banner_title">Posting Restricted</string>
     <string name="blocked_banner_message">You are blocked from posting until %1$s.</string>
     <string name="blocked_banner_message_no_date">You are temporarily blocked from posting.</string>

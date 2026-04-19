@@ -210,15 +210,12 @@
     <string name="report_section_where">Où ?</string>
     <string name="report_section_evidence">Preuves</string>
     <string name="report_section_details">Détails</string>
-    <string name="report_step_label">Étape %1$d sur %2$d</string>
     <string name="report_type_missing_desc">Personne disparue ou enlevée</string>
     <string name="report_type_info_label">INFO</string>
     <string name="report_type_info_desc">Conseil, témoignage ou mise à jour</string>
     <string name="report_describe_what_you_see">Décrivez ce que vous voyez</string>
     <string name="report_anonymous_desc">Nom masqué, position floutée à ±300 m.</string>
     <string name="report_continue">Continuer</string>
-    <string name="report_help">Aide</string>
-    <string name="report_close">Fermer</string>
     <string name="blocked_banner_title">Publication restreinte</string>
     <string name="blocked_banner_message">Vous ne pouvez pas publier avant le %1$s.</string>
     <string name="blocked_banner_message_no_date">Publication temporairement bloquée.</string>
