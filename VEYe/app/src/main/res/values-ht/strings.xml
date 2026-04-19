@@ -118,6 +118,11 @@
     <string name="alert_detail_unavailable_title">Alèt la pa disponib</string>
     <string name="alert_detail_not_found_message">Alèt sa a ka deja retire oswa li pa aksesib ankò. Li ka tou yon pwoblèm senkronizasyon ant aparèy ou ak sèvè nou yo.</string>
     <string name="alert_detail_load_failed_message">Nou pa rive jwenn dènye detay yo pou alèt sa a. Verifye koneksyon ou epi eseye ankò.</string>
+    <string name="zone_detail_unavailable_title">Zòn nan pa disponib</string>
+    <string name="zone_detail_not_found_message">Zòn danje sa a ka deja retire oswa li pa aksesib ankò. Li ka tou yon pwoblèm senkronizasyon ant aparèy ou ak sèvè nou yo.</string>
+    <string name="zone_detail_load_failed_message">Nou pa rive jwenn dènye detay yo pou zòn danje sa a. Verifye koneksyon ou epi eseye ankò.</string>
+    <string name="zone_detail_no_coordinates_title">Pa gen kote pou zòn sa a</string>
+    <string name="zone_detail_no_coordinates_message">Yo te rapòte zòn danje sa a san kowòdone, donk nou pa ka montre l sou kat la.</string>
     <string name="common_retry">Eseye ankò</string>
     <string name="common_go_back">Retounen</string>
     <string name="report_title">Rapòte yon ensidan</string>

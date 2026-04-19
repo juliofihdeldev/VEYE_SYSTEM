@@ -97,4 +97,24 @@ class ZoneDangerRepository @Inject constructor(
             }.decodeList<ZoneDangerRow>()
         return rows.map { it.toDangerZone() }
     }
+
+    /**
+     * Direct fetch by id, used by the detail screen as a fallback when the realtime
+     * [zones] flow has not yet emitted the requested row (cold open, deep-link, or
+     * the row falls outside the radius-filtered slice the source screen showed).
+     *
+     * Avoids `.single()` on purpose so a missing or duplicated row never bubbles up as
+     * a 406 — instead callers get `null` for "row not found" and an exception for real
+     * transport failures, mirroring [ViktimRepository.fetchViktimAlertById].
+     */
+    suspend fun fetchZoneById(id: String): DangerZone? {
+        val rows =
+            supabase.from("zone_danger").select {
+                filter {
+                    eq("id", id)
+                }
+                limit(1)
+            }.decodeList<ZoneDangerRow>()
+        return rows.firstOrNull()?.toDangerZone()
+    }
 }

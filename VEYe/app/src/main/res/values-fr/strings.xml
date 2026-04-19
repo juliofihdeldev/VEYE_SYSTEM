@@ -118,6 +118,11 @@
     <string name="alert_detail_unavailable_title">Alerte indisponible</string>
     <string name="alert_detail_not_found_message">Cette alerte a peut-être été supprimée ou n\'est plus accessible. Il peut aussi s\'agir d\'un souci de synchronisation entre votre appareil et nos serveurs.</string>
     <string name="alert_detail_load_failed_message">Impossible de récupérer les détails de cette alerte. Vérifiez votre connexion et réessayez.</string>
+    <string name="zone_detail_unavailable_title">Zone indisponible</string>
+    <string name="zone_detail_not_found_message">Cette zone de danger a peut-être été supprimée ou n\'est plus accessible. Il peut aussi s\'agir d\'un souci de synchronisation entre votre appareil et nos serveurs.</string>
+    <string name="zone_detail_load_failed_message">Impossible de récupérer les détails de cette zone de danger. Vérifiez votre connexion et réessayez.</string>
+    <string name="zone_detail_no_coordinates_title">Pas de localisation pour cette zone</string>
+    <string name="zone_detail_no_coordinates_message">Cette zone de danger a été signalée sans coordonnées, nous ne pouvons donc pas l\'afficher sur la carte.</string>
     <string name="common_retry">Réessayer</string>
     <string name="common_go_back">Retour</string>
     <string name="report_title">Signaler un incident</string>

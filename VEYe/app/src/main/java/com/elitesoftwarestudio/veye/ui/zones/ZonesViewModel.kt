@@ -6,6 +6,7 @@ import com.elitesoftwarestudio.veye.data.pending.PendingReport
 import com.elitesoftwarestudio.veye.data.pending.PendingReportRepository
 import com.elitesoftwarestudio.veye.data.location.DeviceLocationRepository
 import com.elitesoftwarestudio.veye.data.map.DangerZone
+import com.elitesoftwarestudio.veye.data.map.DangerZoneCacheRepository
 import com.elitesoftwarestudio.veye.data.map.DemantiRepository
 import com.elitesoftwarestudio.veye.data.map.ZoneDangerRepository
 import com.elitesoftwarestudio.veye.data.map.filterDangerZonesByRadius
@@ -26,7 +27,17 @@ class ZonesViewModel @Inject constructor(
     private val deviceLocationRepository: DeviceLocationRepository,
     private val demantiRepository: DemantiRepository,
     private val pendingReportRepository: PendingReportRepository,
+    private val dangerZoneCacheRepository: DangerZoneCacheRepository,
 ) : ViewModel() {
+
+    /**
+     * Stages the zone payload before navigating to the detail destination so the detail
+     * screen never opens blank, even on transient network failures or when the user
+     * deep-links to a zone outside the current radius slice.
+     */
+    fun primeZoneCache(zone: DangerZone) {
+        dangerZoneCacheRepository.prime(zone)
+    }
 
     val pendingReports: StateFlow<List<PendingReport>> = pendingReportRepository.pendingReports
 

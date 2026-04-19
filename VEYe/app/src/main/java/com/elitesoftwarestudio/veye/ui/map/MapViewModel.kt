@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.elitesoftwarestudio.veye.data.location.DeviceLocationRepository
 import com.elitesoftwarestudio.veye.data.map.AlertCacheRepository
 import com.elitesoftwarestudio.veye.data.map.DangerZone
+import com.elitesoftwarestudio.veye.data.map.DangerZoneCacheRepository
 import com.elitesoftwarestudio.veye.data.map.ViktimMapRow
 import com.elitesoftwarestudio.veye.data.map.ViktimRepository
 import com.elitesoftwarestudio.veye.data.map.ZoneDangerRepository
@@ -28,6 +29,7 @@ class MapViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val deviceLocationRepository: DeviceLocationRepository,
     private val alertCacheRepository: AlertCacheRepository,
+    private val dangerZoneCacheRepository: DangerZoneCacheRepository,
 ) : ViewModel() {
 
     /**
@@ -38,6 +40,11 @@ class MapViewModel @Inject constructor(
      */
     fun primeAlertCache(row: ViktimMapRow) {
         alertCacheRepository.primeFromMapRow(row)
+    }
+
+    /** Same role as [primeAlertCache] but for the danger-zone detail destination. */
+    fun primeZoneCache(zone: DangerZone) {
+        dangerZoneCacheRepository.prime(zone)
     }
 
     val mapSession: StateFlow<MapSessionPrefs> = userPreferencesRepository.mapSession

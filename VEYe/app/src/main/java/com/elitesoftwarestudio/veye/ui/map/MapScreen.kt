@@ -262,7 +262,10 @@ fun MapScreen(
                                     }
                                     MapPinKind.Zone -> {
                                         val z = mapZonesForPins.find { it.id == item.rawId }
-                                        if (z != null) onNavigateToZoneDetail(z)
+                                        if (z != null) {
+                                            viewModel.primeZoneCache(z)
+                                            onNavigateToZoneDetail(z)
+                                        }
                                     }
                                 }
                             },

@@ -121,6 +121,11 @@
     <string name="alert_detail_unavailable_title">Alert unavailable</string>
     <string name="alert_detail_not_found_message">This alert may have been removed or is no longer accessible. It might also be a syncing issue between your device and our servers.</string>
     <string name="alert_detail_load_failed_message">We couldn\'t load the latest details for this alert. Please check your connection and try again.</string>
+    <string name="zone_detail_unavailable_title">Zone unavailable</string>
+    <string name="zone_detail_not_found_message">This danger zone may have been removed or is no longer accessible. It might also be a syncing issue between your device and our servers.</string>
+    <string name="zone_detail_load_failed_message">We couldn\'t load the latest details for this danger zone. Please check your connection and try again.</string>
+    <string name="zone_detail_no_coordinates_title">No location for this zone</string>
+    <string name="zone_detail_no_coordinates_message">This danger zone was reported without map coordinates, so we can\'t show it on the map.</string>
     <string name="common_retry">Try again</string>
     <string name="common_go_back">Go back</string>
     <string name="report_title">Report Incident</string>

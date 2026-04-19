@@ -291,6 +291,7 @@ fun ZonesScreen(
                         val lng = zone.longitude ?: return@ZonesSheetList
                         selectedZoneId = zone.id
                         openSwipeZoneId = null
+                        viewModel.primeZoneCache(zone)
                         onNavigateToZoneDetail(zone)
                         scope.launch {
                             cameraPositionState.animate(
@@ -299,7 +300,10 @@ fun ZonesScreen(
                             )
                         }
                     },
-                    onOpenComments = { z -> onNavigateToZoneDetail(z) },
+                    onOpenComments = { z ->
+                        viewModel.primeZoneCache(z)
+                        onNavigateToZoneDetail(z)
+                    },
                     onRequestFlag = { flagTarget = it },
                     formatTime = { z -> formatRelativeMapTime(context.resources, z.date) },
                 )
@@ -342,6 +346,7 @@ fun ZonesScreen(
                                     val z = mapZonesForPins.find { it.id == item.rawId } ?: return@MapClusteringLayer
                                     selectedZoneId = z.id
                                     openSwipeZoneId = null
+                                    viewModel.primeZoneCache(z)
                                     onNavigateToZoneDetail(z)
                                     val lat = z.latitude ?: return@MapClusteringLayer
                                     val lng = z.longitude ?: return@MapClusteringLayer
