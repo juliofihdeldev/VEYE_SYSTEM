@@ -130,6 +130,44 @@
     <string name="alert_detail_no_comments_short">No comments yet — be the first</string>
     <string name="alert_detail_submit_tip">Submit a tip</string>
     <string name="alert_detail_no_description">No description was provided for this alert.</string>
+
+    <!-- Onboarding (first-launch). Headlines stay in Kreyòl across all locales because
+         they are part of the brand voice; subheads/body translate. -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_step_indicator">%1$d of %2$d</string>
+
+    <!-- Step 1: welcome + language -->
+    <string name="onboarding_welcome_kreyol_headline">Veye katye ou. Ann veye youn pou lòt.</string>
+    <string name="onboarding_welcome_subhead">Watch your neighborhood. Let\'s look out for each other.</string>
+    <string name="onboarding_welcome_pill_anonymous_title">Anonim</string>
+    <string name="onboarding_welcome_pill_anonymous_body">No account required. Reports stay anonymous unless you choose otherwise.</string>
+    <string name="onboarding_welcome_pill_local_title">Lokal</string>
+    <string name="onboarding_welcome_pill_local_body">Real reports from your neighbors, not strangers.</string>
+    <string name="onboarding_welcome_pill_free_title">Gratis pou tout tan</string>
+    <string name="onboarding_welcome_pill_free_body">Free to use. Forever.</string>
+    <string name="onboarding_welcome_language_label">Language</string>
+    <string name="onboarding_welcome_cta">Kòmanse</string>
+
+    <!-- Step 2: notifications + radius -->
+    <string name="onboarding_aware_kreyol_headline">Konnen sa k ap pase toupre w.</string>
+    <string name="onboarding_aware_subhead">Get a push the second a kidnapping, shooting, or danger zone is reported in your area.</string>
+    <string name="onboarding_aware_radius_title">Alert me within</string>
+    <string name="onboarding_aware_radius_value">Within %1$d km</string>
+    <string name="onboarding_aware_radius_hint">You can change this anytime from Profile.</string>
+    <string name="onboarding_aware_cta_request">Allow notifications</string>
+    <string name="onboarding_aware_cta_enabled">Notifications enabled</string>
+    <string name="onboarding_aware_denied_hint">No problem — you can still browse alerts inside the app. Turn this on later in Profile → Notifications.</string>
+    <string name="onboarding_aware_skip">Not now</string>
+
+    <!-- Step 3: location -->
+    <string name="onboarding_location_kreyol_headline">Wè sa k otou w sou kat la.</string>
+    <string name="onboarding_location_subhead">We use your location to center the map and show alerts within your area.</string>
+    <string name="onboarding_location_privacy">Your location stays on your device — it is never shared with anyone, not even other users.</string>
+    <string name="onboarding_location_cta_request">Enable location</string>
+    <string name="onboarding_location_cta_enabled">Location enabled</string>
+    <string name="onboarding_location_denied_hint">No problem — the map will use a default region. You can enable location later from the map screen.</string>
+    <string name="onboarding_location_finish">Open VEYe</string>
     <string name="alert_detail_unavailable_title">Alert unavailable</string>
     <string name="alert_detail_not_found_message">This alert may have been removed or is no longer accessible. It might also be a syncing issue between your device and our servers.</string>
     <string name="alert_detail_load_failed_message">We couldn\'t load the latest details for this alert. Please check your connection and try again.</string>

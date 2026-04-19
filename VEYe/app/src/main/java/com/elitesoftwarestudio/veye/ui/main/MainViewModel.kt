@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elitesoftwarestudio.veye.MainActivityIntents
+import com.elitesoftwarestudio.veye.data.preferences.UserPreferencesRepository
 import com.elitesoftwarestudio.veye.navigation.MainDestination
 import com.elitesoftwarestudio.veye.push.PushNavigationStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,6 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val pushNavigationStore: PushNavigationStore,
+    private val userPreferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
 
     private val validRoutes = MainDestination.entries.map { it.route }.toSet()
@@ -33,11 +35,30 @@ class MainViewModel @Inject constructor(
     private val _splashHoldActive = MutableStateFlow(true)
     val splashHoldActive: StateFlow<Boolean> = _splashHoldActive.asStateFlow()
 
+    /**
+     * `null` until the DataStore read finishes — `MainActivity` keeps the splash on
+     * screen while we resolve this so the user never sees a flash of the home shell
+     * before being routed into onboarding (or vice-versa).
+     */
+    private val _onboardingNeeded = MutableStateFlow<Boolean?>(null)
+    val onboardingNeeded: StateFlow<Boolean?> = _onboardingNeeded.asStateFlow()
+
     init {
+        viewModelScope.launch {
+            // DataStore read is fast (sub-ms in practice) but let it race the splash
+            // hold so we always wait for whichever finishes last.
+            _onboardingNeeded.value =
+                !userPreferencesRepository.readOnboardingCompletedForStartup()
+        }
         viewModelScope.launch {
             delay(SPLASH_MIN_HOLD_MS)
             _splashHoldActive.value = false
         }
+    }
+
+    /** Called by the OnboardingHost on completion to swap to the main app shell. */
+    fun markOnboardingComplete() {
+        _onboardingNeeded.value = false
     }
 
     fun handleIntent(intent: Intent?) {

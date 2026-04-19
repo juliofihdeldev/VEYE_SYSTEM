@@ -35,6 +35,7 @@ import com.elitesoftwarestudio.veye.ui.util.localeKey
 import com.elitesoftwarestudio.veye.data.preferences.UserPreferencesRepository
 import com.elitesoftwarestudio.veye.ui.main.MainViewModel
 import com.elitesoftwarestudio.veye.ui.main.ThemeViewModel
+import com.elitesoftwarestudio.veye.ui.onboarding.OnboardingHost
 import com.elitesoftwarestudio.veye.ui.theme.VEYeTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -57,14 +58,21 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
-        // Hold the splash on screen while the "Watchful Eye" AVD plays. The condition
-        // flips false in MainViewModel after SPLASH_MIN_HOLD_MS so initial frames of the
-        // home shell never overlap the brand animation.
-        splashScreen.setKeepOnScreenCondition { mainViewModel.splashHoldActive.value }
+        // Hold the splash on screen until BOTH the brand-mark hold timer expires AND we
+        // know whether onboarding is needed. Routing on an unresolved value would flash
+        // the home shell for one frame before swapping to the onboarding flow, which
+        // looks like a bug. The DataStore read is fast (sub-ms) so this rarely adds time
+        // beyond the existing hold.
+        splashScreen.setKeepOnScreenCondition {
+            mainViewModel.splashHoldActive.value || mainViewModel.onboardingNeeded.value == null
+        }
         splashScreen.setOnExitAnimationListener(::handleSplashExit)
         super.onCreate(savedInstanceState)
         mainViewModel.handleIntent(intent)
-        maybeRequestNotificationPermission()
+        // Notification permission is requested inside the onboarding flow on first launch.
+        // Returning users (onboarding already completed) get the legacy fast-path here so
+        // an upgrade install behaves the same as today.
+        maybeRequestNotificationPermissionForReturningUser()
         enableEdgeToEdge()
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
@@ -83,6 +91,7 @@ class MainActivity : ComponentActivity() {
                     else -> systemDark
                 }
                 val pendingTab by mainViewModel.pendingTabRoute.collectAsStateWithLifecycle()
+                val onboardingNeeded by mainViewModel.onboardingNeeded.collectAsStateWithLifecycle()
                 VEYeTheme(darkTheme = darkTheme) {
                     val view = LocalView.current
                     SideEffect {
@@ -92,10 +101,18 @@ class MainActivity : ComponentActivity() {
                             isAppearanceLightNavigationBars = !darkTheme
                         }
                     }
-                    VEYeRoot(
-                        pendingTabRoute = pendingTab,
-                        onConsumedPendingTab = { mainViewModel.consumePendingTab() },
-                    )
+                    when (onboardingNeeded) {
+                        // null is impossible here because the splash holds until the
+                        // value is resolved, but render nothing as a defensive fallback.
+                        null -> Unit
+                        true -> OnboardingHost(
+                            onComplete = { mainViewModel.markOnboardingComplete() },
+                        )
+                        false -> VEYeRoot(
+                            pendingTabRoute = pendingTab,
+                            onConsumedPendingTab = { mainViewModel.consumePendingTab() },
+                        )
+                    }
                 }
             }
         }
@@ -150,8 +167,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun maybeRequestNotificationPermission() {
+    /**
+     * Legacy fast-path for users who installed prior to the onboarding flow. We only
+     * fire the system prompt if onboarding has already been completed; otherwise the
+     * `OnboardingHost` requests `POST_NOTIFICATIONS` in-context on step 2 with a much
+     * better explanation than a bare system dialog.
+     */
+    private fun maybeRequestNotificationPermissionForReturningUser() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (mainViewModel.onboardingNeeded.value != false) return
         val alreadyGranted = ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.POST_NOTIFICATIONS,

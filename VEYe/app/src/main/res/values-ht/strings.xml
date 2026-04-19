@@ -127,6 +127,39 @@
     <string name="alert_detail_no_comments_short">Pa gen kòmantè ankò — fè premye a</string>
     <string name="alert_detail_submit_tip">Voye yon enfòmasyon</string>
     <string name="alert_detail_no_description">Pa gen deskripsyon ki bay pou alèt sa a.</string>
+
+    <string name="onboarding_skip">Sote</string>
+    <string name="onboarding_continue">Kontinye</string>
+    <string name="onboarding_step_indicator">%1$d sou %2$d</string>
+
+    <string name="onboarding_welcome_kreyol_headline">Veye katye ou. Ann veye youn pou lòt.</string>
+    <string name="onboarding_welcome_subhead">Veye katye ou. Ann veye youn pou lòt.</string>
+    <string name="onboarding_welcome_pill_anonymous_title">Anonim</string>
+    <string name="onboarding_welcome_pill_anonymous_body">Ou pa bezwen kont. Rapò ou yo rete anonim sof si ou chwazi otreman.</string>
+    <string name="onboarding_welcome_pill_local_title">Lokal</string>
+    <string name="onboarding_welcome_pill_local_body">Vrè rapò ki soti nan vwazen ou yo, pa nan etranje.</string>
+    <string name="onboarding_welcome_pill_free_title">Gratis pou tout tan</string>
+    <string name="onboarding_welcome_pill_free_body">Gratis, pou toutan.</string>
+    <string name="onboarding_welcome_language_label">Lang</string>
+    <string name="onboarding_welcome_cta">Kòmanse</string>
+
+    <string name="onboarding_aware_kreyol_headline">Konnen sa k ap pase toupre w.</string>
+    <string name="onboarding_aware_subhead">N ap voye yon notifikasyon ba ou kou yon kidnaping, tire, oswa yon zòn danje rapòte tou pre w.</string>
+    <string name="onboarding_aware_radius_title">Alète m nan yon distans</string>
+    <string name="onboarding_aware_radius_value">Nan %1$d km</string>
+    <string name="onboarding_aware_radius_hint">Ou ka chanje sa nenpòt lè nan Pwofil ou.</string>
+    <string name="onboarding_aware_cta_request">Aksepte notifikasyon yo</string>
+    <string name="onboarding_aware_cta_enabled">Notifikasyon yo aktive</string>
+    <string name="onboarding_aware_denied_hint">Pa pwoblèm — ou ka toujou gade alèt yo nan aplikasyon an. Aktive sa pita nan Pwofil → Notifikasyon.</string>
+    <string name="onboarding_aware_skip">Pa kounye a</string>
+
+    <string name="onboarding_location_kreyol_headline">Wè sa k otou w sou kat la.</string>
+    <string name="onboarding_location_subhead">N ap itilize pozisyon w pou santre kat la epi montre w alèt ki nan zòn ou an.</string>
+    <string name="onboarding_location_privacy">Pozisyon w rete sou aparèy ou — li pa janm pataje ak pèsonn, menm pa ak lòt itilizatè.</string>
+    <string name="onboarding_location_cta_request">Aktive pozisyon</string>
+    <string name="onboarding_location_cta_enabled">Pozisyon aktive</string>
+    <string name="onboarding_location_denied_hint">Pa pwoblèm — kat la ap sèvi ak yon zòn pa defo. Ou ka aktive pozisyon pita depi sou ekran kat la.</string>
+    <string name="onboarding_location_finish">Ouvri VEYe</string>
     <string name="alert_detail_unavailable_title">Alèt la pa disponib</string>
     <string name="alert_detail_not_found_message">Alèt sa a ka deja retire oswa li pa aksesib ankò. Li ka tou yon pwoblèm senkronizasyon ant aparèy ou ak sèvè nou yo.</string>
     <string name="alert_detail_load_failed_message">Nou pa rive jwenn dènye detay yo pou alèt sa a. Verifye koneksyon ou epi eseye ankò.</string>

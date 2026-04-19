@@ -127,6 +127,39 @@
     <string name="alert_detail_no_comments_short">Aucun commentaire — soyez le premier</string>
     <string name="alert_detail_submit_tip">Envoyer une info</string>
     <string name="alert_detail_no_description">Aucune description n\'a été fournie pour cette alerte.</string>
+
+    <string name="onboarding_skip">Passer</string>
+    <string name="onboarding_continue">Continuer</string>
+    <string name="onboarding_step_indicator">%1$d sur %2$d</string>
+
+    <string name="onboarding_welcome_kreyol_headline">Veye katye ou. Ann veye youn pou lòt.</string>
+    <string name="onboarding_welcome_subhead">Veillez sur votre quartier. Veillons les uns sur les autres.</string>
+    <string name="onboarding_welcome_pill_anonymous_title">Anonyme</string>
+    <string name="onboarding_welcome_pill_anonymous_body">Pas de compte requis. Vos signalements restent anonymes par défaut.</string>
+    <string name="onboarding_welcome_pill_local_title">Local</string>
+    <string name="onboarding_welcome_pill_local_body">De vrais signalements faits par vos voisins, pas des inconnus.</string>
+    <string name="onboarding_welcome_pill_free_title">Gratuit pour toujours</string>
+    <string name="onboarding_welcome_pill_free_body">Gratuit, à vie.</string>
+    <string name="onboarding_welcome_language_label">Langue</string>
+    <string name="onboarding_welcome_cta">Commencer</string>
+
+    <string name="onboarding_aware_kreyol_headline">Konnen sa k ap pase toupre w.</string>
+    <string name="onboarding_aware_subhead">Recevez une notification dès qu\'un kidnapping, une fusillade ou une zone de danger est signalé près de vous.</string>
+    <string name="onboarding_aware_radius_title">M\'alerter dans un rayon de</string>
+    <string name="onboarding_aware_radius_value">À moins de %1$d km</string>
+    <string name="onboarding_aware_radius_hint">Vous pouvez modifier cela à tout moment depuis le Profil.</string>
+    <string name="onboarding_aware_cta_request">Autoriser les notifications</string>
+    <string name="onboarding_aware_cta_enabled">Notifications activées</string>
+    <string name="onboarding_aware_denied_hint">Pas de souci — vous pouvez toujours consulter les alertes dans l\'app. Activez-les plus tard depuis Profil → Notifications.</string>
+    <string name="onboarding_aware_skip">Pas maintenant</string>
+
+    <string name="onboarding_location_kreyol_headline">Wè sa k otou w sou kat la.</string>
+    <string name="onboarding_location_subhead">Nous utilisons votre position pour centrer la carte et vous montrer les alertes près de vous.</string>
+    <string name="onboarding_location_privacy">Votre position reste sur votre appareil — elle n\'est partagée avec personne, pas même les autres utilisateurs.</string>
+    <string name="onboarding_location_cta_request">Activer la localisation</string>
+    <string name="onboarding_location_cta_enabled">Localisation activée</string>
+    <string name="onboarding_location_denied_hint">Pas de souci — la carte utilisera une région par défaut. Vous pourrez activer la localisation plus tard depuis la carte.</string>
+    <string name="onboarding_location_finish">Ouvrir VEYe</string>
     <string name="alert_detail_unavailable_title">Alerte indisponible</string>
     <string name="alert_detail_not_found_message">Cette alerte a peut-être été supprimée ou n\'est plus accessible. Il peut aussi s\'agir d\'un souci de synchronisation entre votre appareil et nos serveurs.</string>
     <string name="alert_detail_load_failed_message">Impossible de récupérer les détails de cette alerte. Vérifiez votre connexion et réessayez.</string>
