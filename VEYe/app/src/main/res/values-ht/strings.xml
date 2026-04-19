@@ -42,6 +42,7 @@
     <string name="danger_zones_filter_near_me">Tou pre m</string>
     <string name="danger_zones_filter_last_24h">24 dènye è yo</string>
     <string name="danger_zones_filter_highest">Pi grav</string>
+    <string name="danger_zones_card_verified">Verifye</string>
     <string name="missing_people_title"> Moun Pèdi</string>
     <string name="danger_zones_high_risk">Gwo risk</string>
     <string name="danger_zones_medium_risk">Risk mwayen</string>

@@ -24,7 +24,6 @@ import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -583,6 +582,12 @@ private fun ZonesSheetList(
                 Modifier
                     .fillMaxWidth()
                     .heightIn(max = 520.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                start = VEyeSpacing.md,
+                end = VEyeSpacing.md,
+                bottom = VEyeSpacing.md,
+            ),
+            verticalArrangement = Arrangement.spacedBy(VEyeSpacing.sm),
         ) {
             items(pendingReports, key = { it.id }) { report ->
                 PendingReportCard(
@@ -595,24 +600,19 @@ private fun ZonesSheetList(
                 key = { visibleZones[it].id },
             ) { index ->
                 val zone = visibleZones[index]
-                val bar = zoneSeverityBarColor(zone.rezon)
-                Column(Modifier.fillMaxWidth()) {
-                    ZoneSwipeRow(
-                        zone = zone,
-                        barColor = bar,
-                        selectedZoneId = selectedZoneId,
-                        openSwipeZoneId = openSwipeZoneId,
-                        onOpenSwipeChange = onOpenSwipeChange,
-                        onContentClick = { onZoneClick(zone) },
-                        onSwipeComment = { onOpenComments(zone) },
-                        onSwipeFlag = { onRequestFlag(zone) },
-                        formatTime = formatTime,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    if (index < visibleZones.lastIndex) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    }
-                }
+                ZoneSwipeRow(
+                    zone = zone,
+                    selectedZoneId = selectedZoneId,
+                    openSwipeZoneId = openSwipeZoneId,
+                    onOpenSwipeChange = onOpenSwipeChange,
+                    onContentClick = { onZoneClick(zone) },
+                    onSwipeComment = { onOpenComments(zone) },
+                    onSwipeFlag = { onRequestFlag(zone) },
+                    formatTime = formatTime,
+                    userLatitude = userLatitude,
+                    userLongitude = userLongitude,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
             if (visibleZones.isEmpty() && pendingReports.isEmpty()) {
                 item {

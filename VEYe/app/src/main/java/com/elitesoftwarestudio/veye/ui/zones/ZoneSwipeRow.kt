@@ -16,10 +16,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.Verified
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,30 +33,38 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.elitesoftwarestudio.veye.R
+import com.elitesoftwarestudio.veye.data.geo.distanceKm
 import com.elitesoftwarestudio.veye.data.map.DangerZone
+import com.elitesoftwarestudio.veye.ui.components.SeverityCardMetric
+import com.elitesoftwarestudio.veye.ui.components.SeverityStripeCard
+import com.elitesoftwarestudio.veye.ui.theme.VEyeRadius
+import com.elitesoftwarestudio.veye.ui.theme.severityFromZoneRezon
 import kotlin.math.roundToInt
 
 private val IgCommentBlue = Color(0xFF0095F6)
+private val SwipeActionRed = Color(0xFFC41E3A)
 private val SwipeActionWidth = 86.dp
 
 /**
- * RN `Swipeable` + `renderRightActions`: swipe left to reveal comment (blue) and flag (red).
+ * Wraps a design-system [SeverityStripeCard] with the existing RN-style swipe behaviour:
+ * dragging the card to the left reveals a comment (blue) and a flag-as-false (red) action.
+ * The card body itself matches the danger-zones list mockup — colored stripe, severity badge,
+ * timestamp, title, body text, and a metric row (distance · verified · selected pin).
  */
 @Composable
 fun ZoneSwipeRow(
     zone: DangerZone,
-    barColor: Color,
     selectedZoneId: String?,
     openSwipeZoneId: String?,
     onOpenSwipeChange: (String?) -> Unit,
@@ -64,6 +73,8 @@ fun ZoneSwipeRow(
     onSwipeFlag: () -> Unit,
     formatTime: (DangerZone) -> String,
     modifier: Modifier = Modifier,
+    userLatitude: Double? = null,
+    userLongitude: Double? = null,
 ) {
     val density = LocalDensity.current
     val maxOffsetPx = with(density) { (SwipeActionWidth * 2).toPx() }
@@ -81,6 +92,48 @@ fun ZoneSwipeRow(
         onOpenSwipeChange(null)
     }
 
+    val severityKind = severityFromZoneRezon(zone.rezon, zone.incidentType)
+    val isSelected = selectedZoneId == zone.id
+    val distanceKm = remember(userLatitude, userLongitude, zone.latitude, zone.longitude) {
+        val uLat = userLatitude
+        val uLon = userLongitude
+        val zLat = zone.latitude
+        val zLon = zone.longitude
+        if (uLat == null || uLon == null || zLat == null || zLon == null) null
+        else distanceKm(uLat, uLon, zLat, zLon)
+    }
+    val verifiedLabel = stringResource(R.string.danger_zones_card_verified)
+    val distanceTemplate = stringResource(R.string.map_distance_km)
+    val isVerified = zone.tag?.lowercase()?.contains("verified") == true ||
+        zone.tag?.lowercase()?.contains("confirm") == true
+
+    val metrics = buildList {
+        if (distanceKm != null) {
+            add(
+                SeverityCardMetric(
+                    icon = Icons.Outlined.Place,
+                    label = distanceTemplate.format(distanceKm),
+                ),
+            )
+        }
+        if (isSelected) {
+            add(
+                SeverityCardMetric(
+                    icon = Icons.Outlined.Visibility,
+                    label = stringResource(R.string.alerts_view_details),
+                ),
+            )
+        }
+        if (isVerified) {
+            add(
+                SeverityCardMetric(
+                    icon = Icons.Outlined.Verified,
+                    label = verifiedLabel,
+                ),
+            )
+        }
+    }
+
     Box(
         modifier =
             modifier
@@ -90,8 +143,38 @@ fun ZoneSwipeRow(
         Row(
             modifier =
                 Modifier
+                    .matchParentSize()
+                    .clip(RoundedCornerShape(VEyeRadius.card))
+                    .align(Alignment.CenterEnd)
+                    .zIndex(0f),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            SwipeActionCell(
+                width = SwipeActionWidth,
+                containerColor = IgCommentBlue,
+                icon = Icons.Outlined.ChatBubbleOutline,
+                label = stringResource(R.string.comments_swipe_comment),
+                onClick = {
+                    closeSwipe()
+                    onSwipeComment()
+                },
+            )
+            SwipeActionCell(
+                width = SwipeActionWidth,
+                containerColor = SwipeActionRed,
+                icon = Icons.Outlined.Flag,
+                label = stringResource(R.string.danger_zones_swipe_report_false),
+                onClick = {
+                    closeSwipe()
+                    onSwipeFlag()
+                },
+            )
+        }
+
+        Box(
+            modifier =
+                Modifier
                     .fillMaxWidth()
-                    .height(IntrinsicSize.Min)
                     .zIndex(1f)
                     .offset { IntOffset(offsetX.roundToInt(), 0) }
                     .pointerInput(maxOffsetPx, zone.id) {
@@ -113,96 +196,18 @@ fun ZoneSwipeRow(
                                 onOpenSwipeChange(if (target == 0f) null else zone.id)
                             },
                         )
-                    }
-                    .clickable { onContentClick() },
-            verticalAlignment = Alignment.CenterVertically,
+                    },
         ) {
-            Surface(
+            SeverityStripeCard(
+                kind = severityKind,
+                title = zone.name?.takeIf { it.isNotBlank() }
+                    ?: stringResource(R.string.map_alert_untitled),
+                subtitle = null,
+                body = zone.rezon?.takeIf { it.isNotBlank() },
+                timeLabel = formatTime(zone),
+                metrics = metrics,
+                onClick = onContentClick,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(0.dp),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp,
-            ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(IntrinsicSize.Min),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .width(4.dp)
-                                .fillMaxHeight()
-                                .background(barColor),
-                    )
-                    Column(
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .padding(horizontal = 12.dp, vertical = 12.dp),
-                    ) {
-                        Text(
-                            zone.name.orEmpty(),
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        )
-                        Text(
-                            zone.rezon.orEmpty(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                        )
-                        Text(
-                            formatTime(zone),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 6.dp),
-                        )
-                    }
-                    Icon(
-                        if (selectedZoneId == zone.id) Icons.Outlined.Place else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint =
-                            if (selectedZoneId == zone.id) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        modifier = Modifier.padding(end = 12.dp),
-                    )
-                }
-            }
-        }
-
-        Row(
-            modifier =
-                Modifier
-                    .matchParentSize()
-                    .align(Alignment.CenterEnd)
-                    .zIndex(0f),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            SwipeActionCell(
-                width = SwipeActionWidth,
-                containerColor = IgCommentBlue,
-                icon = Icons.Outlined.ChatBubbleOutline,
-                label = stringResource(R.string.comments_swipe_comment),
-                onClick = {
-                    closeSwipe()
-                    onSwipeComment()
-                },
-            )
-            SwipeActionCell(
-                width = SwipeActionWidth,
-                containerColor = Color(0xFFC41E3A),
-                icon = Icons.Outlined.Flag,
-                label = stringResource(R.string.danger_zones_swipe_report_false),
-                onClick = {
-                    closeSwipe()
-                    onSwipeFlag()
-                },
             )
         }
     }
@@ -222,6 +227,7 @@ private fun SwipeActionCell(
             Modifier
                 .width(width)
                 .fillMaxHeight()
+                .background(containerColor)
                 .clickable(onClick = onClick),
     ) {
         Column(

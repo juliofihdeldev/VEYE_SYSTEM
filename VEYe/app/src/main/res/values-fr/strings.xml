@@ -43,6 +43,7 @@
     <string name="danger_zones_filter_near_me">À proximité</string>
     <string name="danger_zones_filter_last_24h">24 dernières h</string>
     <string name="danger_zones_filter_highest">Risque max</string>
+    <string name="danger_zones_card_verified">Vérifié</string>
     <string name="danger_zones_high_risk">Risque élevé</string>
     <string name="danger_zones_medium_risk">Risque moyen</string>
     <string name="danger_zones_low_risk">Risque faible</string>
