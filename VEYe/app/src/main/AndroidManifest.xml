@@ -55,6 +55,23 @@
             </intent-filter>
         </service>
 
+        <!--
+             Required marker service for AppCompat per-app locales. Without this entry,
+             `AppCompatDelegate.setApplicationLocales(...)` is a silent no-op on Android
+             12 and below (the language picker would update DataStore but never actually
+             reconfigure resources). `autoStoreLocales` is left false because we keep
+             our own DataStore as the source of truth and re-apply on cold start in
+             [VEYeApplication.onCreate].
+        -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="false" />
+        </service>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
