@@ -9,12 +9,15 @@
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
     </style>
 
-    <!-- Cold start: matches RN `SplashScreen.tsx` (black + centered brand PNG). -->
+    <!-- Cold start: "Watchful Eye". Midnight surface, animated eye + green radar pulse.
+         The actual hold time is driven by `MainViewModel.splashHoldActive` via
+         `setKeepOnScreenCondition` so this duration is just an upper bound that lets
+         the AVD finish playing if init resolves earlier than the animation. -->
     <style name="Theme.VEYe.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_screen_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_brand_mark</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_brand_eye_animated</item>
+        <item name="windowSplashScreenAnimationDuration">800</item>
         <item name="postSplashScreenTheme">@style/Theme.VEYe</item>
-        <item name="windowSplashScreenAnimationDuration">1000</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
