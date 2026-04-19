@@ -105,9 +105,7 @@ class MainActivity : ComponentActivity() {
                         // null is impossible here because the splash holds until the
                         // value is resolved, but render nothing as a defensive fallback.
                         null -> Unit
-                        true -> OnboardingHost(
-                            onComplete = { mainViewModel.markOnboardingComplete() },
-                        )
+                        true -> OnboardingHost()
                         false -> VEYeRoot(
                             pendingTabRoute = pendingTab,
                             onConsumedPendingTab = { mainViewModel.consumePendingTab() },

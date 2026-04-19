@@ -133,6 +133,19 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Debug-only escape hatch to replay the first-launch flow without reinstalling.
+     * Wipes the completion + last-step keys; `MainViewModel.onboardingNeeded` observes
+     * the same DataStore key, so the activity swaps to `OnboardingHost` on the next
+     * emission with no restart required.
+     */
+    fun resetOnboarding() {
+        viewModelScope.launch {
+            userPreferencesRepository.setOnboardingLastStep(0)
+            userPreferencesRepository.setOnboardingCompleted(false)
+        }
+    }
+
     fun logout(activity: Activity) {
         viewModelScope.launch {
             authRepository.signOutAndSignInAnonymously()

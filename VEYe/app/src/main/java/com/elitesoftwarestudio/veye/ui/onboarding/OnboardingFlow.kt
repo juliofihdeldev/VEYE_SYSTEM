@@ -92,7 +92,6 @@ import com.elitesoftwarestudio.veye.ui.util.findActivity
  */
 @Composable
 fun OnboardingHost(
-    onComplete: () -> Unit,
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -125,7 +124,7 @@ fun OnboardingHost(
             OnboardingTopBar(
                 step = step,
                 totalSteps = OnboardingViewModel.TOTAL_STEPS,
-                onSkip = { viewModel.complete(onComplete) },
+                onSkip = { viewModel.complete() },
             )
             AnimatedContent(
                 targetState = step,
@@ -185,7 +184,7 @@ fun OnboardingHost(
                     if (step < OnboardingViewModel.TOTAL_STEPS - 1) {
                         viewModel.next()
                     } else {
-                        viewModel.complete(onComplete)
+                        viewModel.complete()
                     }
                 },
             )

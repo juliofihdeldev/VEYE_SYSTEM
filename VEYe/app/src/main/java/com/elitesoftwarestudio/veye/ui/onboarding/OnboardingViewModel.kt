@@ -162,11 +162,14 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    /** Marks onboarding done and lets the host swap to the main app. */
-    fun complete(onComplete: () -> Unit) {
+    /**
+     * Marks onboarding done. `MainViewModel.onboardingNeeded` observes the same pref
+     * so the activity will swap to the home shell on the next emission — no callback
+     * needed.
+     */
+    fun complete() {
         viewModelScope.launch {
             userPreferencesRepository.setOnboardingCompleted(true)
-            withContext(Dispatchers.Main.immediate) { onComplete() }
         }
     }
 

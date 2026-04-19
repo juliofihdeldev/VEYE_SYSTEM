@@ -10,8 +10,11 @@ import com.elitesoftwarestudio.veye.push.PushNavigationStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -36,29 +39,24 @@ class MainViewModel @Inject constructor(
     val splashHoldActive: StateFlow<Boolean> = _splashHoldActive.asStateFlow()
 
     /**
-     * `null` until the DataStore read finishes — `MainActivity` keeps the splash on
+     * `null` until the first DataStore emission — `MainActivity` keeps the splash on
      * screen while we resolve this so the user never sees a flash of the home shell
      * before being routed into onboarding (or vice-versa).
+     *
+     * This is a *live* projection of the pref, not a one-shot read, so any later flip
+     * (e.g. the debug "Reset onboarding" action in Profile) immediately swaps the UI
+     * back to [com.elitesoftwarestudio.veye.ui.onboarding.OnboardingHost] without
+     * needing an app restart.
      */
-    private val _onboardingNeeded = MutableStateFlow<Boolean?>(null)
-    val onboardingNeeded: StateFlow<Boolean?> = _onboardingNeeded.asStateFlow()
+    val onboardingNeeded: StateFlow<Boolean?> = userPreferencesRepository.onboardingCompleted
+        .map<Boolean, Boolean?> { completed -> !completed }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
-        viewModelScope.launch {
-            // DataStore read is fast (sub-ms in practice) but let it race the splash
-            // hold so we always wait for whichever finishes last.
-            _onboardingNeeded.value =
-                !userPreferencesRepository.readOnboardingCompletedForStartup()
-        }
         viewModelScope.launch {
             delay(SPLASH_MIN_HOLD_MS)
             _splashHoldActive.value = false
         }
-    }
-
-    /** Called by the OnboardingHost on completion to swap to the main app shell. */
-    fun markOnboardingComplete() {
-        _onboardingNeeded.value = false
     }
 
     fun handleIntent(intent: Intent?) {

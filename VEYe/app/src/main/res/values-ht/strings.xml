@@ -160,6 +160,13 @@
     <string name="onboarding_location_cta_enabled">Pozisyon aktive</string>
     <string name="onboarding_location_denied_hint">Pa pwoblèm — kat la ap sèvi ak yon zòn pa defo. Ou ka aktive pozisyon pita depi sou ekran kat la.</string>
     <string name="onboarding_location_finish">Ouvri VEYe</string>
+
+    <string name="profile_debug_section">Devlopè</string>
+    <string name="profile_debug_reset_onboarding">Reseti onboarding</string>
+    <string name="profile_debug_reset_onboarding_subtitle">Rejwe flo premye lansman an pwochèn fwa ou retounen sou ekran an.</string>
+    <string name="profile_debug_reset_onboarding_confirm_title">Reseti onboarding?</string>
+    <string name="profile_debug_reset_onboarding_confirm_body">VEYe ap montre flo akèy la ankò. Lòt paramèt ou yo ap rete menm jan.</string>
+    <string name="profile_debug_reset_onboarding_confirm_cta">Reseti</string>
     <string name="alert_detail_unavailable_title">Alèt la pa disponib</string>
     <string name="alert_detail_not_found_message">Alèt sa a ka deja retire oswa li pa aksesib ankò. Li ka tou yon pwoblèm senkronizasyon ant aparèy ou ak sèvè nou yo.</string>
     <string name="alert_detail_load_failed_message">Nou pa rive jwenn dènye detay yo pou alèt sa a. Verifye koneksyon ou epi eseye ankò.</string>

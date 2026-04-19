@@ -168,6 +168,14 @@
     <string name="onboarding_location_cta_enabled">Location enabled</string>
     <string name="onboarding_location_denied_hint">No problem — the map will use a default region. You can enable location later from the map screen.</string>
     <string name="onboarding_location_finish">Open VEYe</string>
+
+    <!-- Debug-only utilities surfaced in Profile (only compiled into debug builds). -->
+    <string name="profile_debug_section">Developer</string>
+    <string name="profile_debug_reset_onboarding">Reset onboarding</string>
+    <string name="profile_debug_reset_onboarding_subtitle">Replay the first-launch flow on the next return to the home screen.</string>
+    <string name="profile_debug_reset_onboarding_confirm_title">Reset onboarding?</string>
+    <string name="profile_debug_reset_onboarding_confirm_body">VEYe will show the welcome flow again. Your other settings stay the same.</string>
+    <string name="profile_debug_reset_onboarding_confirm_cta">Reset</string>
     <string name="alert_detail_unavailable_title">Alert unavailable</string>
     <string name="alert_detail_not_found_message">This alert may have been removed or is no longer accessible. It might also be a syncing issue between your device and our servers.</string>
     <string name="alert_detail_load_failed_message">We couldn\'t load the latest details for this alert. Please check your connection and try again.</string>
