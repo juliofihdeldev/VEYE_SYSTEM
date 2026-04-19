@@ -3,20 +3,20 @@ package com.elitesoftwarestudio.veye.ui.zones
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.annotation.StringRes
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -58,7 +58,15 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elitesoftwarestudio.veye.R
+import com.elitesoftwarestudio.veye.ui.components.FilterPillItem
+import com.elitesoftwarestudio.veye.ui.components.FilterPillRow
+import com.elitesoftwarestudio.veye.ui.components.ScreenHeader
+import com.elitesoftwarestudio.veye.ui.components.StatTileEntry
+import com.elitesoftwarestudio.veye.ui.components.StatTileRow
+import com.elitesoftwarestudio.veye.ui.theme.SeverityKind
 import com.elitesoftwarestudio.veye.ui.theme.VEYeTheme
+import com.elitesoftwarestudio.veye.ui.theme.VEyeSpacing
+import com.elitesoftwarestudio.veye.ui.theme.severityFromZoneRezon
 import com.elitesoftwarestudio.veye.data.map.DangerZone
 import com.elitesoftwarestudio.veye.data.pending.PendingReport
 import com.elitesoftwarestudio.veye.data.pending.PendingReportStatus
@@ -86,6 +94,9 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.launch
 
 private val HaitiCenter = LatLng(18.5944, -72.3074)
+
+/** Quick filter chips on top of the Zones sheet (visual only — refines list view). */
+private enum class ZoneQuickFilter { All, NearMe, Last24h, Highest }
 
 @get:StringRes
 private val MapTimeRange.labelRes: Int
@@ -437,13 +448,73 @@ private fun ZonesSheetList(
     onRequestFlag: (DangerZone) -> Unit,
     formatTime: (DangerZone) -> String,
 ) {
+    val severityCounts = remember(zones) {
+        zones.groupingBy { severityFromZoneRezon(it.rezon, it.incidentType) }.eachCount()
+    }
+    var quickFilter by remember { mutableStateOf(ZoneQuickFilter.All) }
+    val quickFilterItems =
+        listOf(
+            FilterPillItem(
+                key = ZoneQuickFilter.All.name,
+                label = stringResource(R.string.alerts_filter_all),
+                count = zones.size,
+            ),
+            FilterPillItem(
+                key = ZoneQuickFilter.NearMe.name,
+                label = stringResource(R.string.danger_zones_filter_near_me),
+            ),
+            FilterPillItem(
+                key = ZoneQuickFilter.Last24h.name,
+                label = stringResource(R.string.danger_zones_filter_last_24h),
+            ),
+            FilterPillItem(
+                key = ZoneQuickFilter.Highest.name,
+                label = stringResource(R.string.danger_zones_filter_highest),
+            ),
+        )
+
     Column(Modifier.fillMaxWidth()) {
 
-        Text(
-            text = stringResource(R.string.danger_zones_title),
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(12.dp),
+        ScreenHeader(
+            title = stringResource(R.string.danger_zones_title),
+            subtitle = stringResource(R.string.danger_zones_subtitle_simple, zones.size),
+            applyStatusBarPadding = false,
+        )
+
+        StatTileRow(
+            items =
+                listOf(
+                    StatTileEntry(
+                        kind = SeverityKind.Kidnapping,
+                        count = severityCounts[SeverityKind.Kidnapping] ?: 0,
+                    ),
+                    StatTileEntry(
+                        kind = SeverityKind.DangerZone,
+                        count =
+                            (severityCounts[SeverityKind.DangerZone] ?: 0) +
+                                (severityCounts[SeverityKind.Shooting] ?: 0),
+                    ),
+                    StatTileEntry(
+                        kind = SeverityKind.Missing,
+                        count = severityCounts[SeverityKind.Missing] ?: 0,
+                    ),
+                ),
+            modifier =
+                Modifier.padding(
+                    start = VEyeSpacing.md,
+                    end = VEyeSpacing.md,
+                    top = VEyeSpacing.xs,
+                    bottom = VEyeSpacing.sm,
+                ),
+        )
+
+        FilterPillRow(
+            items = quickFilterItems,
+            selectedKey = quickFilter.name,
+            onSelect = { key -> quickFilter = ZoneQuickFilter.valueOf(key) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = VEyeSpacing.sm),
         )
 
         LazyColumn(

@@ -14,12 +14,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,23 +34,18 @@ import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.PersonSearch
-import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -73,6 +71,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.elitesoftwarestudio.veye.R
+import com.elitesoftwarestudio.veye.ui.components.AnonymousToggleRow
+import com.elitesoftwarestudio.veye.ui.components.PinnedLocationCard
+import com.elitesoftwarestudio.veye.ui.components.PrimaryPillButton
+import com.elitesoftwarestudio.veye.ui.components.ReportTypePair
+import com.elitesoftwarestudio.veye.ui.components.ReportTypeTileSpec
+import com.elitesoftwarestudio.veye.ui.theme.SeverityKind
+import com.elitesoftwarestudio.veye.ui.theme.VEyeRadius
+import com.elitesoftwarestudio.veye.ui.theme.VEyeSpacing
+import com.elitesoftwarestudio.veye.ui.theme.severityFromReportType
 import kotlinx.coroutines.flow.collectLatest
 import java.io.File
 import java.text.DateFormat
@@ -80,16 +87,13 @@ import java.util.Date
 
 private const val MAX_PHOTOS = 4
 
-private val TypeKidnapping = Color(0xFFC41E3A)
-private val TypeMissing = Color(0xFFEAB308)
-private val TypeDanger = Color(0xFFE85D04)
 private val BlockedBanner = Color(0xFFDC2626)
 
-private data class ReportTypeUi(
+private data class ReportTypeOption(
     val key: String,
+    val kind: SeverityKind,
     val labelRes: Int,
-    val color: Color,
-    val icon: ImageVector,
+    val descriptionRes: Int? = null,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -138,16 +142,44 @@ fun ReportScreen(
     val reportTypes =
         remember {
             listOf(
-                ReportTypeUi("kidnapping", R.string.report_type_kidnapping, TypeKidnapping, Icons.Outlined.Warning),
-                ReportTypeUi("missing", R.string.report_type_missing, TypeMissing, Icons.Outlined.PersonSearch),
-                ReportTypeUi("danger_zone", R.string.report_type_danger_zone, TypeDanger, Icons.Outlined.Warning),
-                ReportTypeUi("shooting", R.string.report_type_shooting, TypeDanger, Icons.Outlined.Warning),
-                ReportTypeUi("suspicious", R.string.report_type_suspicious, TypeMissing, Icons.Outlined.Visibility),
+                ReportTypeOption(
+                    key = "missing",
+                    kind = SeverityKind.Missing,
+                    labelRes = R.string.severity_missing,
+                    descriptionRes = R.string.report_type_missing_desc,
+                ),
+                ReportTypeOption(
+                    key = "info",
+                    kind = SeverityKind.Info,
+                    labelRes = R.string.report_type_info_label,
+                    descriptionRes = R.string.report_type_info_desc,
+                ),
+                ReportTypeOption(
+                    key = "kidnapping",
+                    kind = SeverityKind.Kidnapping,
+                    labelRes = R.string.report_type_kidnapping,
+                ),
+                ReportTypeOption(
+                    key = "danger_zone",
+                    kind = SeverityKind.DangerZone,
+                    labelRes = R.string.report_type_danger_zone,
+                ),
+                ReportTypeOption(
+                    key = "shooting",
+                    kind = SeverityKind.Shooting,
+                    labelRes = R.string.report_type_shooting,
+                ),
+                ReportTypeOption(
+                    key = "suspicious",
+                    kind = SeverityKind.Suspicious,
+                    labelRes = R.string.report_type_suspicious,
+                ),
             )
         }
 
-    val activeType = reportTypes.find { it.key == selectedType }
-    val accent = activeType?.color ?: TypeKidnapping
+    val activeKind =
+        selectedType?.let { key -> severityFromReportType(key) } ?: SeverityKind.Kidnapping
+    val accent = com.elitesoftwarestudio.veye.ui.theme.severityAccent(activeKind)
 
     val locationText =
         if (session.latitude != null && session.longitude != null) {
@@ -254,9 +286,7 @@ fun ReportScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(stringResource(R.string.report_title)) },
-            )
+            ReportTopBar(stepIndex = 1, totalSteps = 3, onClose = {})
         },
     ) { padding ->
         Column(
@@ -303,44 +333,58 @@ fun ReportScreen(
             Text(
                 stringResource(R.string.report_section_what),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 20.dp, bottom = 12.dp),
+                modifier = Modifier.padding(top = VEyeSpacing.md, bottom = VEyeSpacing.sm),
+            )
+            val primary = reportTypes[0]
+            val secondary = reportTypes[1]
+            ReportTypePair(
+                primary =
+                    ReportTypeTileSpec(
+                        kind = primary.kind,
+                        selected = selectedType == primary.key,
+                        onClick = { selectedType = primary.key },
+                        title = stringResource(primary.labelRes),
+                        description = primary.descriptionRes?.let { stringResource(it) },
+                    ),
+                secondary =
+                    ReportTypeTileSpec(
+                        kind = secondary.kind,
+                        selected = selectedType == secondary.key,
+                        onClick = { selectedType = secondary.key },
+                        title = stringResource(secondary.labelRes),
+                        description = secondary.descriptionRes?.let { stringResource(it) },
+                    ),
             )
             Row(
                 modifier =
                     Modifier
                         .fillMaxWidth()
+                        .padding(top = VEyeSpacing.sm)
                         .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(VEyeSpacing.xs),
             ) {
-                reportTypes.forEach { tp ->
+                reportTypes.drop(2).forEach { tp ->
                     val active = selectedType == tp.key
+                    val tpAccent =
+                        com.elitesoftwarestudio.veye.ui.theme.severityAccent(tp.kind)
                     Surface(
                         modifier = Modifier.clickable { selectedType = tp.key },
-                        shape = RoundedCornerShape(24.dp),
-                        color = if (active) tp.color else MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(VEyeRadius.pill),
+                        color =
+                            if (active) tpAccent
+                            else MaterialTheme.colorScheme.surfaceContainerHigh,
                         border =
-                            BorderStroke(
-                                1.5.dp,
-                                if (active) tp.color else MaterialTheme.colorScheme.outlineVariant,
-                            ),
+                            if (active) null
+                            else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Icon(
-                                tp.icon,
-                                contentDescription = null,
-                                tint = if (active) Color.White else tp.color,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Text(
-                                stringResource(tp.labelRes),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (active) Color.White else MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
+                        Text(
+                            stringResource(tp.labelRes),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            color =
+                                if (active) Color.White
+                                else MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.labelLarge,
+                        )
                     }
                 }
             }
@@ -348,42 +392,12 @@ fun ReportScreen(
             Text(
                 stringResource(R.string.report_section_where),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 20.dp, bottom = 12.dp),
+                modifier = Modifier.padding(top = VEyeSpacing.md, bottom = VEyeSpacing.sm),
             )
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                tonalElevation = 1.dp,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(TypeKidnapping.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.Outlined.MyLocation, contentDescription = null, tint = TypeKidnapping)
-                    }
-                    Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                        Text(
-                            stringResource(R.string.report_location_auto_detected),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            locationText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(top = 2.dp),
-                        )
-                    }
-                    Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = Color(0xFF22C55E))
-                }
-            }
+            PinnedLocationCard(
+                locationLabel = locationText,
+                accuracyLabel = "± 300 m",
+            )
 
             Row(Modifier.padding(top = 20.dp, bottom = 8.dp)) {
                 Text(stringResource(R.string.report_section_evidence), style = MaterialTheme.typography.titleMedium)
@@ -422,7 +436,7 @@ fun ReportScreen(
                             Icon(
                                 Icons.Filled.Close,
                                 contentDescription = stringResource(R.string.report_remove_photo),
-                                tint = TypeKidnapping,
+                                tint = accent,
                             )
                         }
                     }
@@ -487,17 +501,27 @@ fun ReportScreen(
                 )
             }
 
-            Text(stringResource(R.string.report_description), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 12.dp))
+            Text(
+                stringResource(R.string.report_describe_what_you_see),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(top = VEyeSpacing.sm),
+            )
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(top = 6.dp)
+                        .padding(top = VEyeSpacing.xs)
                         .height(120.dp),
                 placeholder = { Text(stringResource(R.string.report_description_placeholder)) },
                 minLines = 4,
+                shape = RoundedCornerShape(VEyeRadius.card),
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    ),
             )
 
             Text(stringResource(R.string.report_contact_phone), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 12.dp))
@@ -513,26 +537,24 @@ fun ReportScreen(
                 singleLine = true,
             )
 
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                        .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(stringResource(R.string.report_anonymous), modifier = Modifier.weight(1f))
-                Switch(checked = anonymous, onCheckedChange = { anonymous = it })
-            }
+            AnonymousToggleRow(
+                title = stringResource(R.string.report_anonymous),
+                description = stringResource(R.string.report_anonymous_desc),
+                checked = anonymous,
+                onCheckedChange = { anonymous = it },
+                modifier = Modifier.padding(top = VEyeSpacing.md),
+            )
 
             Row(
-                modifier = Modifier.padding(top = 16.dp, bottom = 24.dp),
+                modifier = Modifier.padding(top = VEyeSpacing.sm, bottom = VEyeSpacing.lg),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(VEyeSpacing.xs),
             ) {
-                Text(stringResource(R.string.report_time), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    stringResource(R.string.report_time),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Text(
                     DateFormat.getTimeInstance(DateFormat.SHORT).format(Date()) + "  ·  " +
                         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date()),
@@ -541,22 +563,13 @@ fun ReportScreen(
                 )
             }
 
-            Button(
+            PrimaryPillButton(
+                label = stringResource(R.string.report_submit_report),
                 onClick = { submit() },
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
                 enabled = !moderation.isBlocked,
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = if (moderation.isBlocked) Color(0xFF9CA3AF) else accent,
-                        disabledContainerColor = Color(0xFF9CA3AF),
-                    ),
-            ) {
-                Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = null, tint = Color.White)
-                Text(stringResource(R.string.report_submit_report), modifier = Modifier.padding(start = 8.dp), color = Color.White)
-            }
+                accent = accent,
+                trailingIcon = Icons.AutoMirrored.Outlined.Send,
+            )
         }
     }
 
@@ -629,3 +642,55 @@ fun ReportScreen(
 
 private fun formatBlockedDate(epochMs: Long): String =
     DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.SHORT).format(Date(epochMs))
+
+@Composable
+private fun ReportTopBar(
+    stepIndex: Int,
+    totalSteps: Int,
+    onClose: () -> Unit,
+) {
+    androidx.compose.foundation.layout.Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .androidx_status_bar_padding()
+                .padding(horizontal = VEyeSpacing.sm, vertical = VEyeSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onClose) {
+            Icon(
+                Icons.Filled.Close,
+                contentDescription = stringResource(R.string.report_close),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        androidx.compose.foundation.layout.Column(
+            modifier = Modifier.weight(1f).padding(start = VEyeSpacing.xs),
+        ) {
+            Text(
+                text = stringResource(R.string.report_title),
+                style =
+                    MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    ),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(R.string.report_step_label, stepIndex, totalSteps),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        IconButton(onClick = { /* help link in future */ }) {
+            Icon(
+                Icons.Outlined.HelpOutline,
+                contentDescription = stringResource(R.string.report_help),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+@Composable
+private fun Modifier.androidx_status_bar_padding(): Modifier =
+    this.windowInsetsPadding(WindowInsets.statusBars)

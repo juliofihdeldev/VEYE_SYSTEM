@@ -58,8 +58,15 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import androidx.compose.material.icons.outlined.AltRoute
 import com.elitesoftwarestudio.veye.R
 import com.elitesoftwarestudio.veye.data.comments.CommentsRepository
+import com.elitesoftwarestudio.veye.ui.components.ActionButton
+import com.elitesoftwarestudio.veye.ui.components.ActionTriad
+import com.elitesoftwarestudio.veye.ui.components.SeverityHero
+import com.elitesoftwarestudio.veye.ui.theme.SeverityKind
+import com.elitesoftwarestudio.veye.ui.theme.VEyeSpacing
+import com.elitesoftwarestudio.veye.ui.theme.severityFromAlertType
 import com.elitesoftwarestudio.veye.ui.util.DialogTransparentSystemBars
 import com.elitesoftwarestudio.veye.data.map.ViktimAlert
 import com.elitesoftwarestudio.veye.data.preferences.MapSessionPrefs
@@ -164,21 +171,13 @@ fun AlertDetailScreen(
                             .padding(horizontal = 16.dp)
                             .padding(bottom = 32.dp),
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 16.dp)) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(severity.dotColor),
-                        )
-                        Text(
-                            text = severity.label,
-                            style = MaterialTheme.typography.titleLarge,
-                            color = severity.color,
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
+                    val severityKind: SeverityKind =
+                        severityFromAlertType(alert.type, alert.status)
+                    SeverityHero(
+                        kind = severityKind,
+                        statusLabel = if (alert.status == "Libérer") "RELEASED" else "LIVE",
+                        modifier = Modifier.padding(bottom = VEyeSpacing.sm),
+                    )
 
                     Card(
                         shape = RoundedCornerShape(14.dp),
@@ -292,50 +291,30 @@ fun AlertDetailScreen(
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = { shareAlert() },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Text(
-                                stringResource(R.string.alert_details_share_alert),
-                                modifier = Modifier.padding(start = 6.dp),
-                            )
-                        }
-                        OutlinedButton(
-                            onClick = {
-                                onDismiss()
-                                onReportFromAlert(alert)
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Icon(Icons.Outlined.Description, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Text(
-                                stringResource(R.string.alert_details_report_info),
-                                modifier = Modifier.padding(start = 6.dp),
-                            )
-                        }
-                    }
-
-                    Button(
-                        onClick = { dialEmergency() },
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(top = 12.dp),
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = EmergencyRed,
-                                contentColor = Color.White,
+                    ActionTriad(
+                        actions =
+                            listOf(
+                                ActionButton(
+                                    label = stringResource(R.string.common_share),
+                                    icon = Icons.Outlined.Share,
+                                    onClick = { shareAlert() },
+                                    isPrimary = true,
+                                ),
+                                ActionButton(
+                                    label = stringResource(R.string.alerts_call_emergency_short),
+                                    icon = Icons.Outlined.Phone,
+                                    onClick = { dialEmergency() },
+                                ),
+                                ActionButton(
+                                    label = stringResource(R.string.alerts_action_reroute),
+                                    icon = Icons.Outlined.AltRoute,
+                                    onClick = {
+                                        onDismiss()
+                                        onReportFromAlert(alert)
+                                    },
+                                ),
                             ),
-                    ) {
-                        Icon(Icons.Outlined.Phone, contentDescription = null)
-                        Text(
-                            stringResource(R.string.alert_details_call_emergency),
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
+                    )
                 }
             }
         }
