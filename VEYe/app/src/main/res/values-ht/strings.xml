@@ -132,8 +132,8 @@
     <string name="onboarding_continue">Kontinye</string>
     <string name="onboarding_step_indicator">%1$d sou %2$d</string>
 
-    <string name="onboarding_welcome_kreyol_headline">Veye katye ou. Ann veye youn pou lòt.</string>
-    <string name="onboarding_welcome_subhead">Veye katye ou. Ann veye youn pou lòt.</string>
+    <string name="onboarding_welcome_kreyol_headline">Veye katye ou. Ann VEYe youn pou lòt.</string>
+    <string name="onboarding_welcome_subhead">VEYe Zòn ou. Ann veye youn pou lòt.</string>
     <string name="onboarding_welcome_pill_anonymous_title">Anonim</string>
     <string name="onboarding_welcome_pill_anonymous_body">Ou pa bezwen kont. Rapò ou yo rete anonim sof si ou chwazi otreman.</string>
     <string name="onboarding_welcome_pill_local_title">Lokal</string>

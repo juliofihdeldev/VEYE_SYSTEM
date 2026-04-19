@@ -276,34 +276,38 @@ private fun WelcomeStep(
     currentLocaleTag: String,
     onPickLanguage: (String) -> Unit,
 ) {
+    // Layout choice: the language picker sits BELOW the headline but ABOVE the value
+    // props so it lands above the fold on a typical phone (~640dp viewport). Picking a
+    // language is the single most consequential thing the user can do on this screen
+    // — burying it under three pills meant they had to scroll to find it.
     StepScaffold {
         BrandHero()
-        Spacer(Modifier.height(VEyeSpacing.xl))
+        Spacer(Modifier.height(VEyeSpacing.md))
         StepHeadline(text = stringResource(R.string.onboarding_welcome_kreyol_headline))
-        Spacer(Modifier.height(VEyeSpacing.sm))
+        Spacer(Modifier.height(VEyeSpacing.xs))
         StepSubhead(text = stringResource(R.string.onboarding_welcome_subhead))
-        Spacer(Modifier.height(VEyeSpacing.xl))
+        Spacer(Modifier.height(VEyeSpacing.lg))
+        LanguagePicker(
+            currentTag = currentLocaleTag,
+            onPick = onPickLanguage,
+        )
+        Spacer(Modifier.height(VEyeSpacing.lg))
         ValuePropPill(
             icon = Icons.Outlined.Lock,
             title = stringResource(R.string.onboarding_welcome_pill_anonymous_title),
             body = stringResource(R.string.onboarding_welcome_pill_anonymous_body),
         )
-        Spacer(Modifier.height(VEyeSpacing.sm))
+        Spacer(Modifier.height(VEyeSpacing.xs))
         ValuePropPill(
             icon = Icons.Outlined.Visibility,
             title = stringResource(R.string.onboarding_welcome_pill_local_title),
             body = stringResource(R.string.onboarding_welcome_pill_local_body),
         )
-        Spacer(Modifier.height(VEyeSpacing.sm))
+        Spacer(Modifier.height(VEyeSpacing.xs))
         ValuePropPill(
             icon = Icons.Outlined.Bolt,
             title = stringResource(R.string.onboarding_welcome_pill_free_title),
             body = stringResource(R.string.onboarding_welcome_pill_free_body),
-        )
-        Spacer(Modifier.height(VEyeSpacing.xl))
-        LanguagePicker(
-            currentTag = currentLocaleTag,
-            onPick = onPickLanguage,
         )
     }
 }
@@ -316,9 +320,12 @@ private fun BrandHero() {
             MaterialTheme.colorScheme.primary.copy(alpha = 0.04f),
         ),
     )
+    // Sized so the language picker stays above the fold on a typical 640dp viewport
+    // even with the status bar inset and the bottom CTA accounted for. Don't grow this
+    // back to 112dp without re-checking the whole step on a Pixel-class device.
     Box(
         modifier = Modifier
-            .size(112.dp)
+            .size(88.dp)
             .clip(CircleShape)
             .background(gradient),
         contentAlignment = Alignment.Center,
@@ -327,8 +334,8 @@ private fun BrandHero() {
             painter = painterResource(R.drawable.ic_brand_mark),
             contentDescription = null,
             modifier = Modifier
-                .size(72.dp)
-                .clip(RoundedCornerShape(20.dp)),
+                .size(56.dp)
+                .clip(RoundedCornerShape(16.dp)),
         )
     }
 }

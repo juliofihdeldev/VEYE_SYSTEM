@@ -44,7 +44,24 @@ class VEYeApplication : Application() {
         // is a defensive sync from our DataStore (the source of truth) into whichever
         // locale store the platform reads from. On older API levels AppCompat only honours
         // the call when `AppLocalesMetadataHolderService` is declared in the manifest.
-        val localeTag = runBlocking { userPreferencesRepository.readLocaleTagForStartup() }
+        val persistedLocaleTag = runBlocking { userPreferencesRepository.readLocaleTagForStartup() }
+        val localeTag = runBlocking {
+            // First-launch users get French as the default — the target audience speaks
+            // Kreyòl + French, and a French UI is closer to "right" than whatever the
+            // device is set to (often English on imported / used phones). We only seed
+            // when:
+            //   (a) the user has not made an explicit choice yet (tag is blank), AND
+            //   (b) onboarding has not been completed
+            // so a returning user who explicitly switched back to "System default" later
+            // is never overridden.
+            val onboardingComplete = userPreferencesRepository.readOnboardingCompletedForStartup()
+            if (persistedLocaleTag.isBlank() && !onboardingComplete) {
+                userPreferencesRepository.setLocaleTag(DEFAULT_FIRST_LAUNCH_LOCALE_TAG)
+                DEFAULT_FIRST_LAUNCH_LOCALE_TAG
+            } else {
+                persistedLocaleTag
+            }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val manager = getSystemService(LocaleManager::class.java)
             val current = manager?.applicationLocales?.toLanguageTags().orEmpty()
@@ -80,5 +97,9 @@ class VEYeApplication : Application() {
 
     companion object {
         private const val TAG = "VEYeApplication"
+        // BCP-47 language tag for the first-launch default. Kept here (not in
+        // UserPreferencesRepository) because it is a UX policy decision specific to the
+        // initial boot path, not a generic preference fallback.
+        private const val DEFAULT_FIRST_LAUNCH_LOCALE_TAG = "fr"
     }
 }
