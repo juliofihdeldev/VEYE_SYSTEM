@@ -23,6 +23,10 @@ import com.elitesoftwarestudio.veye.ui.theme.VEyeSpacing
 /**
  * Single comment row from the alert detail mockup. The avatar is a coloured initial circle
  * (passed via [avatarColor]); body content sits beneath the name + meta line.
+ *
+ * Supply [footer] when the row needs interactive actions under the body (e.g. like / reply
+ * controls in [com.elitesoftwarestudio.veye.ui.zones.CommentThreadPanel]). Use [startIndent]
+ * to render reply children at progressively deeper nesting.
  */
 @Composable
 fun CommentRow(
@@ -34,9 +38,15 @@ fun CommentRow(
     verifiedLabel: String? = null,
     avatarColor: Color = MaterialTheme.colorScheme.primary,
     initials: String? = null,
+    startIndent: androidx.compose.ui.unit.Dp = 0.dp,
+    footer: (@Composable () -> Unit)? = null,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = VEyeSpacing.xs),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(start = startIndent)
+                .padding(vertical = VEyeSpacing.xs),
     ) {
         Box(
             modifier =
@@ -90,6 +100,11 @@ fun CommentRow(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
                 modifier = Modifier.padding(top = 2.dp),
             )
+            if (footer != null) {
+                Box(modifier = Modifier.padding(top = 4.dp)) {
+                    footer()
+                }
+            }
         }
     }
 }
