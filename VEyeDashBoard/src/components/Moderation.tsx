@@ -43,6 +43,7 @@ import {
   LockOutlined as LockIcon,
 } from '@mui/icons-material';
 import moment from 'moment';
+import { Trans, useTranslation } from 'react-i18next';
 import ConfirmDialog from './ConfirmDialog';
 import ModalComponent from './Modal';
 import {
@@ -67,33 +68,31 @@ import {
   type ReasonCount,
 } from '../api';
 
-moment.locale('fr');
-
 // ---------------------------------------------------------------------------
 // Style maps
 // ---------------------------------------------------------------------------
 
-const reasonStyles: Record<ModerationReason, { bg: string; color: string; label: string }> = {
-  MISINFORMATION: { bg: '#fee2e2', color: '#b91c1c', label: 'Misinformation' },
-  HATE_SPEECH: { bg: '#fde68a', color: '#92400e', label: 'Hate speech' },
-  SPAM: { bg: '#e0e7ff', color: '#3730a3', label: 'Spam' },
-  GRAPHIC: { bg: '#fecaca', color: '#7f1d1d', label: 'Graphic content' },
-  DUPLICATE: { bg: '#f1f5f9', color: '#475569', label: 'Duplicate' },
-  OTHER: { bg: '#f1f5f9', color: '#475569', label: 'Other' },
+const reasonStyles: Record<ModerationReason, { bg: string; color: string }> = {
+  MISINFORMATION: { bg: '#fee2e2', color: '#b91c1c' },
+  HATE_SPEECH: { bg: '#fde68a', color: '#92400e' },
+  SPAM: { bg: '#e0e7ff', color: '#3730a3' },
+  GRAPHIC: { bg: '#fecaca', color: '#7f1d1d' },
+  DUPLICATE: { bg: '#f1f5f9', color: '#475569' },
+  OTHER: { bg: '#f1f5f9', color: '#475569' },
 };
 
-const statusStyles: Record<ModerationStatus, { bg: string; color: string; label: string }> = {
-  PENDING: { bg: '#fef3c7', color: '#b45309', label: 'Pending' },
-  APPROVED: { bg: '#dcfce7', color: '#15803d', label: 'Apwouve' },
-  REJECTED: { bg: '#fee2e2', color: '#b91c1c', label: 'Rejte' },
-  ESCALATED: { bg: '#e0f2fe', color: '#0369a1', label: 'Eskalade' },
+const statusStyles: Record<ModerationStatus, { bg: string; color: string }> = {
+  PENDING: { bg: '#fef3c7', color: '#b45309' },
+  APPROVED: { bg: '#dcfce7', color: '#15803d' },
+  REJECTED: { bg: '#fee2e2', color: '#b91c1c' },
+  ESCALATED: { bg: '#e0f2fe', color: '#0369a1' },
 };
 
-const contentTypeStyles: Record<ModerationContentType, { bg: string; color: string; label: string }> = {
-  POST: { bg: '#ede9fe', color: '#6d28d9', label: 'Post' },
-  REPORT: { bg: '#fee2e2', color: '#b91c1c', label: 'Report' },
-  NEWS: { bg: '#e0f2fe', color: '#0369a1', label: 'News' },
-  COMMENT: { bg: '#f1f5f9', color: '#475569', label: 'Comment' },
+const contentTypeStyles: Record<ModerationContentType, { bg: string; color: string }> = {
+  POST: { bg: '#ede9fe', color: '#6d28d9' },
+  REPORT: { bg: '#fee2e2', color: '#b91c1c' },
+  NEWS: { bg: '#e0f2fe', color: '#0369a1' },
+  COMMENT: { bg: '#f1f5f9', color: '#475569' },
 };
 
 // Deterministic avatar colors from author name -----------------------------
@@ -138,19 +137,6 @@ const activityIconFor = (action: ModeratorAction) => {
     case 'escalate':
       return { icon: <WarningIcon sx={{ fontSize: 18 }} />, bg: '#fef3c7' };
   }
-};
-
-const actionLabelKR: Record<ModeratorAction, string> = {
-  approve: 'apwouve',
-  reject: 'rejte',
-  escalate: 'eskalade',
-};
-
-// Display name for a moderator: short prefix of email when no profile yet.
-const moderatorDisplayName = (email: string | null): string => {
-  if (!email) return 'Anonim moderatè';
-  const at = email.indexOf('@');
-  return at > 0 ? email.slice(0, at) : email;
 };
 
 // ---------------------------------------------------------------------------
@@ -275,10 +261,11 @@ function KpiCard({
 }
 
 function ReasonChip({ reason }: { reason: ModerationReason }) {
+  const { t } = useTranslation();
   const s = reasonStyles[reason];
   return (
     <Chip
-      label={`● ${s.label}`}
+      label={`● ${t(`moderation.reasonChips.${reason}`)}`}
       size="small"
       sx={{
         bgcolor: s.bg, color: s.color,
@@ -291,10 +278,11 @@ function ReasonChip({ reason }: { reason: ModerationReason }) {
 }
 
 function StatusChip({ status }: { status: ModerationStatus }) {
+  const { t } = useTranslation();
   const s = statusStyles[status];
   return (
     <Chip
-      label={s.label}
+      label={t(`moderation.statusChips.${status}`)}
       size="small"
       sx={{ bgcolor: s.bg, color: s.color, fontWeight: 600, fontSize: 12, height: 24 }}
     />
@@ -302,10 +290,11 @@ function StatusChip({ status }: { status: ModerationStatus }) {
 }
 
 function TypeChip({ type }: { type: ModerationContentType }) {
+  const { t } = useTranslation();
   const s = contentTypeStyles[type];
   return (
     <Chip
-      label={s.label}
+      label={t(`moderation.typeChips.${type}`)}
       size="small"
       variant="outlined"
       sx={{
@@ -330,6 +319,15 @@ type PendingAction =
 
 export default function Moderation() {
   const theme = useTheme();
+  const { t } = useTranslation();
+  const moderatorDisplayName = React.useCallback(
+    (email: string | null): string => {
+      if (!email) return t('moderation.moderatorAnonym');
+      const at = email.indexOf('@');
+      return at > 0 ? email.slice(0, at) : email;
+    },
+    [t],
+  );
   const [items, setItems] = React.useState<ModerationItem[]>([]);
   const [reasonCounts, setReasonCounts] = React.useState<ReasonCount[]>([]);
   const [auditFeed, setAuditFeed] = React.useState<AuditFeedItem[]>([]);
@@ -513,12 +511,12 @@ export default function Moderation() {
     const max = Math.max(1, ...Array.from(byKey.values()));
     return order.map((key) => ({
       key,
-      label: reasonStyles[key].label,
+      label: t(`moderation.reasonChips.${key}`),
       value: byKey.get(key) ?? 0,
       color: reasonBarColor[key],
       pct: ((byKey.get(key) ?? 0) / max) * 100,
     }));
-  }, [reasonCounts]);
+  }, [reasonCounts, t]);
 
   // Mutations -------------------------------------------------------------
   const confirmAction = async () => {
@@ -527,17 +525,23 @@ export default function Moderation() {
     try {
       if (pendingAction.ids.length === 1) {
         await decideModeration(pendingAction.ids[0], pendingAction.kind, note);
-        setSnack({ msg: `Aksyon "${pendingAction.kind}" reyisi`, severity: 'success' });
+        setSnack({
+          msg: t('moderation.actions.actionSuccess', { action: pendingAction.kind }),
+          severity: 'success',
+        });
       } else {
         const result = await bulkDecideModeration(pendingAction.ids, pendingAction.kind, note);
         if (result.failed.length === 0) {
           setSnack({
-            msg: `${result.succeeded.length} kontni: aksyon "${pendingAction.kind}" reyisi`,
+            msg: t('moderation.actions.bulkSuccess', {
+              count: result.succeeded.length,
+              action: pendingAction.kind,
+            }),
             severity: 'success',
           });
         } else {
           setSnack({
-            msg: `${result.succeeded.length} reyisi, ${result.failed.length} echwe`,
+            msg: t('moderation.actions.mixed', { ok: result.succeeded.length, fail: result.failed.length }),
             severity: result.succeeded.length > 0 ? 'info' : 'error',
           });
         }
@@ -554,7 +558,7 @@ export default function Moderation() {
       loadDerived();
     } catch (e) {
       setSnack({
-        msg: e instanceof Error ? e.message : 'Aksyon echwe',
+        msg: e instanceof Error ? e.message : t('moderation.actions.actionFailed'),
         severity: 'error',
       });
     } finally {
@@ -581,21 +585,21 @@ export default function Moderation() {
 
   // Filter chip configs ---------------------------------------------------
   const statusFilters: { key: StatusFilter; label: string; count: number }[] = [
-    { key: 'all', label: 'Tout', count: counts.all },
-    { key: 'pending', label: 'Pending', count: counts.pending },
-    { key: 'flagged', label: 'Auto-flagged', count: counts.flagged },
-    { key: 'approved', label: 'Apwouve', count: counts.approved },
-    { key: 'rejected', label: 'Rejte', count: counts.rejected },
-    { key: 'escalated', label: 'Eskalade', count: counts.escalated },
+    { key: 'all', label: t('moderation.statusFilters.all'), count: counts.all },
+    { key: 'pending', label: t('moderation.statusFilters.pending'), count: counts.pending },
+    { key: 'flagged', label: t('moderation.statusFilters.flagged'), count: counts.flagged },
+    { key: 'approved', label: t('moderation.statusFilters.approved'), count: counts.approved },
+    { key: 'rejected', label: t('moderation.statusFilters.rejected'), count: counts.rejected },
+    { key: 'escalated', label: t('moderation.statusFilters.escalated'), count: counts.escalated },
   ];
 
   const reasonFilters: { key: ReasonFilter; label: string }[] = [
-    { key: 'all', label: 'Tout rezon' },
-    { key: 'MISINFORMATION', label: 'Misinformation' },
-    { key: 'HATE_SPEECH', label: 'Hate speech' },
-    { key: 'SPAM', label: 'Spam' },
-    { key: 'GRAPHIC', label: 'Graphic content' },
-    { key: 'DUPLICATE', label: 'Duplicate' },
+    { key: 'all', label: t('moderation.reasonFilters.all') },
+    { key: 'MISINFORMATION', label: t('moderation.reasonFilters.MISINFORMATION') },
+    { key: 'HATE_SPEECH', label: t('moderation.reasonFilters.HATE_SPEECH') },
+    { key: 'SPAM', label: t('moderation.reasonFilters.SPAM') },
+    { key: 'GRAPHIC', label: t('moderation.reasonFilters.GRAPHIC') },
+    { key: 'DUPLICATE', label: t('moderation.reasonFilters.DUPLICATE') },
   ];
 
   // ---------------------------------------------------------------------
@@ -615,17 +619,20 @@ export default function Moderation() {
             <LockIcon />
           </Box>
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-            Aksè limite
+            {t('moderation.lockTitle')}
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 2 }}>
-            Itilizatè ou pa gen wòl moderatè. Mande yon Admin pou ajoute ou nan tab
-            <Box component="code" sx={{ mx: 0.75, px: 0.75, py: 0.25, bgcolor: '#f1f5f9', borderRadius: 1 }}>
-              user_roles
-            </Box>
-            ak wòl <strong>moderator</strong> oswa <strong>admin</strong>.
+            <Trans
+              i18nKey="moderation.lockBody"
+              components={{
+                1: <Box component="code" sx={{ mx: 0.75, px: 0.75, py: 0.25, bgcolor: '#f1f5f9', borderRadius: 1 }} />,
+                3: <strong />,
+                5: <strong />,
+              }}
+            />
           </Typography>
           <Typography variant="caption" color="text.disabled">
-            Detected role: {role ?? 'none'}
+            {t('moderation.detectedRole', { role: role ?? t('moderation.noneRole') })}
           </Typography>
         </Paper>
       </Box>
@@ -654,7 +661,7 @@ export default function Moderation() {
             </Box>
             <Box>
               <Typography variant="h2" sx={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.1 }}>
-                Moderasyon
+                {t('moderation.title')}
               </Typography>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.25 }}>
                 <Box
@@ -665,12 +672,12 @@ export default function Moderation() {
                   }}
                 />
                 <Typography variant="body2" color="text.secondary">
-                  File modere · {counts.pending} kontni nan kèk · last updated {updatedAgo}s ago
+                  {t('moderation.queueSubtitle', { count: counts.pending, seconds: updatedAgo })}
                 </Typography>
                 {role && (
                   <Chip
                     size="small"
-                    label={`Role: ${role}`}
+                    label={t('moderation.roleChip', { role })}
                     sx={{
                       ml: 1, height: 20,
                       bgcolor: isAdmin ? '#dcfce7' : '#e0f2fe',
@@ -695,7 +702,7 @@ export default function Moderation() {
               '&:hover': { bgcolor: '#f8fafc', borderColor: 'rgba(15,23,42,0.2)' },
             }}
           >
-            Export CSV
+            {t('moderation.exportCsv')}
           </Button>
           <Button
             variant="outlined"
@@ -707,7 +714,7 @@ export default function Moderation() {
               '&:hover': { bgcolor: '#f8fafc', borderColor: 'rgba(15,23,42,0.2)' },
             }}
           >
-            Filters
+            {t('moderation.filters')}
           </Button>
           <Button
             variant="contained"
@@ -716,14 +723,14 @@ export default function Moderation() {
             onClick={load}
             disabled={loading}
           >
-            Refresh
+            {t('moderation.refresh')}
           </Button>
         </Stack>
       </Stack>
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)}>
-          <AlertTitle>Erè chajman</AlertTitle>
+          <AlertTitle>{t('moderation.errorTitle')}</AlertTitle>
           {error}
         </Alert>
       )}
@@ -736,9 +743,9 @@ export default function Moderation() {
         }}
       >
         <KpiCard
-          label="Pending review"
+          label={t('moderation.kpi.pendingReview')}
           value={counts.pending}
-          delta={`+${series.pending24} soumèt · 17h`}
+          delta={t('moderation.kpi.pendingDelta', { count: series.pending24 })}
           deltaColor="#b45309"
           icon={<HourglassIcon sx={{ fontSize: 18 }} />}
           iconBg="#f59e0b"
@@ -748,9 +755,9 @@ export default function Moderation() {
           trend={trendOf(series.pending)}
         />
         <KpiCard
-          label="Auto-flagged · 24h"
+          label={t('moderation.kpi.autoFlagged24h')}
           value={counts.flagged}
-          delta={`+${series.flagged24} ≥ 5 rapò · 17h`}
+          delta={t('moderation.kpi.flaggedDelta', { count: series.flagged24 })}
           deltaColor="#ef4444"
           icon={<ReportIcon sx={{ fontSize: 18 }} />}
           iconBg="#ef4444"
@@ -760,12 +767,14 @@ export default function Moderation() {
           trend={trendOf(series.flagged)}
         />
         <KpiCard
-          label="Apwouve · 17h"
+          label={t('moderation.kpi.approved17h')}
           value={series.approved24}
           delta={
             series.approved24 + series.rejected24 > 0
-              ? `${Math.round((series.approved24 / (series.approved24 + series.rejected24)) * 100)}% taux`
-              : 'Pa gen aksyon'
+              ? t('moderation.kpi.approvedRate', {
+                  pct: Math.round((series.approved24 / (series.approved24 + series.rejected24)) * 100),
+                })
+              : t('moderation.kpi.noActions')
           }
           deltaColor="#10b981"
           icon={<CheckCircleOutlineIcon sx={{ fontSize: 18 }} />}
@@ -776,9 +785,9 @@ export default function Moderation() {
           trend={trendOf(series.approved)}
         />
         <KpiCard
-          label="Rejte · 17h"
+          label={t('moderation.kpi.rejected17h')}
           value={series.rejected24}
-          delta={`Total tout tan: ${counts.rejected}`}
+          delta={t('moderation.kpi.totalAllTime', { count: counts.rejected })}
           deltaColor="#0369a1"
           icon={<BlockIcon sx={{ fontSize: 18 }} />}
           iconBg="#6366f1"
@@ -805,7 +814,7 @@ export default function Moderation() {
             spacing={1.5}
             sx={{ mb: 2 }}
           >
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>File modere</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>{t('moderation.queueTitle')}</Typography>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               {statusFilters.map((f) => {
                 const isActive = statusFilter === f.key;
@@ -862,9 +871,18 @@ export default function Moderation() {
                       disabled={filtered.length === 0}
                     />
                   </TableCell>
-                  {['Otè', 'Tip', 'Kontni', 'Rezon', 'Rapò', 'Lè', 'Sitiyasyon', ''].map((h) => (
+                  {[
+                    t('moderation.columns.author'),
+                    t('moderation.columns.type'),
+                    t('moderation.columns.content'),
+                    t('moderation.columns.reason'),
+                    t('moderation.columns.reports'),
+                    t('moderation.columns.time'),
+                    t('moderation.columns.status'),
+                    '',
+                  ].map((h, i) => (
                     <TableCell
-                      key={h}
+                      key={`${i}-${h}`}
                       sx={{
                         textTransform: 'uppercase', fontSize: 11,
                         letterSpacing: '0.08em', color: 'text.secondary',
@@ -891,10 +909,10 @@ export default function Moderation() {
                       <Stack alignItems="center" spacing={1}>
                         <ShieldIcon sx={{ fontSize: 40, color: 'text.disabled' }} />
                         <Typography sx={{ fontWeight: 600 }}>
-                          Pa gen kontni nan filtè sa a
+                          {t('moderation.emptyTitle')}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          Eseye chwazi yon lòt filtè oswa rafrechi.
+                          {t('moderation.emptyHint')}
                         </Typography>
                       </Stack>
                     </TableCell>
@@ -1055,21 +1073,21 @@ export default function Moderation() {
           <Paper sx={{ p: 2.5 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Pa rezon ·{' '}
+                {t('moderation.byReason')} ·{' '}
                 <Typography
                   component="span"
                   sx={{ color: 'text.secondary', fontWeight: 500, fontSize: 14 }}
                 >
-                  24 h
+                  {t('dashboard.window24h')}
                 </Typography>
               </Typography>
               <Typography sx={{ fontSize: 11, color: 'text.disabled' }}>
-                Live · DB
+                {t('moderation.live')}
               </Typography>
             </Stack>
             {reasonBars.every((b) => b.value === 0) ? (
               <Typography variant="body2" color="text.secondary">
-                Pa gen kontni soumèt nan 24 dènye èdtan yo.
+                {t('moderation.noReasonData')}
               </Typography>
             ) : (
               <Stack spacing={1.5}>
@@ -1101,21 +1119,21 @@ export default function Moderation() {
 
           <Paper sx={{ p: 2.5 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1.5 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>Aktivite modere</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>{t('moderation.modActivity')}</Typography>
               <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-                Live · DB · {auditFeed.length}
+                {t('moderation.liveCount', { count: auditFeed.length })}
               </Typography>
             </Stack>
             {auditFeed.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
-                Poko gen aksyon modere. Apwouve / Rejte / Eskalade yon kontni pou kòmanse.
+                {t('moderation.noModActivity')}
               </Typography>
             ) : (
               <Stack divider={<Divider flexItem />} spacing={0}>
                 {auditFeed.map((a) => {
                   const ico = activityIconFor(a.action);
                   const who = moderatorDisplayName(a.moderatorEmail);
-                  const reasonLabel = reasonStyles[a.reason].label;
+                  const reasonLabel = t(`moderation.reasonChips.${a.reason}`);
                   return (
                     <Stack
                       key={a.id}
@@ -1136,7 +1154,11 @@ export default function Moderation() {
                       </Box>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography sx={{ fontSize: 13, fontWeight: 700 }} noWrap>
-                          {who} {actionLabelKR[a.action]} yon {a.contentType.toLowerCase()}
+                          {t('moderation.feedSummary', {
+                            name: who,
+                            action: t(`moderation.feedAction.${a.action}`),
+                            type: t(`moderation.typeChips.${a.contentType}`),
+                          })}
                         </Typography>
                         <Typography
                           sx={{
@@ -1145,11 +1167,15 @@ export default function Moderation() {
                             display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical',
                           }}
                         >
-                          {reasonLabel} · {a.reportsCount} rapò · {a.preview}
+                          {t('moderation.feedDetail', {
+                            reason: reasonLabel,
+                            count: a.reportsCount,
+                            preview: a.preview,
+                          })}
                         </Typography>
                         <Typography sx={{ fontSize: 11, color: 'text.disabled', mt: 0.25 }}>
                           {moment(a.createdAt).fromNow()}
-                          {a.note ? ` · "${a.note}"` : ''}
+                          {a.note ? ` · ${t('moderation.feedNote', { note: a.note })}` : ''}
                         </Typography>
                       </Box>
                     </Stack>
@@ -1161,12 +1187,12 @@ export default function Moderation() {
 
           <Paper sx={{ p: 2.5 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1.5 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>Top moderatè · semèn</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>{t('moderation.topModerators')}</Typography>
               <TrendingUpIcon sx={{ color: 'success.main', fontSize: 20 }} />
             </Stack>
             {leaderboard.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
-                Pa gen statistik moderatè pou semèn nan poko.
+                {t('moderation.noModeratorStats')}
               </Typography>
             ) : (
               <Stack spacing={1.25}>
@@ -1194,7 +1220,11 @@ export default function Moderation() {
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography sx={{ fontSize: 13, fontWeight: 700 }} noWrap>{name}</Typography>
                         <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
-                          {m.actions} aksyon · {m.approvalPct}% apwouve · {m.escalates} eskalad
+                          {t('moderation.moderatorActions', {
+                            actions: m.actions,
+                            pct: m.approvalPct,
+                            esc: m.escalates,
+                          })}
                         </Typography>
                       </Box>
                     </Stack>
@@ -1221,7 +1251,7 @@ export default function Moderation() {
           }}
         >
           <Typography sx={{ fontSize: 13, fontWeight: 700, px: 1 }}>
-            {selected.length} chwazi
+            {t('moderation.actions.selected', { count: selected.length })}
           </Typography>
           <Divider orientation="vertical" flexItem />
           <Button
@@ -1230,7 +1260,7 @@ export default function Moderation() {
             sx={{ color: '#15803d' }}
             onClick={() => setPendingAction({ kind: 'approve', ids: selected })}
           >
-            Apwouve tout
+            {t('moderation.actions.approveAll')}
           </Button>
           <Button
             size="small"
@@ -1238,9 +1268,9 @@ export default function Moderation() {
             sx={{ color: '#b91c1c' }}
             onClick={() => setPendingAction({ kind: 'reject', ids: selected })}
           >
-            Rejte tout
+            {t('moderation.actions.rejectAll')}
           </Button>
-          <Tooltip title={isAdmin ? '' : 'Admin sèlman'}>
+          <Tooltip title={isAdmin ? '' : t('moderation.adminOnly')}>
             <span>
               <Button
                 size="small"
@@ -1249,7 +1279,7 @@ export default function Moderation() {
                 disabled={!isAdmin}
                 onClick={() => setPendingAction({ kind: 'escalate', ids: selected })}
               >
-                Eskalade
+                {t('moderation.actions.escalate')}
               </Button>
             </span>
           </Tooltip>
@@ -1264,26 +1294,26 @@ export default function Moderation() {
         open={pendingAction !== null}
         title={
           pendingAction?.kind === 'approve'
-            ? `Apwouve ${pendingAction.ids.length} kontni`
+            ? t('moderation.confirmApproveTitle', { count: pendingAction.ids.length })
             : pendingAction?.kind === 'reject'
-              ? `Rejte ${pendingAction.ids.length} kontni`
+              ? t('moderation.confirmRejectTitle', { count: pendingAction.ids.length })
               : pendingAction?.kind === 'escalate'
-                ? `Eskalade ${pendingAction.ids.length} kontni`
+                ? t('moderation.confirmEscalateTitle', { count: pendingAction.ids.length })
                 : ''
         }
         message={
           pendingAction?.kind === 'approve'
-            ? 'Kontni an pral parèt piblik. Ou sèten?'
+            ? t('moderation.confirmApproveBody')
             : pendingAction?.kind === 'reject'
-              ? 'Kontni an pral kache pou itilizatè yo. Ou sèten?'
-              : 'Kontni an pral monte bay yon Admin pou desizyon final. Ou sèten?'
+              ? t('moderation.confirmRejectBody')
+              : t('moderation.confirmEscalateBody')
         }
         confirmLabel={
           pendingAction?.kind === 'approve'
-            ? 'Apwouve'
+            ? t('moderation.actions.approve')
             : pendingAction?.kind === 'reject'
-              ? 'Rejte'
-              : 'Eskalade'
+              ? t('moderation.actions.reject')
+              : t('moderation.actions.escalate')
         }
         onConfirm={confirmAction}
         onCancel={closeAction}
@@ -1328,7 +1358,7 @@ export default function Moderation() {
               <Chip
                 size="small"
                 icon={<ReportIcon sx={{ fontSize: 14 }} />}
-                label={`${detailItem.reportsCount} rapò`}
+                label={t('moderation.rapports', { count: detailItem.reportsCount })}
                 sx={{ bgcolor: '#fef3c7', color: '#b45309', fontWeight: 600 }}
               />
             </Stack>
@@ -1349,28 +1379,28 @@ export default function Moderation() {
               <Typography sx={{ fontSize: 14, lineHeight: 1.6 }}>{detailItem.preview}</Typography>
               {detailItem.location && (
                 <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 1 }}>
-                  Kote: {detailItem.location}
+                  {t('moderation.modalLocation', { value: detailItem.location })}
                 </Typography>
               )}
               {detailItem.decisionNote && (
                 <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 1 }}>
-                  Nòt presedan: {detailItem.decisionNote}
+                  {t('moderation.modalPrevNote', { value: detailItem.decisionNote })}
                 </Typography>
               )}
             </Paper>
 
             <TextField
-              label="Nòt modere (opsyonèl)"
+              label={t('moderation.modNoteLabel')}
               value={actionNote}
               onChange={(e) => setActionNote(e.target.value)}
               multiline
               minRows={2}
               size="small"
-              placeholder="Esplike desizyon ou pou odit..."
+              placeholder={t('moderation.modNotePlaceholder')}
             />
 
             <Stack direction="row" spacing={1} justifyContent="flex-end">
-              <Tooltip title={isAdmin ? '' : 'Admin sèlman'}>
+              <Tooltip title={isAdmin ? '' : t('moderation.adminOnly')}>
                 <span>
                   <Button
                     variant="outlined"
@@ -1382,7 +1412,7 @@ export default function Moderation() {
                       setDetailItem(null);
                     }}
                   >
-                    Eskalade
+                    {t('moderation.actions.escalate')}
                   </Button>
                 </span>
               </Tooltip>
@@ -1395,7 +1425,7 @@ export default function Moderation() {
                   setDetailItem(null);
                 }}
               >
-                Rejte
+                {t('moderation.actions.reject')}
               </Button>
               <Button
                 variant="contained"
@@ -1406,7 +1436,7 @@ export default function Moderation() {
                   setDetailItem(null);
                 }}
               >
-                Apwouve
+                {t('moderation.actions.approve')}
               </Button>
             </Stack>
           </Stack>

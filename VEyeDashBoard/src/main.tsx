@@ -4,6 +4,7 @@ import { ThemeProvider, CssBaseline } from '@mui/material';
 import App from './App.tsx';
 import theme from './theme';
 import './index.css';
+import './i18n';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import Login from './components/auth/Login.tsx';
 import AuthRecovery from './components/auth/AuthRecovery.tsx';

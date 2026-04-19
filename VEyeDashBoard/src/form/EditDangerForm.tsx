@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { handleUpdatedAlert } from '../api';
 import { Field, FieldLabel, StyledSelect } from './Field';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   item: any;
@@ -31,10 +32,10 @@ interface Props {
 
 type Level = 'low' | 'medium' | 'high';
 
-const LEVELS: { key: Level; label: string; color: string; bg: string }[] = [
-  { key: 'low', label: 'Ba', color: '#15803d', bg: '#dcfce7' },
-  { key: 'medium', label: 'Mwayen', color: '#b45309', bg: '#fef3c7' },
-  { key: 'high', label: 'Wo', color: '#b91c1c', bg: '#fee2e2' },
+const LEVELS: { key: Level; i18nKey: string; color: string; bg: string }[] = [
+  { key: 'low', i18nKey: 'form.danger.levels.low', color: '#15803d', bg: '#dcfce7' },
+  { key: 'medium', i18nKey: 'form.danger.levels.medium', color: '#b45309', bg: '#fef3c7' },
+  { key: 'high', i18nKey: 'form.danger.levels.high', color: '#b91c1c', bg: '#fee2e2' },
 ];
 
 const INCIDENT_TYPES = [
@@ -121,6 +122,7 @@ function SectionHeader({
 }
 
 export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
+  const { t } = useTranslation();
   const [name, setName] = React.useState<string>(item?.name ?? '');
   const [rezon, setRezon] = React.useState<string>(item?.rezon ?? '');
   const [address, setAddress] = React.useState<string>(item?.address ?? '');
@@ -157,8 +159,8 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!name.trim()) e.name = 'Non zòn lan obligatwa.';
-    if (!rezon.trim()) e.rezon = 'Dekri sak pase a.';
+    if (!name.trim()) e.name = t('form.danger.nameRequired');
+    if (!rezon.trim()) e.rezon = t('form.danger.describeRequired');
     const latEmpty = !latitude.trim();
     const lngEmpty = !longitude.trim();
     const lat = parseOptionalCoord(latitude);
@@ -166,7 +168,7 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
     const hasPair = lat !== undefined && lng !== undefined;
     const bothEmpty = latEmpty && lngEmpty;
     if (!hasPair && !bothEmpty) {
-      e.coords = 'Antre tou de latitid ak longitid, oswa kite yo vid.';
+      e.coords = t('form.danger.coordsPair');
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -174,7 +176,7 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
 
   const useMyLocation = () => {
     if (!('geolocation' in navigator)) {
-      setToast({ open: true, severity: 'error', msg: 'Geolokalizasyon pa disponib nan navigatè a.' });
+      setToast({ open: true, severity: 'error', msg: t('form.danger.geoUnavailable') });
       return;
     }
     setLocating(true);
@@ -183,11 +185,11 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
         setLatitude(pos.coords.latitude.toFixed(6));
         setLongitude(pos.coords.longitude.toFixed(6));
         setLocating(false);
-        setToast({ open: true, severity: 'success', msg: 'Pozisyon w pran.' });
+        setToast({ open: true, severity: 'success', msg: t('form.danger.geoSuccess') });
       },
       (err) => {
         setLocating(false);
-        setToast({ open: true, severity: 'error', msg: err.message || 'Pa ka jwenn pozisyon w.' });
+        setToast({ open: true, severity: 'error', msg: err.message || t('form.danger.geoError') });
       },
       { enableHighAccuracy: true, timeout: 10_000 },
     );
@@ -225,12 +227,12 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
     setLoading(true);
     try {
       await handleUpdatedAlert(item.id, fields);
-      setToast({ open: true, severity: 'success', msg: 'Mizajou anrejistre.' });
+      setToast({ open: true, severity: 'success', msg: t('form.danger.updatedToast') });
       onSaved();
       window.setTimeout(handleClose, 500);
     } catch (err) {
       console.error(err);
-      setToast({ open: true, severity: 'error', msg: 'Echèk nan mizajou. Eseye ankò.' });
+      setToast({ open: true, severity: 'error', msg: t('form.danger.updatedError') });
     } finally {
       setLoading(false);
     }
@@ -241,14 +243,14 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
 
   return (
     <Box component="form" noValidate onSubmit={handleSubmit} sx={{ width: '100%' }}>
-      <SectionHeader icon={<CrisisAlertRounded sx={{ fontSize: 16 }} />} title="Idantifikasyon zon lan" />
+      <SectionHeader icon={<CrisisAlertRounded sx={{ fontSize: 16 }} />} title={t('form.danger.section.identity')} />
 
       <Stack spacing={2}>
         <Field
-          label="Non zòn lan"
+          label={t('form.danger.nameLabel')}
           required
           autoFocus
-          placeholder="Egzanp: Sarthe (Germain)"
+          placeholder={t('form.danger.namePlaceholder')}
           value={name}
           onChange={(e) => setName(e.target.value)}
           error={!!errors.name}
@@ -257,26 +259,26 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
           <Box sx={{ flex: 1 }}>
-            <FieldLabel label="Tip ensidan" />
+            <FieldLabel label={t('form.danger.incidentType')} />
             <StyledSelect value={incidentType} onChange={(e) => setIncidentType(e.target.value)}>
-              <option value="">— Chwazi —</option>
-              {INCIDENT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              <option value="">{t('form.danger.incidentTypePlaceholder')}</option>
+              {INCIDENT_TYPES.map((opt) => (
+                <option key={opt} value={opt}>
+                  {t(`form.danger.incidentTypes.${opt}`)}
                 </option>
               ))}
             </StyledSelect>
           </Box>
 
           <Box sx={{ flex: 1 }}>
-            <FieldLabel label="Nivo danje" />
+            <FieldLabel label={t('form.danger.level')} />
             <Stack direction="row" spacing={1}>
               {LEVELS.map((l) => {
                 const active = level === l.key;
                 return (
                   <Chip
                     key={l.key}
-                    label={l.label}
+                    label={t(l.i18nKey)}
                     onClick={() => setLevel(l.key)}
                     sx={{
                       flex: 1,
@@ -300,21 +302,21 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
 
       <SectionHeader
         icon={<PlaceOutlined sx={{ fontSize: 16 }} />}
-        title="Lokasyon"
-        hint="Adrès ak/oswa kowòdone"
+        title={t('form.danger.section.location')}
+        hint={t('form.danger.section.locationHint')}
       />
 
       <Stack spacing={2}>
         <Field
-          label="Adrès"
-          placeholder="Adrès oswa kote presi"
+          label={t('form.danger.addressLabel')}
+          placeholder={t('form.danger.addressPlaceholderEdit')}
           value={address}
           onChange={(e) => setAddress(e.target.value)}
         />
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
           <Field
-            label="Latitid"
+            label={t('form.danger.latitude')}
             placeholder="18.5392"
             value={latitude}
             onChange={(e) => setLatitude(e.target.value)}
@@ -322,7 +324,7 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
             error={!!errors.coords}
           />
           <Field
-            label="Longitid"
+            label={t('form.danger.longitude')}
             placeholder="-72.3364"
             value={longitude}
             onChange={(e) => setLongitude(e.target.value)}
@@ -330,7 +332,7 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
             error={!!errors.coords}
           />
           <Box sx={{ alignSelf: 'flex-end' }}>
-            <Tooltip title="Sèvi ak pozisyon w">
+            <Tooltip title={t('form.danger.useMyLocation')}>
               <Button
                 onClick={useMyLocation}
                 disabled={locating}
@@ -352,7 +354,7 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
                   },
                 }}
               >
-                {locating ? 'Cheche…' : 'Mwen menm'}
+                {locating ? t('form.danger.locating') : t('form.danger.useMe')}
               </Button>
             </Tooltip>
           </Box>
@@ -384,38 +386,38 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
         )}
       </Stack>
 
-      <SectionHeader icon={<AccessTimeRounded sx={{ fontSize: 16 }} />} title="Lè ensidan" />
+      <SectionHeader icon={<AccessTimeRounded sx={{ fontSize: 16 }} />} title={t('form.danger.section.incidentTime')} />
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'flex-end' }}>
         <Field
-          label="Dat / lè"
+          label={t('form.danger.incidentDateLabel')}
           type="datetime-local"
           value={incidentDate}
           onChange={(e) => setIncidentDate(e.target.value)}
-          helperText="Vid = pa chanje dat la nan baz la."
+          helperText={t('form.danger.incidentDateHelperEdit')}
         />
         <Button
           variant="text"
           onClick={() => setIncidentDate(nowLocalIso())}
           sx={{ height: 42, alignSelf: { xs: 'flex-start', sm: 'flex-end' }, mb: { sm: 3 } }}
         >
-          Kounye a
+          {t('form.danger.now')}
         </Button>
       </Stack>
 
-      <SectionHeader icon={<DescriptionRounded sx={{ fontSize: 16 }} />} title="Sak pase" />
+      <SectionHeader icon={<DescriptionRounded sx={{ fontSize: 16 }} />} title={t('form.danger.section.happened')} />
 
       <Field
-        label="Dekri ensidan an"
+        label={t('form.danger.describeLabel')}
         required
         multiline
         minRows={4}
         maxRows={10}
-        placeholder="Bay detay sou sak pase nan zòn lan…"
+        placeholder={t('form.danger.describePlaceholder')}
         value={rezon}
         onChange={(e) => setRezon(e.target.value)}
         error={!!errors.rezon}
-        helperText={errors.rezon || `${rezon.length} karaktè`}
+        helperText={errors.rezon || t('form.viktim.charsCount', { count: rezon.length })}
       />
 
       <Stack
@@ -425,7 +427,7 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
         alignItems="center"
         sx={{ mt: 3, pt: 2, borderTop: '1px solid rgba(15,23,42,0.06)' }}
       >
-        <Tooltip title="Èd">
+        <Tooltip title={t('form.common.help')}>
           <IconButton size="small" sx={{ color: 'text.disabled' }}>
             <HelpOutlineRounded fontSize="small" />
           </IconButton>
@@ -441,7 +443,7 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
               '&:hover': { borderColor: 'rgba(15,23,42,0.24)', bgcolor: '#f8fafc' },
             }}
           >
-            Anile
+            {t('common.cancel')}
           </Button>
           <Button
             type="submit"
@@ -453,7 +455,7 @@ export default function EditDangerForm({ item, handleClose, onSaved }: Props) {
             }
             sx={{ minWidth: 140 }}
           >
-            {loading ? 'Ankou…' : 'Mete ajou'}
+            {loading ? t('form.viktim.savingEdit') : t('form.danger.submit')}
           </Button>
         </Stack>
       </Stack>

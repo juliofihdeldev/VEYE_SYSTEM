@@ -6,6 +6,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
+import { useTranslation } from "react-i18next";
 import { getSupabase, isSupabaseConfigured } from "../../lib/supabase";
 import SetupSupabaseEnv from "../SetupSupabaseEnv";
 
@@ -14,6 +15,7 @@ import SetupSupabaseEnv from "../SetupSupabaseEnv";
  */
 export default function AuthRecovery() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [password, setPassword] = React.useState("");
   const [confirm, setConfirm] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
@@ -39,11 +41,11 @@ export default function AuthRecovery() {
     if (!isSupabaseConfigured()) return;
     setError(null);
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(t("authRecovery.tooShort"));
       return;
     }
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setError(t("authRecovery.mismatch"));
       return;
     }
     setBusy(true);
@@ -62,7 +64,7 @@ export default function AuthRecovery() {
   if (!ready) {
     return (
       <Box sx={{ p: 4, textAlign: "center" }}>
-        <Typography>Loading…</Typography>
+        <Typography>{t("common.loading")}</Typography>
       </Box>
     );
   }
@@ -76,13 +78,13 @@ export default function AuthRecovery() {
       <Box sx={{ maxWidth: 480, mx: "auto", mt: 6, px: 2 }}>
         <Paper sx={{ p: 3 }}>
           <Typography variant="h6" gutterBottom>
-            Invalid or expired link
+            {t("authRecovery.invalidLinkTitle")}
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 2 }}>
-            Open the reset link from your email again, or request a new one from the sign-in page.
+            {t("authRecovery.invalidLinkBody")}
           </Typography>
           <Button component={Link} to="/" variant="contained">
-            Back to sign in
+            {t("authRecovery.backToSignIn")}
           </Button>
         </Paper>
       </Box>
@@ -93,15 +95,15 @@ export default function AuthRecovery() {
     <Box sx={{ maxWidth: 480, mx: "auto", mt: 6, px: 2 }}>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h5" fontWeight={600} gutterBottom>
-          Set a new password
+          {t("authRecovery.title")}
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          Choose a new password for your dashboard account.
+          {t("authRecovery.subtitle")}
         </Typography>
         <Box component="form" onSubmit={handleSubmit}>
           <Stack spacing={2}>
             <TextField
-              label="New password"
+              label={t("authRecovery.newPassword")}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -110,7 +112,7 @@ export default function AuthRecovery() {
               autoComplete="new-password"
             />
             <TextField
-              label="Confirm password"
+              label={t("authRecovery.confirmPassword")}
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
@@ -125,10 +127,10 @@ export default function AuthRecovery() {
             ) : null}
             <Stack direction="row" spacing={2} justifyContent="flex-end">
               <Button component={Link} to="/" disabled={busy}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="submit" variant="contained" disabled={busy}>
-                {busy ? "Saving…" : "Update password"}
+                {busy ? t("authRecovery.saving") : t("authRecovery.update")}
               </Button>
             </Stack>
           </Stack>

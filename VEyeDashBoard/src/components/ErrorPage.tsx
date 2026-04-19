@@ -24,6 +24,7 @@ import {
   useRouteError,
   Link as RouterLink,
 } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 type ErrorInfo = {
   status: number;
@@ -32,58 +33,61 @@ type ErrorInfo = {
   detail?: string;
 };
 
-function classify(error: unknown): ErrorInfo {
+type TranslateFn = (key: string, opts?: Record<string, unknown>) => string;
+
+function classify(error: unknown, t: TranslateFn): ErrorInfo {
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
       return {
         status: 404,
-        title: 'Paj la pa egziste',
-        subtitle: "Nou pa jwenn paj sa a — petèt li deplase, oswa lyen an pa kòrèk.",
+        title: t('errorPage.notFoundTitle'),
+        subtitle: t('errorPage.notFoundSubtitle'),
         detail: error.statusText,
       };
     }
     if (error.status === 401 || error.status === 403) {
       return {
         status: error.status,
-        title: 'Aksè refize',
-        subtitle: "Ou pa gen pèmisyon pou wè paj sa a. Konekte ankò oswa kontakte yon administratè.",
+        title: t('errorPage.forbiddenTitle'),
+        subtitle: t('errorPage.forbiddenSubtitle'),
         detail: error.statusText,
       };
     }
     return {
       status: error.status,
-      title: `Erè ${error.status}`,
-      subtitle: error.statusText || 'Yon bagay pa mache jan li ta dwe.',
+      title: t('errorPage.genericTitle', { status: error.status }),
+      subtitle: error.statusText || t('errorPage.genericSubtitle'),
     };
   }
 
   if (error instanceof Error) {
     return {
       status: 500,
-      title: 'Yon erè rive',
-      subtitle: 'Aplikasyon an rankontre yon pwoblèm enprevi. Eseye chaje ankò.',
+      title: t('errorPage.unexpectedTitle'),
+      subtitle: t('errorPage.unexpectedSubtitle'),
       detail: error.message,
     };
   }
 
   return {
     status: 500,
-    title: 'Yon erè rive',
-    subtitle: 'Yon bagay pa mache jan li ta dwe. Eseye ankò.',
+    title: t('errorPage.unexpectedTitle'),
+    subtitle: t('errorPage.fallbackSubtitle'),
   };
 }
 
-const quickLinks = [
-  { name: 'Viktim dashboard', desc: 'Live feed of reports', link: '/home', icon: <HomeIcon /> },
-  { name: 'Viktim', desc: 'Lis viktim yo', link: '/viktim', icon: <ErrorOutline /> },
-  { name: 'Zon Danje', desc: 'Live danger zones', link: '/zone-danger', icon: <PlaceOutlined /> },
-  { name: 'Nouvo', desc: 'Latest news feed', link: '/news', icon: <ArticleOutlined /> },
+const quickLinkDefs: { key: string; link: string; icon: React.ReactNode }[] = [
+  { key: 'dashboard', link: '/home', icon: <HomeIcon /> },
+  { key: 'viktim', link: '/viktim', icon: <ErrorOutline /> },
+  { key: 'zoneDanger', link: '/zone-danger', icon: <PlaceOutlined /> },
+  { key: 'news', link: '/news', icon: <ArticleOutlined /> },
 ];
 
 export default function ErrorPage() {
   const error = useRouteError();
   const navigate = useNavigate();
-  const info = React.useMemo(() => classify(error), [error]);
+  const { t } = useTranslation();
+  const info = React.useMemo(() => classify(error, t), [error, t]);
 
   React.useEffect(() => {
     if (error) {
@@ -147,16 +151,16 @@ export default function ErrorPage() {
                 V
               </Avatar>
               <Box>
-                <Typography sx={{ fontWeight: 700, lineHeight: 1.1 }}>VEYe Admin</Typography>
+                <Typography sx={{ fontWeight: 700, lineHeight: 1.1 }}>{t('sidebar.adminTitle')}</Typography>
                 <Typography sx={{ fontSize: 11, color: 'text.secondary', letterSpacing: '0.05em' }}>
-                  OPS · PORT-AU-PRINCE
+                  {t('sidebar.opsLocation')}
                 </Typography>
               </Box>
             </Stack>
 
             <Chip
               size="small"
-              label={isNotFound ? 'PAJ PA JWENN' : 'ERÈ APLIKASYON'}
+              label={isNotFound ? t('errorPage.badgeNotFound') : t('errorPage.badgeError')}
               sx={{
                 bgcolor: isNotFound ? '#fef3c7' : '#fee2e2',
                 color: isNotFound ? '#b45309' : '#b91c1c',
@@ -229,7 +233,7 @@ export default function ErrorPage() {
                 startIcon={<HomeIcon />}
                 onClick={() => navigate('/home')}
               >
-                Retounen Dashboard
+                {t('errorPage.backToDashboard')}
               </Button>
               <Button
                 variant="outlined"
@@ -242,7 +246,7 @@ export default function ErrorPage() {
                   '&:hover': { borderColor: 'rgba(15,23,42,0.24)', bgcolor: '#f8fafc' },
                 }}
               >
-                Paj presedan
+                {t('errorPage.previousPage')}
               </Button>
               <Button
                 variant="text"
@@ -251,7 +255,7 @@ export default function ErrorPage() {
                 onClick={() => window.location.reload()}
                 sx={{ color: 'text.secondary' }}
               >
-                Reload
+                {t('errorPage.reload')}
               </Button>
             </Stack>
           </Box>
@@ -280,14 +284,14 @@ export default function ErrorPage() {
                 variant="overline"
                 sx={{ color: 'rgba(255,255,255,0.6)', letterSpacing: '0.16em', fontWeight: 700 }}
               >
-                Quick navigation
+                {t('errorPage.quickNav')}
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 700, mb: 2.5, mt: 0.5 }}>
-                Kote ou ka ale kounye a
+                {t('errorPage.quickNavTitle')}
               </Typography>
 
               <Stack spacing={1.25}>
-                {quickLinks.map((q) => (
+                {quickLinkDefs.map((q) => (
                   <Paper
                     key={q.link}
                     component={RouterLink}
@@ -327,10 +331,10 @@ export default function ErrorPage() {
                     </Box>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>
-                        {q.name}
+                        {t(`errorPage.links.${q.key}`)}
                       </Typography>
                       <Typography sx={{ fontSize: 12, color: 'rgba(226,232,240,0.7)' }}>
-                        {q.desc}
+                        {t(`errorPage.links.${q.key}Desc`)}
                       </Typography>
                     </Box>
                     <ArrowForward sx={{ fontSize: 18, color: 'rgba(255,255,255,0.5)' }} />
@@ -347,7 +351,7 @@ export default function ErrorPage() {
                   color: 'rgba(226,232,240,0.6)',
                 }}
               >
-                Bezwen èd? Kontakte ekip sipò a — <strong style={{ color: '#5eead4' }}>support@veye.ht</strong>
+                {t('errorPage.supportPrefix')}<strong style={{ color: '#5eead4' }}>support@veye.ht</strong>
               </Box>
             </Box>
           </Box>

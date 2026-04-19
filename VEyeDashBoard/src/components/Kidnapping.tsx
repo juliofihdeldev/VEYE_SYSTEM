@@ -12,31 +12,17 @@ import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import { handleGetKidnapping } from '../api';
 import moment from 'moment';
-moment.locale('fr');
+import { useTranslation } from 'react-i18next';
 
-
-const columns = [
-  { id: 'zone', label: 'Zone', minWidth: 170 },
-  {
-    id: 'address',
-    label: 'Address',
-    minWidth: 70,
-    align: 'left',
-    format: (value: number) => value.toLocaleString('en-US'),
-  },
-  { id: 'enfomasyon', label: 'Enfomasyon', minWidth: 200 },
-
-  {
-    id: 'date',
-    label: 'Date',
-    minWidth: 70,
-    align: 'left',
-    format: (value: number) => value.toFixed(2),
-  },
-  
+const COLUMN_DEFS: { id: string; minWidth: number; align?: 'left' | 'right' | 'center' }[] = [
+  { id: 'zone', minWidth: 170 },
+  { id: 'address', minWidth: 70, align: 'left' },
+  { id: 'info', minWidth: 200 },
+  { id: 'date', minWidth: 70, align: 'left' },
 ];
 
 export default function Kidnapping() {
+  const { t } = useTranslation();
   const [data, setData] = React.useState<any[]>([]);
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
@@ -64,20 +50,20 @@ export default function Kidnapping() {
       <Box sx={{ width: '100%' }}>
         <Stack direction="row" spacing={2} mb={3} justifyContent="space-between">
           <Typography variant="h5" component="h2" fontWeight={600}>
-            Signal kidnaping
+            {t('kidnapping.title')}
           </Typography>
         </Stack>
       <TableContainer sx={{ width: '100%', minHeight: 400, borderRadius: 2, overflow: 'hidden' }}>
         <Table stickyHeader aria-label="sticky table">
           <TableHead>
             <TableRow>
-              {columns.map((column:any) => (
+              {COLUMN_DEFS.map((column) => (
                 <TableCell
-                  key={column?.id}
-                  align={column?.align}
+                  key={column.id}
+                  align={column.align}
                   style={{ minWidth: column.minWidth }}
                 >
-                  {column.label}
+                  {t(`kidnapping.columns.${column.id}`)}
                 </TableCell>
               ))}
             </TableRow>

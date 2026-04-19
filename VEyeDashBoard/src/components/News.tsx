@@ -20,33 +20,20 @@ import { handleGetNews, handleDeletedNews } from '../api';
 import { Delete } from '@mui/icons-material';
 import ConfirmDialog from './ConfirmDialog';
 import moment from 'moment';
+import { useTranslation } from 'react-i18next';
 import NewsForm from '../form/NewsForm';
-moment.locale('fr');
 
-const columns= [
-
-  { id: '', label: '', minWidth: 170 },
-  { id: 'source', label: 'Source', minWidth: 170 },
-  { id: 'title', label: 'Title', minWidth: 170 },
-  {
-    id: 'summary',
-    label: 'Summary',
-    minWidth: 170,
-    align: 'left',
-    format: (value: number) => value.toLocaleString('en-US'),
-  },
-  { id: 'url', label: 'url', minWidth: 200 },
-  {
-    id: 'date',
-    label: 'Date',
-    minWidth: 70,
-    align: 'left',
-    format: (value: number) => value.toFixed(2),
-  },
-  
+const COLUMN_DEFS: { id: string; align?: 'left' | 'right' | 'center'; minWidth: number }[] = [
+  { id: 'image', minWidth: 170 },
+  { id: 'source', minWidth: 170 },
+  { id: 'title', minWidth: 170 },
+  { id: 'summary', minWidth: 170, align: 'left' },
+  { id: 'url', minWidth: 200 },
+  { id: 'date', minWidth: 70, align: 'left' },
 ];
 
 export default function News() {
+  const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
   const [data, setData] = React.useState<any[]>([]);
   const [page, setPage] = React.useState(0);
@@ -103,7 +90,7 @@ export default function News() {
           alignItems={{ xs: 'stretch', sm: 'center' }}
         >
           <Typography variant="h5" component="h2" fontWeight={600}>
-            News
+            {t('news.title')}
           </Typography>
           <Button
             variant="contained"
@@ -111,11 +98,11 @@ export default function News() {
             onClick={handleOpen}
             sx={{ borderRadius: 2, alignSelf: { xs: 'stretch', sm: 'center' } }}
           >
-            Ajoute News
+            {t('news.addNews')}
           </Button>
         </Stack>
     
-      <ModalComponent handleClose={handleClose} open={open} title="Ajoute yon nouvèl">
+      <ModalComponent handleClose={handleClose} open={open} title={t('news.addModalTitle')}>
         <NewsForm handleClose={handleClose}/>
       </ModalComponent>
 
@@ -123,13 +110,13 @@ export default function News() {
         <Table stickyHeader aria-label="sticky table">
           <TableHead>
             <TableRow>
-              {columns.map((column) => (
+              {COLUMN_DEFS.map((column) => (
                 <TableCell
-                  key={column?.id}
-                  align={(column.align as "left" | "right" | "center") ?? "left"}
+                  key={column.id}
+                  align={column.align ?? "left"}
                   style={{ minWidth: column.minWidth }}
                 >
-                  {column.label}
+                  {t(`news.columns.${column.id}`)}
                 </TableCell>
               ))}
             </TableRow>
@@ -188,9 +175,9 @@ export default function News() {
 
       <ConfirmDialog
         open={deleteConfirm.open}
-        title="Efase news"
-        message="Ou sèten ou vle efase news sa a? Aksyon sa a pa ka defèt."
-        confirmLabel="Efase"
+        title={t('news.deleteTitle')}
+        message={t('news.deleteMessage')}
+        confirmLabel={t('common.delete')}
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
       />

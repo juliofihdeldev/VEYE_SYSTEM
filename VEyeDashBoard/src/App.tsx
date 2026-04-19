@@ -47,8 +47,10 @@ import ClickAwayListener from '@mui/material/ClickAwayListener';
 import LinearProgress from '@mui/material/LinearProgress';
 import Paper from '@mui/material/Paper';
 import CircularProgress from '@mui/material/CircularProgress';
+import { useTranslation } from 'react-i18next';
 import { getSupabase } from './lib/supabase';
 import { useCurrentUser } from './auth/useCurrentUser';
+import i18n, { LANGUAGE_LABEL, nextLanguage, type AppLanguage } from './i18n';
 import { searchGlobal, type GlobalSearchHit, type GlobalSearchKind } from './api';
 
 const drawerWidth = 248;
@@ -128,7 +130,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 );
 
 type NavItem = {
-  name: string;
+  /** i18n key resolved from `nav.items.*`. */
+  key: string;
   icon: React.ReactNode;
   link: string;
   badge?: number;
@@ -136,42 +139,43 @@ type NavItem = {
 };
 
 type NavSection = {
-  title: string;
+  /** i18n key resolved from `nav.*`. */
+  key: string;
   items: NavItem[];
 };
 
 const sections: NavSection[] = [
   {
-    title: 'Operations',
+    key: 'operations',
     items: [
-      { name: 'Dashboard', icon: <DashboardOutlined />, link: '/home' },
-      { name: 'Viktim', icon: <ErrorOutline />, link: '/viktim', badge: 142, badgeColor: 'error' },
-      { name: 'Incidents', icon: <ReportProblemOutlined />, link: '/stat-incident', badge: 28, badgeColor: 'warning' },
-      { name: 'Zon Danje', icon: <PlaceOutlined />, link: '/zone-danger' },
-      { name: 'Nouvo', icon: <ArticleOutlined />, link: '/news' },
+      { key: 'dashboard', icon: <DashboardOutlined />, link: '/home' },
+      { key: 'viktim', icon: <ErrorOutline />, link: '/viktim', badge: 142, badgeColor: 'error' },
+      { key: 'incidents', icon: <ReportProblemOutlined />, link: '/stat-incident', badge: 28, badgeColor: 'warning' },
+      { key: 'zoneDanger', icon: <PlaceOutlined />, link: '/zone-danger' },
+      { key: 'news', icon: <ArticleOutlined />, link: '/news' },
     ],
   },
   {
-    title: 'Community',
+    key: 'community',
     items: [
-      { name: 'Itilizatè', icon: <GroupsOutlined />, link: '/users' },
-      { name: 'Moderasyon', icon: <GavelOutlined />, link: '/moderation' },
-      { name: 'Rapò', icon: <AssessmentOutlined />, link: '/reports' },
+      { key: 'users', icon: <GroupsOutlined />, link: '/users' },
+      { key: 'moderation', icon: <GavelOutlined />, link: '/moderation' },
+      { key: 'reports', icon: <AssessmentOutlined />, link: '/reports' },
     ],
   },
   {
-    title: 'System',
+    key: 'system',
     items: [
-      { name: 'Sync Supabase', icon: <CloudSyncOutlined />, link: '/sync' },
-      { name: 'Paramèt', icon: <SettingsOutlined />, link: '/settings' },
+      { key: 'sync', icon: <CloudSyncOutlined />, link: '/sync' },
+      { key: 'settings', icon: <SettingsOutlined />, link: '/settings' },
     ],
   },
 ];
 
 const legacyExtras: NavItem[] = [
-  { name: 'Kidnapping', icon: <RawOffTwoTone />, link: '/kidnapping' },
-  { name: 'Maps', icon: <MapIcon />, link: '/maps' },
-  { name: 'Telegram', icon: <CloudSyncOutlined />, link: '/telegram' },
+  { key: 'kidnapping', icon: <RawOffTwoTone />, link: '/kidnapping' },
+  { key: 'maps', icon: <MapIcon />, link: '/maps' },
+  { key: 'telegram', icon: <CloudSyncOutlined />, link: '/telegram' },
 ];
 
 export interface PropsChildren {
@@ -182,37 +186,38 @@ export interface PropsChildren {
 // Global search — display config per result kind.
 // `route` is where we navigate when the user clicks/Enters a result; for now
 // each kind goes to its list page. Per-row deep links can be added later.
+// `labelKey` resolves to `topbar.kinds.*` at render time.
 // ---------------------------------------------------------------------------
 const kindConfig: Record<
   GlobalSearchKind,
-  { label: string; icon: React.ReactNode; route: string; color: string }
+  { labelKey: string; icon: React.ReactNode; route: string; color: string }
 > = {
   viktim: {
-    label: 'Viktim',
+    labelKey: 'viktim',
     icon: <ErrorOutline sx={{ fontSize: 18 }} />,
     route: '/viktim',
     color: '#ef4444',
   },
   zone_danger: {
-    label: 'Zòn Danje',
+    labelKey: 'zoneDanger',
     icon: <PlaceOutlined sx={{ fontSize: 18 }} />,
     route: '/zone-danger',
     color: '#f59e0b',
   },
   news: {
-    label: 'Nouvo',
+    labelKey: 'news',
     icon: <ArticleOutlined sx={{ fontSize: 18 }} />,
     route: '/news',
     color: '#0ea5e9',
   },
   kidnaping_alert: {
-    label: 'Kidnap',
+    labelKey: 'kidnaping',
     icon: <RawOffTwoTone sx={{ fontSize: 18 }} />,
     route: '/kidnapping',
     color: '#7c3aed',
   },
   moderation_queue: {
-    label: 'Moderasyon',
+    labelKey: 'moderation',
     icon: <GavelOutlined sx={{ fontSize: 18 }} />,
     route: '/moderation',
     color: '#0f766e',
@@ -237,7 +242,7 @@ type PageHit = {
 };
 
 type FlatHit =
-  | (PageHit & { sectionLabel: 'Paj' })
+  | (PageHit & { sectionLabel: string })
   | (GlobalSearchHit & { sectionLabel: string });
 
 // Wrap matched substring in <mark> for inline highlight. Case-insensitive,
@@ -270,8 +275,12 @@ function highlight(text: string, query: string): React.ReactNode {
 
 export default function App({ children }: PropsChildren) {
   const theme = useTheme();
+  const { t, i18n: i18nInstance } = useTranslation();
   const [open, setOpen] = React.useState(true);
-  const [lang, setLang] = React.useState<'FR' | 'KR' | 'EN'>('FR');
+  const currentLangBase = (i18nInstance.language || 'fr')
+    .split('-')[0]
+    .toLowerCase() as AppLanguage;
+  const langLabel = LANGUAGE_LABEL[currentLangBase] ?? LANGUAGE_LABEL.fr;
   const navigate = useNavigate();
   const location = useLocation();
   const { displayName, email, roleLabel, initials } = useCurrentUser();
@@ -300,8 +309,8 @@ export default function App({ children }: PropsChildren) {
         pages.push({
           kind: 'page',
           id: it.link,
-          title: it.name,
-          subtitle: sec.title,
+          title: t(`nav.items.${it.key}`),
+          subtitle: t(`nav.${sec.key}`),
           route: it.link,
           icon: it.icon,
         });
@@ -311,14 +320,14 @@ export default function App({ children }: PropsChildren) {
       pages.push({
         kind: 'page',
         id: it.link,
-        title: it.name,
-        subtitle: 'More tools',
+        title: t(`nav.items.${it.key}`),
+        subtitle: t('nav.moreTools'),
         route: it.link,
         icon: it.icon,
       });
     });
     return pages;
-  }, []);
+  }, [t]);
 
   const matchedPages = React.useMemo<PageHit[]>(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -381,14 +390,16 @@ export default function App({ children }: PropsChildren) {
   // Build the flat, keyboard-navigable list. Pages first, then DB hits grouped
   // by kind in the configured display order.
   const flatHits = React.useMemo<FlatHit[]>(() => {
+    const pageLabel = t('topbar.kinds.page');
     const out: FlatHit[] = [];
-    matchedPages.forEach((p) => out.push({ ...p, sectionLabel: 'Paj' }));
+    matchedPages.forEach((p) => out.push({ ...p, sectionLabel: pageLabel }));
     kindOrder.forEach((kind) => {
       const group = searchHits.filter((h) => h.kind === kind);
-      group.forEach((h) => out.push({ ...h, sectionLabel: kindConfig[kind].label }));
+      const label = t(`topbar.kinds.${kindConfig[kind].labelKey}`);
+      group.forEach((h) => out.push({ ...h, sectionLabel: label }));
     });
     return out;
-  }, [matchedPages, searchHits]);
+  }, [matchedPages, searchHits, t]);
 
   React.useEffect(() => {
     setActiveIdx(0);
@@ -436,7 +447,7 @@ export default function App({ children }: PropsChildren) {
   };
 
   const cycleLang = () => {
-    setLang((l) => (l === 'FR' ? 'KR' : l === 'KR' ? 'EN' : 'FR'));
+    void i18n.changeLanguage(nextLanguage(i18nInstance.language));
   };
 
   const isActiveLink = (link: string) => {
@@ -465,10 +476,10 @@ export default function App({ children }: PropsChildren) {
               variant="overline"
               sx={{ color: 'rgba(255,255,255,0.85)', letterSpacing: '0.12em', fontWeight: 700 }}
             >
-              OPERATIONS
+              {t('topbar.operations')}
             </Typography>
             <Typography variant="h6" sx={{ fontWeight: 700, ml: 1 }}>
-              Viktim dashboard
+              {t('topbar.viktimDashboard')}
             </Typography>
           </Stack>
 
@@ -500,9 +511,9 @@ export default function App({ children }: PropsChildren) {
                   if (searchQuery.trim().length >= 2) setSearchOpen(true);
                 }}
                 onKeyDown={handleSearchKeyDown}
-                placeholder="Chache non, zòn, enfòmasyon, tip…  (⌘K)"
+                placeholder={t('topbar.searchPlaceholder')}
                 inputProps={{
-                  'aria-label': 'Global search',
+                  'aria-label': t('topbar.searchAria'),
                   autoComplete: 'off',
                   spellCheck: false,
                 }}
@@ -526,7 +537,7 @@ export default function App({ children }: PropsChildren) {
                     searchInputRef.current?.focus();
                   }}
                   sx={{ color: 'rgba(255,255,255,0.85)', p: 0.25 }}
-                  aria-label="Clear search"
+                  aria-label={t('topbar.searchClearAria')}
                 >
                   <ChevronRightIcon sx={{ transform: 'rotate(45deg)', fontSize: 18 }} />
                 </IconButton>
@@ -555,13 +566,13 @@ export default function App({ children }: PropsChildren) {
                     {showEmpty ? (
                       <Box sx={{ px: 2.5, py: 3, textAlign: 'center' }}>
                         <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                          Pa gen rezilta pou{' '}
+                          {t('topbar.noResults')}{' '}
                           <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
                             "{searchQuery}"
                           </Typography>
                         </Typography>
                         <Typography sx={{ fontSize: 11, color: 'text.disabled', mt: 0.5 }}>
-                          Eseye yon mo diferan oswa yon non lokal.
+                          {t('topbar.noResultsHint')}
                         </Typography>
                       </Box>
                     ) : (
@@ -706,12 +717,12 @@ export default function App({ children }: PropsChildren) {
                     }}
                   >
                     <Typography sx={{ fontSize: 10, color: 'text.disabled' }}>
-                      ↑↓ navige · ↵ ouvri · esc fèmen
+                      {t('topbar.footerHelp')}
                     </Typography>
                     <Typography sx={{ fontSize: 10, color: 'text.disabled' }}>
                       {searchLoading
-                        ? 'Ap chache…'
-                        : `${flatHits.length} rezilta`}
+                        ? t('topbar.footerSearching')
+                        : t('topbar.footerCount', { count: flatHits.length })}
                     </Typography>
                   </Box>
                 </Paper>
@@ -720,7 +731,7 @@ export default function App({ children }: PropsChildren) {
           </ClickAwayListener>
 
           <Stack direction="row" alignItems="center" spacing={1}>
-            <Tooltip title="Notifications">
+            <Tooltip title={t('topbar.notifications')}>
               <IconButton
                 color="inherit"
                 sx={{ bgcolor: 'rgba(255,255,255,0.15)', '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' } }}
@@ -730,7 +741,7 @@ export default function App({ children }: PropsChildren) {
                 </Badge>
               </IconButton>
             </Tooltip>
-            <Tooltip title="Aide">
+            <Tooltip title={t('topbar.help')}>
               <IconButton
                 color="inherit"
                 sx={{ bgcolor: 'rgba(255,255,255,0.15)', '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' } }}
@@ -738,7 +749,7 @@ export default function App({ children }: PropsChildren) {
                 <HelpOutlineIcon />
               </IconButton>
             </Tooltip>
-            <Tooltip title={`Lang: ${lang}`}>
+            <Tooltip title={t('topbar.languageTooltip', { lang: langLabel })}>
               <Button
                 onClick={cycleLang}
                 startIcon={<LanguageIcon />}
@@ -750,7 +761,7 @@ export default function App({ children }: PropsChildren) {
                   '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
                 }}
               >
-                {lang}
+                {langLabel}
               </Button>
             </Tooltip>
           </Stack>
@@ -774,9 +785,9 @@ export default function App({ children }: PropsChildren) {
                 V
               </Avatar>
               <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ fontWeight: 700, lineHeight: 1.1 }}>VEYe Admin</Typography>
+                <Typography sx={{ fontWeight: 700, lineHeight: 1.1 }}>{t('sidebar.adminTitle')}</Typography>
                 <Typography sx={{ fontSize: 11, color: 'text.secondary', letterSpacing: '0.05em' }}>
-                  OPS · PORT-AU-PRINCE
+                  {t('sidebar.opsLocation')}
                 </Typography>
               </Box>
             </Stack>
@@ -798,7 +809,7 @@ export default function App({ children }: PropsChildren) {
 
         <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', py: 1 }}>
           {sections.map((section, idx) => (
-            <Box key={section.title} sx={{ mb: 1 }}>
+            <Box key={section.key} sx={{ mb: 1 }}>
               {open && (
                 <Typography
                   variant="caption"
@@ -813,7 +824,7 @@ export default function App({ children }: PropsChildren) {
                     fontSize: 10,
                   }}
                 >
-                  {section.title}
+                  {t(`nav.${section.key}`)}
                 </Typography>
               )}
               <List sx={{ py: 0 }}>
@@ -847,7 +858,7 @@ export default function App({ children }: PropsChildren) {
                           {item.icon}
                         </ListItemIcon>
                         <ListItemText
-                          primary={item.name}
+                          primary={t(`nav.items.${item.key}`)}
                           primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }}
                           sx={{ opacity: open ? 1 : 0 }}
                         />
@@ -902,7 +913,7 @@ export default function App({ children }: PropsChildren) {
                   fontSize: 10,
                 }}
               >
-                More tools
+                {t('nav.moreTools')}
               </Typography>
               <List sx={{ py: 0 }}>
                 {legacyExtras.map((item) => {
@@ -927,7 +938,7 @@ export default function App({ children }: PropsChildren) {
                           {item.icon}
                         </ListItemIcon>
                         <ListItemText
-                          primary={item.name}
+                          primary={t(`nav.items.${item.key}`)}
                           primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }}
                         />
                       </ListItemButton>
@@ -956,7 +967,7 @@ export default function App({ children }: PropsChildren) {
                   {email || roleLabel}
                 </Typography>
               </Box>
-              <Tooltip title="Dekonekte">
+              <Tooltip title={t('sidebar.logout')}>
                 <IconButton size="small" onClick={fnLogout}>
                   <ExitToApp fontSize="small" />
                 </IconButton>

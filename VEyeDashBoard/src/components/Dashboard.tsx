@@ -31,6 +31,7 @@ import {
   RemoveRedEyeOutlined as EyeIcon,
   ReportGmailerrorred as ReportIcon,
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 type SeverityKey =
   | 'KIDNAPPING'
@@ -39,6 +40,8 @@ type SeverityKey =
   | 'RELEASED'
   | 'SHOOTING'
   | 'SUSPICIOUS';
+
+type StatusKey = 'pendingReview' | 'verifiedSources' | 'verifiedLive' | 'resolved' | 'awaitingVerify';
 
 type ReportRow = {
   id: string;
@@ -51,7 +54,7 @@ type ReportRow = {
   location: string;
   locationDetail?: string;
   time: string;
-  status: string;
+  statusKey: StatusKey;
   statusTone: 'pending' | 'verified' | 'resolved' | 'awaiting';
 };
 
@@ -59,21 +62,22 @@ type ActivityItem = {
   id: string;
   icon: React.ReactNode;
   iconBg: string;
-  title: string;
-  detail: string;
+  /** Translation key under `dashboard.activity.*` for the title (suffix `Title`). */
+  i18nKey: string;
   time: string;
 };
 
+/** Severity → chip palette + i18n key under `dashboard.severityChips.*`. */
 const severityStyles: Record<
   SeverityKey,
-  { bg: string; color: string; label: string }
+  { bg: string; color: string; i18nKey: string }
 > = {
-  KIDNAPPING: { bg: '#fee2e2', color: '#b91c1c', label: 'KIDNAPPING' },
-  MISSING: { bg: '#fef3c7', color: '#b45309', label: 'MISSING' },
-  'DANGER ZONE': { bg: '#ffedd5', color: '#c2410c', label: 'DANGER ZONE' },
-  RELEASED: { bg: '#dcfce7', color: '#15803d', label: 'RELEASED' },
-  SHOOTING: { bg: '#fee2e2', color: '#b91c1c', label: 'SHOOTING' },
-  SUSPICIOUS: { bg: '#fef3c7', color: '#b45309', label: 'SUSPICIOUS' },
+  KIDNAPPING: { bg: '#fee2e2', color: '#b91c1c', i18nKey: 'kidnapping' },
+  MISSING: { bg: '#fef3c7', color: '#b45309', i18nKey: 'missing' },
+  'DANGER ZONE': { bg: '#ffedd5', color: '#c2410c', i18nKey: 'dangerZone' },
+  RELEASED: { bg: '#dcfce7', color: '#15803d', i18nKey: 'released' },
+  SHOOTING: { bg: '#fee2e2', color: '#b91c1c', i18nKey: 'shooting' },
+  SUSPICIOUS: { bg: '#fef3c7', color: '#b45309', i18nKey: 'suspicious' },
 };
 
 const statusStyles: Record<
@@ -97,7 +101,7 @@ const reports: ReportRow[] = [
     location: 'Route de Kenscoff',
     locationDetail: 'Pétion-Ville · near Eko station',
     time: '14 min ago',
-    status: 'Pending review',
+    statusKey: 'pendingReview',
     statusTone: 'pending',
   },
   {
@@ -111,7 +115,7 @@ const reports: ReportRow[] = [
     location: 'Lycée Firmin',
     locationDetail: 'Delmas 75 · 14 y/o, blue uniform',
     time: '2 h ago',
-    status: 'Verified · 3 sources',
+    statusKey: 'verifiedSources',
     statusTone: 'verified',
   },
   {
@@ -124,7 +128,7 @@ const reports: ReportRow[] = [
     location: 'Route Nationale 1',
     locationDetail: 'Tabarre roadblocks active',
     time: '1 h ago',
-    status: 'Verified · live',
+    statusKey: 'verifiedLive',
     statusTone: 'verified',
   },
   {
@@ -137,7 +141,7 @@ const reports: ReportRow[] = [
     location: 'Marie Jean-Louis',
     locationDetail: 'Croix-des-Bouquets · reunited',
     time: '35 min ago',
-    status: 'Resolved',
+    statusKey: 'resolved',
     statusTone: 'resolved',
   },
   {
@@ -151,7 +155,7 @@ const reports: ReportRow[] = [
     location: 'Bel-Air',
     locationDetail: "Rue de l'Enterrement",
     time: '6 min ago',
-    status: 'Awaiting verify',
+    statusKey: 'awaitingVerify',
     statusTone: 'awaiting',
   },
   {
@@ -164,25 +168,25 @@ const reports: ReportRow[] = [
     location: 'Marché en Fer',
     locationDetail: 'Port-au-Prince centre',
     time: '28 min ago',
-    status: 'Pending review',
+    statusKey: 'pendingReview',
     statusTone: 'pending',
   },
 ];
 
-const filters = [
-  { key: 'all', label: 'All', count: 142, active: true },
-  { key: 'kidnapping', label: 'Kidnapping', count: 23, active: false },
-  { key: 'missing', label: 'Missing', count: 67, active: false },
-  { key: 'danger', label: 'Danger', count: 14, active: false },
-  { key: 'released', label: 'Released', count: 38, active: false },
+const filterDefs: { key: string; count: number }[] = [
+  { key: 'all', count: 142 },
+  { key: 'kidnapping', count: 23 },
+  { key: 'missing', count: 67 },
+  { key: 'danger', count: 14 },
+  { key: 'released', count: 38 },
 ];
 
-const severityBars = [
-  { label: 'Kidnapping', value: 72, color: '#ef4444' },
-  { label: 'Dangerzone', value: 48, color: '#f59e0b' },
-  { label: 'Missing', value: 60, color: '#facc15' },
-  { label: 'Released', value: 38, color: '#10b981' },
-  { label: 'Alerts', value: 22, color: '#3b82f6' },
+const severityBars: { i18nKey: string; value: number; color: string }[] = [
+  { i18nKey: 'kidnapping', value: 72, color: '#ef4444' },
+  { i18nKey: 'dangerzone', value: 48, color: '#f59e0b' },
+  { i18nKey: 'missing', value: 60, color: '#facc15' },
+  { i18nKey: 'released', value: 38, color: '#10b981' },
+  { i18nKey: 'alerts', value: 22, color: '#3b82f6' },
 ];
 
 const activity: ActivityItem[] = [
@@ -190,32 +194,28 @@ const activity: ActivityItem[] = [
     id: 'a1',
     icon: <ReportIcon sx={{ fontSize: 18 }} />,
     iconBg: '#fee2e2',
-    title: 'New kidnapping report',
-    detail: 'Route de Kenscoff · 2 km · verified by Marie L.',
+    i18nKey: 'newKidnapping',
     time: '14 min ago',
   },
   {
     id: 'a2',
     icon: <CheckCircleOutlineIcon sx={{ fontSize: 18 }} />,
     iconBg: '#dcfce7',
-    title: 'Marie Jean-Louis released',
-    detail: 'Resolved · reunited with family',
+    i18nKey: 'released',
     time: '35 min ago',
   },
   {
     id: 'a3',
     icon: <VerifiedIcon sx={{ fontSize: 18 }} />,
     iconBg: '#e0f2fe',
-    title: 'Kenley R. verified report #2814',
-    detail: '3 community sources confirmed',
+    i18nKey: 'verified',
     time: '42 min ago',
   },
   {
     id: 'a4',
     icon: <FilterListIcon sx={{ fontSize: 18 }} />,
     iconBg: '#fef3c7',
-    title: 'Post flagged for moderation',
-    detail: 'Itilizatè: @anon · reason: misinformation',
+    i18nKey: 'flagged',
     time: '1 h ago',
   },
 ];
@@ -352,10 +352,11 @@ function KpiCard({
 }
 
 function SeverityChip({ severity }: { severity: SeverityKey }) {
+  const { t } = useTranslation();
   const s = severityStyles[severity];
   return (
     <Chip
-      label={`● ${s.label}`}
+      label={`● ${t(`dashboard.severityChips.${s.i18nKey}`)}`}
       size="small"
       sx={{
         bgcolor: s.bg,
@@ -371,10 +372,11 @@ function SeverityChip({ severity }: { severity: SeverityKey }) {
 }
 
 function StatusChip({ row }: { row: ReportRow }) {
+  const { t } = useTranslation();
   const s = statusStyles[row.statusTone];
   return (
     <Chip
-      label={row.status}
+      label={t(`dashboard.statuses.${row.statusKey}`)}
       size="small"
       sx={{
         bgcolor: s.bg,
@@ -389,6 +391,7 @@ function StatusChip({ row }: { row: ReportRow }) {
 
 export default function Dashboard() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [activeFilter, setActiveFilter] = React.useState('all');
   const [updatedAgo, setUpdatedAgo] = React.useState(14);
 
@@ -407,7 +410,7 @@ export default function Dashboard() {
       >
         <Box>
           <Typography variant="h2" sx={{ fontSize: '1.75rem', fontWeight: 700 }}>
-            Viktim dashboard
+            {t('dashboard.title')}
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
             <Box
@@ -420,7 +423,7 @@ export default function Dashboard() {
               }}
             />
             <Typography variant="body2" color="text.secondary">
-              Live feed of reports across Haiti · last updated {updatedAgo} seconds ago
+              {t('dashboard.liveSubtitle', { seconds: updatedAgo })}
             </Typography>
           </Stack>
         </Box>
@@ -435,7 +438,7 @@ export default function Dashboard() {
               '&:hover': { bgcolor: '#f8fafc', borderColor: 'rgba(15,23,42,0.2)' },
             }}
           >
-            Export CSV
+            {t('dashboard.exportCsv')}
           </Button>
           <Button
             variant="outlined"
@@ -447,10 +450,10 @@ export default function Dashboard() {
               '&:hover': { bgcolor: '#f8fafc', borderColor: 'rgba(15,23,42,0.2)' },
             }}
           >
-            Filters
+            {t('dashboard.filters')}
           </Button>
           <Button variant="contained" color="primary" startIcon={<AddIcon />}>
-            Ajoute viktim
+            {t('dashboard.addViktim')}
           </Button>
         </Stack>
       </Stack>
@@ -467,9 +470,9 @@ export default function Dashboard() {
         }}
       >
         <KpiCard
-          label="Active kidnappings"
+          label={t('dashboard.kpi.activeKidnappings')}
           value={23}
-          delta="↑ +4 today"
+          delta={t('dashboard.kpi.activeKidnappingsDelta')}
           deltaColor="#ef4444"
           icon={<CloseIcon sx={{ fontSize: 18 }} />}
           iconBg="#ef4444"
@@ -479,9 +482,9 @@ export default function Dashboard() {
           trend="up"
         />
         <KpiCard
-          label="Missing persons"
+          label={t('dashboard.kpi.missingPersons')}
           value={67}
-          delta="↑ +2 today"
+          delta={t('dashboard.kpi.missingPersonsDelta')}
           deltaColor="#f59e0b"
           icon={<GroupIcon sx={{ fontSize: 18 }} />}
           iconBg="#f59e0b"
@@ -491,9 +494,9 @@ export default function Dashboard() {
           trend="up"
         />
         <KpiCard
-          label="Released · this week"
+          label={t('dashboard.kpi.releasedThisWeek')}
           value={38}
-          delta="↑ +12% vs last wk"
+          delta={t('dashboard.kpi.releasedThisWeekDelta')}
           deltaColor="#10b981"
           icon={<CheckCircleOutlineIcon sx={{ fontSize: 18 }} />}
           iconBg="#10b981"
@@ -503,9 +506,9 @@ export default function Dashboard() {
           trend="up"
         />
         <KpiCard
-          label="Danger zones live"
+          label={t('dashboard.kpi.dangerZonesLive')}
           value={14}
-          delta="↓ -3 vs 24 h"
+          delta={t('dashboard.kpi.dangerZonesLiveDelta')}
           deltaColor="#ef4444"
           icon={<LocationOnIcon sx={{ fontSize: 18 }} />}
           iconBg="#fb923c"
@@ -532,15 +535,15 @@ export default function Dashboard() {
             sx={{ mb: 2 }}
           >
             <Typography variant="h5" sx={{ fontWeight: 700 }}>
-              Recent reports
+              {t('dashboard.recentReports')}
             </Typography>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {filters.map((f) => {
+              {filterDefs.map((f) => {
                 const isActive = activeFilter === f.key;
                 return (
                   <Chip
                     key={f.key}
-                    label={`${f.label} · ${f.count}`}
+                    label={`${t(`dashboard.filterChips.${f.key}`)} · ${f.count}`}
                     size="small"
                     onClick={() => setActiveFilter(f.key)}
                     sx={{
@@ -563,9 +566,16 @@ export default function Dashboard() {
             <Table size="small" sx={{ minWidth: 720 }}>
               <TableHead>
                 <TableRow>
-                  {['Reporter', 'Severity', 'Location', 'Time', 'Status', ''].map((h) => (
+                  {[
+                    t('dashboard.table.reporter'),
+                    t('dashboard.table.severity'),
+                    t('dashboard.table.location'),
+                    t('dashboard.table.time'),
+                    t('dashboard.table.status'),
+                    '',
+                  ].map((h, i) => (
                     <TableCell
-                      key={h}
+                      key={`${i}-${h}`}
                       sx={{
                         textTransform: 'uppercase',
                         fontSize: 11,
@@ -664,20 +674,20 @@ export default function Dashboard() {
         <Stack spacing={2}>
           <Paper sx={{ p: 2.5 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-              By severity ·{' '}
+              {t('dashboard.bySeverity')} ·{' '}
               <Typography
                 component="span"
                 sx={{ color: 'text.secondary', fontWeight: 500, fontSize: 14 }}
               >
-                24 h
+                {t('dashboard.window24h')}
               </Typography>
             </Typography>
             <Stack spacing={1.5}>
               {severityBars.map((b) => (
-                <Box key={b.label}>
+                <Box key={b.i18nKey}>
                   <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
                     <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                      {b.label}
+                      {t(`dashboard.barLabels.${b.i18nKey}`)}
                     </Typography>
                     <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{b.value}</Typography>
                   </Stack>
@@ -708,10 +718,10 @@ export default function Dashboard() {
           <Paper sx={{ p: 2.5 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 1.5 }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Live activity
+                {t('dashboard.liveActivity')}
               </Typography>
               <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-                Auto-refresh · 30 s
+                {t('dashboard.autoRefresh')}
               </Typography>
             </Stack>
             <Stack divider={<Divider flexItem />} spacing={0}>
@@ -739,9 +749,11 @@ export default function Dashboard() {
                     {a.icon}
                   </Box>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{a.title}</Typography>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
+                      {t(`dashboard.activity.${a.i18nKey}Title`)}
+                    </Typography>
                     <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-                      {a.detail}
+                      {t(`dashboard.activity.${a.i18nKey}Detail`)}
                     </Typography>
                     <Typography sx={{ fontSize: 11, color: 'text.disabled', mt: 0.25 }}>
                       {a.time}

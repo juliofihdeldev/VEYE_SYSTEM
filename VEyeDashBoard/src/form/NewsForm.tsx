@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { handleSendNews } from '../api';
 import { Field, FieldLabel } from './Field';
+import { useTranslation } from 'react-i18next';
 
 const SOURCES = [
   { value: 'Ayibopost', color: '#0d9488', bg: '#ccfbf1' },
@@ -70,6 +71,7 @@ function SectionHeader({
 }
 
 export default function NewsForm({ handleClose }: { handleClose: () => void }) {
+  const { t } = useTranslation();
   const [source, setSource] = React.useState('');
   const [customSource, setCustomSource] = React.useState('');
   const [title, setTitle] = React.useState('');
@@ -96,13 +98,13 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
   const validate = () => {
     const e: Record<string, string> = {};
     const finalSource = source === 'Autre' ? customSource.trim() : source;
-    if (!finalSource) e.source = 'Chwazi yon sous.';
-    if (!summary.trim()) e.summary = 'Rezime artikel la obligatwa.';
-    if (url.trim() && !isValidUrl(url)) e.url = 'Lyen artikel la dwe kòmanse ak http(s)://';
+    if (!finalSource) e.source = t('form.news.sourceRequired');
+    if (!summary.trim()) e.summary = t('form.news.summaryRequired');
+    if (url.trim() && !isValidUrl(url)) e.url = t('form.news.urlInvalid');
     if (imageSource.trim() && !isValidUrl(imageSource)) {
-      e.imageSource = 'Lyen imaj la dwe kòmanse ak http(s)://';
+      e.imageSource = t('form.news.imageInvalid');
     }
-    if (!confirm) e.confirm = 'Ou dwe konfime ou verifye enfòmasyon yo.';
+    if (!confirm) e.confirm = t('form.common.verifyError');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -126,11 +128,11 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
     setSubmitting(true);
     try {
       await handleSendNews(payload);
-      setToast({ open: true, severity: 'success', msg: 'Artikel la anrejistre, mèsi.' });
+      setToast({ open: true, severity: 'success', msg: t('form.news.addedToast') });
       window.setTimeout(handleClose, 600);
     } catch (e) {
       console.error(e);
-      setToast({ open: true, severity: 'error', msg: 'Echèk nan voye atik la. Eseye ankò.' });
+      setToast({ open: true, severity: 'error', msg: t('form.news.addedError') });
     } finally {
       setSubmitting(false);
     }
@@ -204,7 +206,7 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
                 <Chip
                   size="small"
                   icon={<OpenInNewRounded sx={{ fontSize: '12px !important' }} />}
-                  label="Lyen valid"
+                  label={t('form.news.validLink')}
                   sx={{
                     bgcolor: '#dcfce7',
                     color: '#15803d',
@@ -226,7 +228,7 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
                 overflow: 'hidden',
               }}
             >
-              {title.trim() || 'Tit artikel la…'}
+              {title.trim() || t('form.news.previewTitle')}
             </Typography>
             <Typography
               sx={{
@@ -239,24 +241,25 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
                 overflow: 'hidden',
               }}
             >
-              {summary.trim() || 'Rezime artikel la pral parèt isit la…'}
+              {summary.trim() || t('form.news.previewSummary')}
             </Typography>
           </Box>
         </Box>
       )}
 
-      <SectionHeader icon={<ArticleOutlined sx={{ fontSize: 16 }} />} title="Sous ak tit" />
+      <SectionHeader icon={<ArticleOutlined sx={{ fontSize: 16 }} />} title={t('form.news.section.sourceTitle')} />
 
       <Stack spacing={2}>
         <Box>
-          <FieldLabel label="Sous" required />
+          <FieldLabel label={t('form.news.sourceLabel')} required />
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
             {SOURCES.map((s) => {
               const active = source === s.value;
+              const label = t(`form.sources.${s.value}`);
               return (
                 <Chip
                   key={s.value}
-                  label={s.value}
+                  label={label}
                   onClick={() => setSource(s.value)}
                   sx={{
                     borderRadius: '10px',
@@ -282,8 +285,8 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
           {source === 'Autre' && (
             <Box sx={{ mt: 1.25 }}>
               <Field
-                label="Non sous lan"
-                placeholder="Ekri non sous la"
+                label={t('form.news.customSourceLabel')}
+                placeholder={t('form.news.customSourcePlaceholder')}
                 value={customSource}
                 onChange={(e) => setCustomSource(e.target.value)}
               />
@@ -292,8 +295,8 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
         </Box>
 
         <Field
-          label="Tit artikel la"
-          placeholder="Antre tit artikel la"
+          label={t('form.news.title')}
+          placeholder={t('form.news.titlePlaceholder')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
@@ -301,13 +304,13 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
 
       <SectionHeader
         icon={<LinkRounded sx={{ fontSize: 16 }} />}
-        title="Lyen yo"
-        hint="Imaj ak/oswa atik orijinal la"
+        title={t('form.news.section.links')}
+        hint={t('form.news.section.linksHint')}
       />
 
       <Stack spacing={2}>
         <Field
-          label="Lyen imaj artikel la"
+          label={t('form.news.imageUrl')}
           placeholder="https://..."
           value={imageSource}
           onChange={(e) => setImageSource(e.target.value)}
@@ -321,7 +324,7 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
         />
 
         <Field
-          label="Lyen artikel la"
+          label={t('form.news.url')}
           placeholder="https://..."
           value={url}
           onChange={(e) => setUrl(e.target.value)}
@@ -335,19 +338,19 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
         />
       </Stack>
 
-      <SectionHeader icon={<DescriptionRounded sx={{ fontSize: 16 }} />} title="Rezime" />
+      <SectionHeader icon={<DescriptionRounded sx={{ fontSize: 16 }} />} title={t('form.news.section.summary')} />
 
       <Field
-        label="Rezime artikel la"
+        label={t('form.news.summaryLabel')}
         required
         multiline
         minRows={5}
         maxRows={12}
-        placeholder="Rezime kontni atik la…"
+        placeholder={t('form.news.summaryPlaceholder')}
         value={summary}
         onChange={(e) => setSummary(e.target.value)}
         error={!!errors.summary}
-        helperText={errors.summary || `${summary.length} karaktè`}
+        helperText={errors.summary || t('form.viktim.charsCount', { count: summary.length })}
       />
 
       <Box
@@ -374,10 +377,10 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
         )}
         <Box sx={{ flex: 1 }}>
           <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-            Mwen verifye enfòmasyon sa yo soti nan yon sous fyab.
+            {t('form.common.verifyNewsTitle')}
           </Typography>
           <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-            Pa pibliye ribrik ki pa verifye — sa kapab gaye fo nouvèl.
+            {t('form.common.verifyNewsHint')}
           </Typography>
           {errors.confirm && (
             <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
@@ -394,7 +397,7 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
         alignItems="center"
         sx={{ mt: 3, pt: 2, borderTop: '1px solid rgba(15,23,42,0.06)' }}
       >
-        <Tooltip title="Èd">
+        <Tooltip title={t('form.common.help')}>
           <IconButton size="small" sx={{ color: 'text.disabled' }}>
             <HelpOutlineRounded fontSize="small" />
           </IconButton>
@@ -410,7 +413,7 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
               '&:hover': { borderColor: 'rgba(15,23,42,0.24)', bgcolor: '#f8fafc' },
             }}
           >
-            Anile
+            {t('common.cancel')}
           </Button>
           <Button
             type="submit"
@@ -422,7 +425,7 @@ export default function NewsForm({ handleClose }: { handleClose: () => void }) {
             }
             sx={{ minWidth: 140 }}
           >
-            {submitting ? 'An voye…' : 'Pibliye'}
+            {submitting ? t('form.common.submitting') : t('form.news.submit')}
           </Button>
         </Stack>
       </Stack>

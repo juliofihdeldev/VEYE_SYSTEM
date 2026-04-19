@@ -10,40 +10,40 @@ import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import Alert from '@mui/material/Alert';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getSupabase, isSupabaseConfigured } from '../../lib/supabase';
 import SetupSupabaseEnv from '../SetupSupabaseEnv';
 
-function Copyright(props: any) {
+function Copyright(props: { sx?: object }) {
+  const { t } = useTranslation();
   return (
     <Typography variant="body2" color="text.secondary" align="center" {...props}>
-      {'Copyright © '}
+      {t('login.copyright')}
       <Link to="https://veye.dev/">VEYe</Link> {new Date().getFullYear()}
       {'.'}
     </Typography>
   );
 }
 
-function loginErrorHint(message: string): string | null {
+function loginErrorHint(message: string, t: (key: string, opts?: object) => string): string | null {
   const m = message.toLowerCase();
   if (m.includes('email not confirmed') || m.includes('not confirmed')) {
-    return 'Supabase is waiting for email confirmation. In the dashboard: Authentication → Users → open your user → Confirm user, or turn off “Confirm email” under Authentication → Providers → Email (dev only).';
+    return t('login.hint.emailNotConfirmed');
   }
   if (m.includes('invalid login') || m.includes('invalid credentials')) {
-    return 'Wrong email/password, user is in another project than VITE_SUPABASE_URL, or email is not confirmed yet (check Authentication → Users → confirm).';
+    return t('login.hint.invalidCredentials');
   }
   if (m.includes('fetch') || m.includes('network') || m === 'failed to fetch') {
-    return [
-      'Put `.env` in the VEyeDashBoard folder (next to `vite.config.ts`), not only at the monorepo root — then restart dev. This project pins Vite `envDir` there; if you still see this, confirm vars load (no quotes/spaces around =).',
-      'Hosted: Project URL from Dashboard → Settings → API — usually https://<project-ref>.supabase.co with no path. Custom domains use that full https origin.',
-      'Local CLI: http://127.0.0.1:54321 (http only) from `supabase status` after `supabase start`.',
-      'Also: project not paused, VPN/ad-blockers, or a private window.',
-    ].join('\n\n');
+    const lines = t('login.hint.network', { returnObjects: true }) as string[] | string;
+    if (Array.isArray(lines)) return lines.join('\n\n');
+    return String(lines);
   }
   return null;
 }
 
 export default function Login() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [authError, setAuthError] = React.useState<string | null>(null);
   const [signingIn, setSigningIn] = React.useState(false);
 
@@ -82,7 +82,7 @@ export default function Login() {
   const handleForgotPassword = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isSupabaseConfigured()) return;
-    const email = window.prompt('Enter your account email:');
+    const email = window.prompt(t('login.promptResetEmail'));
     if (!email?.trim()) return;
     const redirectTo = `${window.location.origin}/auth/reset`;
     const { error } = await getSupabase().auth.resetPasswordForEmail(email.trim(), { redirectTo });
@@ -90,10 +90,10 @@ export default function Login() {
       alert(error.message);
       return;
     }
-    alert('If an account exists for that email, you will receive a reset link shortly.');
+    alert(t('login.resetSent'));
   };
 
-  const authHint = authError ? loginErrorHint(authError) : null;
+  const authHint = authError ? loginErrorHint(authError, t) : null;
 
   return (
     <Box
@@ -129,7 +129,7 @@ export default function Login() {
               letterSpacing: '-0.02em',
             }}
           >
-            VEYe Dashboard
+            {t('login.brandTitle')}
           </Typography>
           <Typography
             sx={{
@@ -138,7 +138,7 @@ export default function Login() {
               lineHeight: 1.7,
             }}
           >
-            Community-driven safety platform. Report incidents, track alerts, and keep your community informed.
+            {t('login.brandTagline')}
           </Typography>
         </Box>
       </Paper>
@@ -165,7 +165,7 @@ export default function Login() {
               display: { md: 'none' },
             }}
           >
-            VEYe Dashboard
+            {t('login.titleMobile')}
           </Typography>
           <Typography
             variant="h5"
@@ -175,7 +175,7 @@ export default function Login() {
               fontWeight: 500,
             }}
           >
-            Sign in to your account
+            {t('login.subtitle')}
           </Typography>
 
           {isSupabaseConfigured() ? (
@@ -197,7 +197,7 @@ export default function Login() {
                 required
                 fullWidth
                 id="email"
-                label="Email Address"
+                label={t('login.email')}
                 name="email"
                 autoComplete="email"
                 autoFocus
@@ -207,14 +207,14 @@ export default function Login() {
                 required
                 fullWidth
                 name="password"
-                label="Password"
+                label={t('login.password')}
                 type="password"
                 id="password"
                 autoComplete="current-password"
               />
               <FormControlLabel
                 control={<Checkbox value="remember" color="primary" />}
-                label="Remember me"
+                label={t('login.rememberMe')}
                 sx={{ mt: 1 }}
               />
 
@@ -231,13 +231,13 @@ export default function Login() {
                   fontSize: '1rem',
                 }}
               >
-                {signingIn ? 'Signing in…' : 'Sign In'}
+                {signingIn ? t('login.signingIn') : t('login.signIn')}
               </Button>
 
               <Grid container justifyContent="flex-end">
                 <Grid item>
                   <Link to="#" onClick={handleForgotPassword} style={{ fontSize: '0.875rem' }}>
-                    Forgot password?
+                    {t('login.forgotPassword')}
                   </Link>
                 </Grid>
               </Grid>

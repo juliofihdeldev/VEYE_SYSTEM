@@ -32,13 +32,12 @@ import {
   EventOutlined as DateIcon,
 } from '@mui/icons-material';
 import moment from 'moment';
+import { useTranslation } from 'react-i18next';
 import ModalComponent from './Modal';
 import ConfirmDialog from './ConfirmDialog';
 import DangerForm from '../form/DangerForm';
 import EditDangerForm from '../form/EditDangerForm';
 import { handleDeletedAlert, searchDangerZones } from '../api';
-
-moment.locale('fr');
 
 type ZoneRow = {
   id: string;
@@ -85,6 +84,7 @@ function useDebouncedValue<T>(value: T, delay = 300): T {
 }
 
 export default function DangerZone() {
+  const { t } = useTranslation();
   const [search, setSearch] = React.useState('');
   const [dateFrom, setDateFrom] = React.useState('');
   const [dateTo, setDateTo] = React.useState('');
@@ -164,7 +164,7 @@ export default function DangerZone() {
       >
         <Box>
           <Typography variant="h2" sx={{ fontSize: '1.75rem', fontWeight: 700 }}>
-            Zon danje
+            {t('zoneDanger.title')}
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
             <Box
@@ -177,7 +177,7 @@ export default function DangerZone() {
               }}
             />
             <Typography variant="body2" color="text.secondary">
-              {total} {total === 1 ? 'zon aktif' : 'zon aktif yo'} · live tracking
+              {t('zoneDanger.totalSubtitle', { count: total })}
             </Typography>
           </Stack>
         </Box>
@@ -188,7 +188,7 @@ export default function DangerZone() {
           size="large"
           onClick={handleOpen}
         >
-          Signaler
+          {t('zoneDanger.report')}
         </Button>
       </Stack>
 
@@ -200,7 +200,7 @@ export default function DangerZone() {
           sx={{ mb: 2 }}
         >
           <TextField
-            placeholder="Chache zon, rezon, adrès… (full-text search)"
+            placeholder={t('zoneDanger.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             size="small"
@@ -221,7 +221,7 @@ export default function DangerZone() {
             }}
           />
           <TextField
-            label="De"
+            label={t('common.from')}
             type="date"
             size="small"
             value={dateFrom}
@@ -230,7 +230,7 @@ export default function DangerZone() {
             sx={{ minWidth: 160 }}
           />
           <TextField
-            label="Jiska"
+            label={t('common.to')}
             type="date"
             size="small"
             value={dateTo}
@@ -250,7 +250,7 @@ export default function DangerZone() {
                 '&:hover': { borderColor: 'rgba(15,23,42,0.24)', bgcolor: '#f8fafc' },
               }}
             >
-              Efase filtre
+              {t('common.clearFilters')}
             </Button>
           )}
           {loading && <CircularProgress size={18} thickness={5} sx={{ ml: 1 }} />}
@@ -266,9 +266,16 @@ export default function DangerZone() {
           <Table sx={{ minWidth: 720 }}>
             <TableHead>
               <TableRow>
-                {['Zone', 'Rezon', 'Adrès', 'Estati', 'Dat', ''].map((h) => (
+                {[
+                  t('zoneDanger.columns.zone'),
+                  t('zoneDanger.columns.reason'),
+                  t('zoneDanger.columns.address'),
+                  t('zoneDanger.columns.status'),
+                  t('zoneDanger.columns.date'),
+                  '',
+                ].map((h, i) => (
                   <TableCell
-                    key={h}
+                    key={`${i}-${h}`}
                     sx={{
                       textTransform: 'uppercase',
                       fontSize: 11,
@@ -290,11 +297,11 @@ export default function DangerZone() {
                     <Stack alignItems="center" spacing={1}>
                       <PlaceIcon sx={{ fontSize: 36, color: 'text.disabled' }} />
                       <Typography color="text.secondary">
-                        {hasFilters ? 'Pa gen rezilta pou filtre yo.' : 'Pa gen okenn zon danje.'}
+                        {hasFilters ? t('zoneDanger.emptyFiltered') : t('zoneDanger.emptyAll')}
                       </Typography>
                       {hasFilters && (
                         <Button size="small" onClick={clearFilters}>
-                          Efase filtre
+                          {t('common.clearFilters')}
                         </Button>
                       )}
                     </Stack>
@@ -404,7 +411,7 @@ export default function DangerZone() {
                         <Chip
                           size="small"
                           icon={<VerifiedIcon sx={{ fontSize: '14px !important', color: '#15803d !important' }} />}
-                          label="Verified"
+                          label={t('zoneDanger.verified')}
                           sx={{
                             bgcolor: '#dcfce7',
                             color: '#15803d',
@@ -417,7 +424,7 @@ export default function DangerZone() {
                         <Chip
                           size="small"
                           icon={<PendingIcon sx={{ fontSize: '14px !important', color: '#b45309 !important' }} />}
-                          label="Pending"
+                          label={t('zoneDanger.pending')}
                           sx={{
                             bgcolor: '#fef3c7',
                             color: '#b45309',
@@ -440,12 +447,12 @@ export default function DangerZone() {
 
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                        <Tooltip title="Modifye">
+                        <Tooltip title={t('common.edit')}>
                           <IconButton size="small" onClick={() => setEditItem(row)} sx={{ color: 'text.secondary' }}>
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Efase">
+                        <Tooltip title={t('common.delete')}>
                           <IconButton
                             size="small"
                             onClick={() => setDeleteConfirm({ open: true, item: row })}
@@ -478,14 +485,14 @@ export default function DangerZone() {
         />
       </Paper>
 
-      <ModalComponent handleClose={handleClose} open={open} title="Signaler yon zon danje">
+      <ModalComponent handleClose={handleClose} open={open} title={t('zoneDanger.addModalTitle')}>
         <DangerForm handleClose={handleClose} />
       </ModalComponent>
 
       <ModalComponent
         handleClose={handleEditClose}
         open={!!editItem}
-        title="Modifye zon danje"
+        title={t('zoneDanger.editModalTitle')}
       >
         {editItem && (
           <EditDangerForm
@@ -498,9 +505,9 @@ export default function DangerZone() {
 
       <ConfirmDialog
         open={deleteConfirm.open}
-        title="Efase zon danje"
-        message="Ou sèten ou vle efase zon danje sa a? Aksyon sa a pa ka defèt."
-        confirmLabel="Efase"
+        title={t('zoneDanger.deleteTitle')}
+        message={t('zoneDanger.deleteMessage')}
+        confirmLabel={t('common.delete')}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteConfirm({ open: false, item: null })}
       />

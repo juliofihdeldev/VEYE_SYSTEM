@@ -4,6 +4,7 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 
 import { handleGetKidnapping } from '../api';
+import { useTranslation } from 'react-i18next';
 
 import { GoogleMap, LoadScript } from '@react-google-maps/api';
 const containerStyle = {
@@ -34,6 +35,7 @@ const MyGreatPlace = ({  lat, lng }:any) => (
 
 
 export default function Maps() {
+  const { t } = useTranslation();
   let [data, setData] = React.useState<any[]>([]);
 
   React.useEffect(() => {
@@ -48,7 +50,7 @@ export default function Maps() {
     <Paper sx={{ p: 3, width: '100%', overflow: 'hidden' }} elevation={0}>
       <Box sx={{ width: '100%' }}>
         <Typography variant="h5" component="h2" fontWeight={600} mb={3}>
-          Map Kidnapping signal
+          {t('maps.title')}
         </Typography>
         <Box sx={{ borderRadius: 2, overflow: 'hidden', height: 500, width: '100%' }}>
           <LoadScript

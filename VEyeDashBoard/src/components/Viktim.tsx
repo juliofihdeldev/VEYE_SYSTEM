@@ -32,13 +32,12 @@ import {
   Search as SearchIcon,
 } from '@mui/icons-material';
 import moment from 'moment';
+import { useTranslation } from 'react-i18next';
 import ModalComponent from './Modal';
 import ConfirmDialog from './ConfirmDialog';
 import ViktimForm from '../form/ViktimForm';
 import EditViktimForm from '../form/EditViktimForm';
 import { handleDeletedViktim, searchViktim } from '../api';
-
-moment.locale('fr');
 
 type ViktimRow = {
   id: string;
@@ -51,30 +50,30 @@ type ViktimRow = {
   date?: { seconds: number };
 };
 
-type FilterChip = { value: string; label: string };
+type FilterChip = { value: string; i18nKey: string };
 
 const TYPE_FILTERS: FilterChip[] = [
-  { value: 'All', label: 'Tout' },
-  { value: 'kidnaping', label: 'Kidnaping' },
-  { value: 'Pedi', label: 'Pèdi' },
-  { value: 'byBandi', label: 'Bandi' },
+  { value: 'All', i18nKey: 'all' },
+  { value: 'kidnaping', i18nKey: 'kidnaping' },
+  { value: 'Pedi', i18nKey: 'pedi' },
+  { value: 'byBandi', i18nKey: 'byBandi' },
 ];
 
 const STATUS_FILTERS: FilterChip[] = [
-  { value: '', label: 'Tout estati' },
-  { value: 'Captive', label: 'Captive' },
-  { value: 'Relache', label: 'Relache' },
+  { value: '', i18nKey: 'all' },
+  { value: 'Captive', i18nKey: 'captive' },
+  { value: 'Relache', i18nKey: 'relache' },
 ];
 
-const typeStyles: Record<string, { bg: string; color: string; label: string }> = {
-  kidnaping: { bg: '#fee2e2', color: '#b91c1c', label: 'Kidnaping' },
-  pedi: { bg: '#fef3c7', color: '#b45309', label: 'Pèdi' },
-  disparut: { bg: '#fef3c7', color: '#b45309', label: 'Pèdi' },
-  bybandi: { bg: '#ede9fe', color: '#7c3aed', label: 'Bandi' },
-  'bandi-touye': { bg: '#ede9fe', color: '#7c3aed', label: 'Bandi' },
-  bandi: { bg: '#ede9fe', color: '#7c3aed', label: 'Bandi' },
+const typeStyles: Record<string, { bg: string; color: string; i18nKey: string }> = {
+  kidnaping: { bg: '#fee2e2', color: '#b91c1c', i18nKey: 'kidnaping' },
+  pedi: { bg: '#fef3c7', color: '#b45309', i18nKey: 'pedi' },
+  disparut: { bg: '#fef3c7', color: '#b45309', i18nKey: 'pedi' },
+  bybandi: { bg: '#ede9fe', color: '#7c3aed', i18nKey: 'bandi' },
+  'bandi-touye': { bg: '#ede9fe', color: '#7c3aed', i18nKey: 'bandi' },
+  bandi: { bg: '#ede9fe', color: '#7c3aed', i18nKey: 'bandi' },
 };
-const defaultTypeStyle = { bg: '#e2e8f0', color: '#334155', label: '—' };
+const defaultTypeStyle = { bg: '#e2e8f0', color: '#334155' };
 
 const statusStyles: Record<string, { bg: string; color: string }> = {
   captive: { bg: '#fee2e2', color: '#b91c1c' },
@@ -121,6 +120,7 @@ function useDebouncedValue<T>(value: T, delay = 300): T {
 }
 
 export default function Viktim() {
+  const { t } = useTranslation();
   const [search, setSearch] = React.useState('');
   const [type, setType] = React.useState<string>('All');
   const [status, setStatus] = React.useState<string>('');
@@ -207,7 +207,7 @@ export default function Viktim() {
       >
         <Box>
           <Typography variant="h2" sx={{ fontSize: '1.75rem', fontWeight: 700 }}>
-            Viktim
+            {t('viktim.title')}
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
             <Box
@@ -220,7 +220,7 @@ export default function Viktim() {
               }}
             />
             <Typography variant="body2" color="text.secondary">
-              {total} {total === 1 ? 'viktim' : 'viktim yo'} · live updates
+              {t('viktim.totalSubtitle', { count: total })}
             </Typography>
           </Stack>
         </Box>
@@ -231,7 +231,7 @@ export default function Viktim() {
           size="large"
           onClick={handleOpen}
         >
-          Ajoute viktim
+          {t('viktim.addViktim')}
         </Button>
       </Stack>
 
@@ -243,7 +243,7 @@ export default function Viktim() {
           sx={{ mb: 2 }}
         >
           <TextField
-            placeholder="Chache non, zon, tip, enfomasyon… (full-text search)"
+            placeholder={t('viktim.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             size="small"
@@ -264,7 +264,7 @@ export default function Viktim() {
             }}
           />
           <TextField
-            label="De"
+            label={t('common.from')}
             type="date"
             size="small"
             value={dateFrom}
@@ -273,7 +273,7 @@ export default function Viktim() {
             sx={{ minWidth: 160 }}
           />
           <TextField
-            label="Jiska"
+            label={t('common.to')}
             type="date"
             size="small"
             value={dateTo}
@@ -293,7 +293,7 @@ export default function Viktim() {
                 '&:hover': { borderColor: 'rgba(15,23,42,0.24)', bgcolor: '#f8fafc' },
               }}
             >
-              Efase filtre
+              {t('common.clearFilters')}
             </Button>
           )}
           {loading && <CircularProgress size={18} thickness={5} sx={{ ml: 1 }} />}
@@ -309,7 +309,7 @@ export default function Viktim() {
         >
           <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, mr: 0.5 }}>
-              TYPE
+              {t('viktim.typeLabel')}
             </Typography>
             {TYPE_FILTERS.map((opt) => {
               const active = type === opt.value;
@@ -317,7 +317,7 @@ export default function Viktim() {
                 <Chip
                   key={opt.value}
                   size="small"
-                  label={opt.label}
+                  label={t(`viktim.typeFilters.${opt.i18nKey}`)}
                   onClick={() => setType(opt.value)}
                   sx={{
                     fontWeight: 600,
@@ -335,7 +335,7 @@ export default function Viktim() {
 
           <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, mr: 0.5 }}>
-              ESTATI
+              {t('viktim.statusLabel')}
             </Typography>
             {STATUS_FILTERS.map((opt) => {
               const active = status === opt.value;
@@ -343,7 +343,7 @@ export default function Viktim() {
                 <Chip
                   key={opt.value || 'all'}
                   size="small"
-                  label={opt.label}
+                  label={t(`viktim.statusFilters.${opt.i18nKey}`)}
                   onClick={() => setStatus(opt.value)}
                   sx={{
                     fontWeight: 600,
@@ -370,9 +370,17 @@ export default function Viktim() {
           <Table sx={{ minWidth: 880 }}>
             <TableHead>
               <TableRow>
-                {['Viktim', 'Zon', 'Tip', 'Estati', 'Montan', 'Dat', ''].map((h) => (
+                {[
+                  t('viktim.columns.viktim'),
+                  t('viktim.columns.zone'),
+                  t('viktim.columns.type'),
+                  t('viktim.columns.status'),
+                  t('viktim.columns.amount'),
+                  t('viktim.columns.date'),
+                  '',
+                ].map((h, i) => (
                   <TableCell
-                    key={h}
+                    key={`${i}-${h}`}
                     sx={{
                       textTransform: 'uppercase',
                       fontSize: 11,
@@ -394,11 +402,11 @@ export default function Viktim() {
                     <Stack alignItems="center" spacing={1}>
                       <PersonIcon sx={{ fontSize: 36, color: 'text.disabled' }} />
                       <Typography color="text.secondary">
-                        {hasFilters ? 'Pa gen rezilta pou filtre yo.' : 'Pa gen okenn viktim ankò.'}
+                        {hasFilters ? t('viktim.emptyFiltered') : t('viktim.emptyAll')}
                       </Typography>
                       {hasFilters && (
                         <Button size="small" onClick={clearFilters}>
-                          Efase filtre
+                          {t('common.clearFilters')}
                         </Button>
                       )}
                     </Stack>
@@ -408,10 +416,13 @@ export default function Viktim() {
 
               {data.map((row) => {
                 const tKey = (row.type || '').toLowerCase();
-                const tStyle = typeStyles[tKey] || {
-                  ...defaultTypeStyle,
-                  label: row.type || defaultTypeStyle.label,
-                };
+                const knownType = typeStyles[tKey];
+                const typeLabel = knownType
+                  ? t(`viktim.typeChips.${knownType.i18nKey}`)
+                  : row.type || '—';
+                const tStyle = knownType
+                  ? { bg: knownType.bg, color: knownType.color, label: typeLabel }
+                  : { ...defaultTypeStyle, label: typeLabel };
                 const sKey = (row.status || '').toLowerCase();
                 const sStyle = statusStyles[sKey];
                 const amount = formatAmount(row.amount);
@@ -539,7 +550,7 @@ export default function Viktim() {
 
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                        <Tooltip title="Modifye">
+                        <Tooltip title={t('viktim.tooltipEdit')}>
                           <IconButton
                             size="small"
                             onClick={() => setEditItem(row)}
@@ -548,7 +559,7 @@ export default function Viktim() {
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Efase">
+                        <Tooltip title={t('viktim.tooltipDelete')}>
                           <IconButton
                             size="small"
                             onClick={() => setDeleteConfirm({ open: true, item: row })}
@@ -581,14 +592,14 @@ export default function Viktim() {
         />
       </Paper>
 
-      <ModalComponent handleClose={handleClose} open={open} title="Ajoute yon viktim">
+      <ModalComponent handleClose={handleClose} open={open} title={t('viktim.addModalTitle')}>
         <ViktimForm handleClose={handleClose} />
       </ModalComponent>
 
       <ModalComponent
         handleClose={handleEditClose}
         open={!!editItem}
-        title="Modifye viktim"
+        title={t('viktim.editModalTitle')}
       >
         {editItem && (
           <EditViktimForm
@@ -601,9 +612,9 @@ export default function Viktim() {
 
       <ConfirmDialog
         open={deleteConfirm.open}
-        title="Efase viktim"
-        message="Ou sèten ou vle efase viktim sa a? Aksyon sa a pa ka defèt."
-        confirmLabel="Efase"
+        title={t('viktim.deleteTitle')}
+        message={t('viktim.deleteMessage')}
+        confirmLabel={t('common.delete')}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteConfirm({ open: false, item: null })}
       />

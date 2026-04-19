@@ -1,5 +1,6 @@
 import * as React from "react";
 import type { User } from "@supabase/supabase-js";
+import { useTranslation } from "react-i18next";
 import { getSupabase, isSupabaseConfigured } from "../lib/supabase";
 
 export interface CurrentUser {
@@ -16,28 +17,25 @@ export interface CurrentUser {
   loading: boolean;
 }
 
-const FALLBACK_NAME = "Itilizatè";
-const FALLBACK_ROLE = "Administratè";
-
-function pickDisplayName(user: User | null): string {
-  if (!user) return FALLBACK_NAME;
+function pickDisplayName(user: User | null, fallback: string): string {
+  if (!user) return fallback;
   const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
   const candidates = [meta.full_name, meta.name, meta.display_name, meta.username];
   for (const c of candidates) {
     if (typeof c === "string" && c.trim().length > 0) return c.trim();
   }
   if (user.email) return user.email.split("@")[0];
-  return FALLBACK_NAME;
+  return fallback;
 }
 
-function pickRoleLabel(user: User | null): string {
-  if (!user) return FALLBACK_ROLE;
+function pickRoleLabel(user: User | null, fallback: string): string {
+  if (!user) return fallback;
   const userRole = (user.user_metadata as Record<string, unknown> | undefined)?.role;
   const appRole = (user.app_metadata as Record<string, unknown> | undefined)?.role;
   for (const r of [userRole, appRole]) {
     if (typeof r === "string" && r.trim().length > 0) return r.trim();
   }
-  return FALLBACK_ROLE;
+  return fallback;
 }
 
 function pickInitials(displayName: string): string {
@@ -55,6 +53,9 @@ function pickInitials(displayName: string): string {
 }
 
 export function useCurrentUser(): CurrentUser {
+  const { t } = useTranslation();
+  const fallbackName = t("sidebar.fallbackName");
+  const fallbackRole = t("sidebar.fallbackRole");
   const [user, setUser] = React.useState<User | null>(null);
   const [loading, setLoading] = React.useState<boolean>(() => isSupabaseConfigured());
 
@@ -84,8 +85,14 @@ export function useCurrentUser(): CurrentUser {
     };
   }, []);
 
-  const displayName = React.useMemo(() => pickDisplayName(user), [user]);
-  const roleLabel = React.useMemo(() => pickRoleLabel(user), [user]);
+  const displayName = React.useMemo(
+    () => pickDisplayName(user, fallbackName),
+    [user, fallbackName],
+  );
+  const roleLabel = React.useMemo(
+    () => pickRoleLabel(user, fallbackRole),
+    [user, fallbackRole],
+  );
   const initials = React.useMemo(() => pickInitials(displayName), [displayName]);
 
   return {

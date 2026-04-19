@@ -27,19 +27,20 @@ import {
 } from '@mui/icons-material';
 import { handleSendViktim } from '../api';
 import { Field, FieldLabel } from './Field';
+import { useTranslation } from 'react-i18next';
 
 type ViktimType = '' | 'kidnaping' | 'Pedi' | 'byBandi';
 type ViktimStatus = '' | 'Captive' | 'Relache';
 
-const TYPE_OPTIONS: { value: ViktimType; label: string; color: string; bg: string }[] = [
-  { value: 'kidnaping', label: 'Kidnaping', color: '#b91c1c', bg: '#fee2e2' },
-  { value: 'Pedi', label: 'Pedi', color: '#b45309', bg: '#fef3c7' },
-  { value: 'byBandi', label: 'Bandi', color: '#7c3aed', bg: '#ede9fe' },
+const TYPE_OPTIONS: { value: ViktimType; i18nKey: string; color: string; bg: string }[] = [
+  { value: 'kidnaping', i18nKey: 'viktim.typeChips.kidnaping', color: '#b91c1c', bg: '#fee2e2' },
+  { value: 'Pedi', i18nKey: 'viktim.typeChips.pedi', color: '#b45309', bg: '#fef3c7' },
+  { value: 'byBandi', i18nKey: 'viktim.typeChips.bandi', color: '#7c3aed', bg: '#ede9fe' },
 ];
 
-const STATUS_OPTIONS: { value: ViktimStatus; label: string; color: string; bg: string }[] = [
-  { value: 'Captive', label: 'Captive', color: '#b91c1c', bg: '#fee2e2' },
-  { value: 'Relache', label: 'Relache', color: '#15803d', bg: '#dcfce7' },
+const STATUS_OPTIONS: { value: ViktimStatus; i18nKey: string; color: string; bg: string }[] = [
+  { value: 'Captive', i18nKey: 'viktim.statusFilters.captive', color: '#b91c1c', bg: '#fee2e2' },
+  { value: 'Relache', i18nKey: 'viktim.statusFilters.relache', color: '#15803d', bg: '#dcfce7' },
 ];
 
 const initialsOf = (name: string) => {
@@ -92,6 +93,7 @@ function SectionHeader({
 }
 
 export default function ViktimForm({ handleClose }: { handleClose: () => void }) {
+  const { t } = useTranslation();
   const [fullName, setFullName] = React.useState('');
   const [imageSource, setImageSource] = React.useState('');
   const [imgError, setImgError] = React.useState(false);
@@ -116,13 +118,13 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!fullName.trim()) e.fullName = 'Non viktim lan obligatwa.';
-    if (!details.trim()) e.details = 'Bay yon eksplikasyon.';
+    if (!fullName.trim()) e.fullName = t('form.viktim.fullNameRequired');
+    if (!details.trim()) e.details = t('form.viktim.detailsRequired');
     if (imageSource.trim() && !/^https?:\/\//i.test(imageSource.trim())) {
-      e.imageSource = 'Lyen foto a dwe kòmanse ak http(s)://';
+      e.imageSource = t('form.viktim.photoInvalid');
     }
-    if (amount && Number(amount) < 0) e.amount = 'Kantite a pa ka negatif.';
-    if (!confirm) e.confirm = 'Ou dwe konfime ou verifye enfòmasyon yo.';
+    if (amount && Number(amount) < 0) e.amount = t('form.viktim.amountInvalid');
+    if (!confirm) e.confirm = t('form.common.verifyError');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -152,11 +154,11 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
     setSubmitting(true);
     try {
       await handleSendViktim(payload);
-      setToast({ open: true, severity: 'success', msg: 'Viktim lan anrejistre, mèsi.' });
+      setToast({ open: true, severity: 'success', msg: t('form.viktim.addedToast') });
       window.setTimeout(handleClose, 600);
     } catch (e) {
       console.error(e);
-      setToast({ open: true, severity: 'error', msg: 'Echèk nan anrejistre viktim lan. Eseye ankò.' });
+      setToast({ open: true, severity: 'error', msg: t('form.viktim.addedError') });
     } finally {
       setSubmitting(false);
     }
@@ -206,20 +208,20 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
           )}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography sx={{ fontWeight: 700, fontSize: 14 }} noWrap>
-              {fullName.trim() || 'Non viktim lan…'}
+              {fullName.trim() || t('form.viktim.previewName')}
             </Typography>
             <Stack direction="row" spacing={0.75} sx={{ mt: 0.5 }} flexWrap="wrap" useFlexGap>
               {type &&
                 (() => {
-                  const t = TYPE_OPTIONS.find((x) => x.value === type);
-                  if (!t) return null;
+                  const opt = TYPE_OPTIONS.find((x) => x.value === type);
+                  if (!opt) return null;
                   return (
                     <Chip
                       size="small"
-                      label={t.label}
+                      label={t(opt.i18nKey)}
                       sx={{
-                        bgcolor: t.bg,
-                        color: t.color,
+                        bgcolor: opt.bg,
+                        color: opt.color,
                         fontWeight: 700,
                         fontSize: 10,
                         height: 20,
@@ -229,15 +231,15 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
                 })()}
               {status &&
                 (() => {
-                  const s = STATUS_OPTIONS.find((x) => x.value === status);
-                  if (!s) return null;
+                  const opt = STATUS_OPTIONS.find((x) => x.value === status);
+                  if (!opt) return null;
                   return (
                     <Chip
                       size="small"
-                      label={s.label}
+                      label={t(opt.i18nKey)}
                       sx={{
-                        bgcolor: s.bg,
-                        color: s.color,
+                        bgcolor: opt.bg,
+                        color: opt.color,
                         fontWeight: 700,
                         fontSize: 10,
                         height: 20,
@@ -263,7 +265,7 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
           {formattedAmount && (
             <Box sx={{ textAlign: 'right' }}>
               <Typography sx={{ fontSize: 11, color: 'text.disabled', textTransform: 'uppercase' }}>
-                Ranson
+                {t('form.viktim.ransomLabel')}
               </Typography>
               <Typography sx={{ fontWeight: 700, color: 'text.primary' }}>
                 {formattedAmount} HTG
@@ -273,14 +275,14 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
         </Box>
       )}
 
-      <SectionHeader icon={<PersonOutlineRounded sx={{ fontSize: 16 }} />} title="Idantite viktim lan" />
+      <SectionHeader icon={<PersonOutlineRounded sx={{ fontSize: 16 }} />} title={t('form.viktim.section.identity')} />
 
       <Stack spacing={2}>
         <Field
-          label="Non a siyati"
+          label={t('form.viktim.fullNameLabel')}
           required
           autoFocus
-          placeholder="Non konplè viktim lan"
+          placeholder={t('form.viktim.fullNamePlaceholder')}
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           error={!!errors.fullName}
@@ -288,12 +290,12 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
         />
 
         <Field
-          label="Lyen foto"
+          label={t('form.viktim.photoLabel')}
           placeholder="https://..."
           value={imageSource}
           onChange={(e) => setImageSource(e.target.value)}
           error={!!errors.imageSource}
-          helperText={errors.imageSource || 'URL piblik yon foto (opsyonèl).'}
+          helperText={errors.imageSource || t('form.viktim.photoHelper')}
           startAdornment={
             <InputAdornment position="start">
               <LinkRounded fontSize="small" sx={{ color: 'text.disabled' }} />
@@ -302,19 +304,19 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
         />
       </Stack>
 
-      <SectionHeader icon={<BadgeRounded sx={{ fontSize: 16 }} />} title="Klasifikasyon" />
+      <SectionHeader icon={<BadgeRounded sx={{ fontSize: 16 }} />} title={t('form.viktim.section.classification')} />
 
       <Stack spacing={2}>
         <Box>
-          <FieldLabel label="Tip viktim" />
+          <FieldLabel label={t('form.viktim.type')} />
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            {TYPE_OPTIONS.map((t) => {
-              const active = type === t.value;
+            {TYPE_OPTIONS.map((opt) => {
+              const active = type === opt.value;
               return (
                 <Chip
-                  key={t.value}
-                  label={t.label}
-                  onClick={() => setType(active ? '' : t.value)}
+                  key={opt.value}
+                  label={t(opt.i18nKey)}
+                  onClick={() => setType(active ? '' : opt.value)}
                   sx={{
                     flex: { xs: '1 1 30%', sm: '0 0 auto' },
                     minWidth: 100,
@@ -322,11 +324,11 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
                     height: 40,
                     fontWeight: 700,
                     fontSize: 13,
-                    bgcolor: active ? t.bg : '#f8fafc',
-                    color: active ? t.color : 'text.secondary',
+                    bgcolor: active ? opt.bg : '#f8fafc',
+                    color: active ? opt.color : 'text.secondary',
                     border: '1px solid',
-                    borderColor: active ? `${t.color}55` : '#e2e8f0',
-                    '&:hover': { bgcolor: active ? t.bg : '#f1f5f9' },
+                    borderColor: active ? `${opt.color}55` : '#e2e8f0',
+                    '&:hover': { bgcolor: active ? opt.bg : '#f1f5f9' },
                   }}
                 />
               );
@@ -335,26 +337,26 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
         </Box>
 
         <Box>
-          <FieldLabel label="Estati" />
+          <FieldLabel label={t('form.viktim.status')} />
           <Stack direction="row" spacing={1}>
-            {STATUS_OPTIONS.map((s) => {
-              const active = status === s.value;
+            {STATUS_OPTIONS.map((opt) => {
+              const active = status === opt.value;
               return (
                 <Chip
-                  key={s.value}
-                  label={s.label}
-                  onClick={() => setStatus(active ? '' : s.value)}
+                  key={opt.value}
+                  label={t(opt.i18nKey)}
+                  onClick={() => setStatus(active ? '' : opt.value)}
                   sx={{
                     flex: 1,
                     borderRadius: '10px',
                     height: 40,
                     fontWeight: 700,
                     fontSize: 13,
-                    bgcolor: active ? s.bg : '#f8fafc',
-                    color: active ? s.color : 'text.secondary',
+                    bgcolor: active ? opt.bg : '#f8fafc',
+                    color: active ? opt.color : 'text.secondary',
                     border: '1px solid',
-                    borderColor: active ? `${s.color}55` : '#e2e8f0',
-                    '&:hover': { bgcolor: active ? s.bg : '#f1f5f9' },
+                    borderColor: active ? `${opt.color}55` : '#e2e8f0',
+                    '&:hover': { bgcolor: active ? opt.bg : '#f1f5f9' },
                   }}
                 />
               );
@@ -364,7 +366,7 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
           <Field
-            label="Kantite kòb mande (HTG)"
+            label={t('form.viktim.amountLabel')}
             type="number"
             placeholder="0"
             value={amount}
@@ -379,8 +381,8 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
             }
           />
           <Field
-            label="Zòn"
-            placeholder="Kote sa pase"
+            label={t('form.viktim.zoneLabel')}
+            placeholder={t('form.viktim.zonePlaceholder')}
             value={zone}
             onChange={(e) => setZone(e.target.value)}
             startAdornment={
@@ -393,19 +395,19 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
 
       </Stack>
 
-      <SectionHeader icon={<DescriptionRounded sx={{ fontSize: 16 }} />} title="Eksplikasyon" />
+      <SectionHeader icon={<DescriptionRounded sx={{ fontSize: 16 }} />} title={t('form.viktim.section.explanation')} />
 
       <Field
-        label="Detay sou ka a"
+        label={t('form.viktim.detailsLabel')}
         required
         multiline
         minRows={4}
         maxRows={10}
-        placeholder="Dekri sak pase a ak nenpòt enfòmasyon ki itil…"
+        placeholder={t('form.viktim.detailsPlaceholder')}
         value={details}
         onChange={(e) => setDetails(e.target.value)}
         error={!!errors.details}
-        helperText={errors.details || `${details.length} karaktè`}
+        helperText={errors.details || t('form.viktim.charsCount', { count: details.length })}
       />
 
       <Box
@@ -432,10 +434,10 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
         )}
         <Box sx={{ flex: 1 }}>
           <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-            Mwen verifye enfòmasyon sa yo anvan m soumèt.
+            {t('form.common.verifyTitle')}
           </Typography>
           <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-            Pwoteje fanmi yo: pa pibliye fo enfòmasyon sou yon viktim.
+            {t('form.common.verifyHint')}
           </Typography>
           {errors.confirm && (
             <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
@@ -452,7 +454,7 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
         alignItems="center"
         sx={{ mt: 3, pt: 2, borderTop: '1px solid rgba(15,23,42,0.06)' }}
       >
-        <Tooltip title="Èd">
+        <Tooltip title={t('form.common.help')}>
           <IconButton size="small" sx={{ color: 'text.disabled' }}>
             <HelpOutlineRounded fontSize="small" />
           </IconButton>
@@ -468,7 +470,7 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
               '&:hover': { borderColor: 'rgba(15,23,42,0.24)', bgcolor: '#f8fafc' },
             }}
           >
-            Anile
+            {t('common.cancel')}
           </Button>
           <Button
             type="submit"
@@ -480,7 +482,7 @@ export default function ViktimForm({ handleClose }: { handleClose: () => void })
             }
             sx={{ minWidth: 140 }}
           >
-            {submitting ? 'An voye…' : 'Ajoute viktim'}
+            {submitting ? t('form.common.submitting') : t('form.viktim.submit')}
           </Button>
         </Stack>
       </Stack>
