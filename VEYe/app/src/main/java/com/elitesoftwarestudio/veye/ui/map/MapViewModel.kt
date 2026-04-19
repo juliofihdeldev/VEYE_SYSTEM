@@ -3,6 +3,7 @@ package com.elitesoftwarestudio.veye.ui.map
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.elitesoftwarestudio.veye.data.location.DeviceLocationRepository
+import com.elitesoftwarestudio.veye.data.map.AlertCacheRepository
 import com.elitesoftwarestudio.veye.data.map.DangerZone
 import com.elitesoftwarestudio.veye.data.map.ViktimMapRow
 import com.elitesoftwarestudio.veye.data.map.ViktimRepository
@@ -26,7 +27,18 @@ class MapViewModel @Inject constructor(
     private val viktimRepository: ViktimRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val deviceLocationRepository: DeviceLocationRepository,
+    private val alertCacheRepository: AlertCacheRepository,
 ) : ViewModel() {
+
+    /**
+     * Stages the (partial) alert payload before navigating to the detail destination so
+     * the detail screen never opens blank, even if Supabase is unreachable. The detail VM
+     * still refreshes in the background and replaces the cached row when the network
+     * request succeeds.
+     */
+    fun primeAlertCache(row: ViktimMapRow) {
+        alertCacheRepository.primeFromMapRow(row)
+    }
 
     val mapSession: StateFlow<MapSessionPrefs> = userPreferencesRepository.mapSession
         .stateIn(

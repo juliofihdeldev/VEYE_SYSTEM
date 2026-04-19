@@ -211,7 +211,10 @@ fun MapScreen(
                     session = session,
                     viktimLoading = viktimLoading,
                     onNavigateToZones = onNavigateToZones,
-                    onViktimClick = { onNavigateToAlertDetail(it.id) },
+                    onViktimClick = { row ->
+                        viewModel.primeAlertCache(row)
+                        onNavigateToAlertDetail(row.id)
+                    },
                 )
             },
             content = { paddingValues ->
@@ -252,7 +255,10 @@ fun MapScreen(
                                 when (item.kind) {
                                     MapPinKind.Victim -> {
                                         val row = filteredViktims.find { it.id == item.rawId }
-                                        if (row != null) onNavigateToAlertDetail(row.id)
+                                        if (row != null) {
+                                            viewModel.primeAlertCache(row)
+                                            onNavigateToAlertDetail(row.id)
+                                        }
                                     }
                                     MapPinKind.Zone -> {
                                         val z = mapZonesForPins.find { it.id == item.rawId }

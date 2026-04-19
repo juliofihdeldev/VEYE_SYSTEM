@@ -118,6 +118,11 @@
     <string name="alert_details_call_emergency">Call Emergency</string>
     <string name="alert_details_share_message">VEYe Alert: %1$s - %2$s. %3$s</string>
     <string name="alert_details_no_map_location">No location coordinates for this alert.</string>
+    <string name="alert_detail_unavailable_title">Alert unavailable</string>
+    <string name="alert_detail_not_found_message">This alert may have been removed or is no longer accessible. It might also be a syncing issue between your device and our servers.</string>
+    <string name="alert_detail_load_failed_message">We couldn\'t load the latest details for this alert. Please check your connection and try again.</string>
+    <string name="common_retry">Try again</string>
+    <string name="common_go_back">Go back</string>
     <string name="report_title">Report Incident</string>
     <string name="report_type_kidnapping">Kidnapping</string>
     <string name="report_type_missing">Missing person</string>

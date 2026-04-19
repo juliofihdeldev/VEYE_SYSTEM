@@ -115,6 +115,11 @@
     <string name="alert_details_call_emergency">Appeler les secours</string>
     <string name="alert_details_share_message">Alerte VEYe : %1$s - %2$s. %3$s</string>
     <string name="alert_details_no_map_location">Pas de coordonnées pour cette alerte.</string>
+    <string name="alert_detail_unavailable_title">Alerte indisponible</string>
+    <string name="alert_detail_not_found_message">Cette alerte a peut-être été supprimée ou n\'est plus accessible. Il peut aussi s\'agir d\'un souci de synchronisation entre votre appareil et nos serveurs.</string>
+    <string name="alert_detail_load_failed_message">Impossible de récupérer les détails de cette alerte. Vérifiez votre connexion et réessayez.</string>
+    <string name="common_retry">Réessayer</string>
+    <string name="common_go_back">Retour</string>
     <string name="report_title">Signaler un incident</string>
     <string name="report_type_kidnapping">Enlèvement</string>
     <string name="report_type_missing">Personne disparue</string>
