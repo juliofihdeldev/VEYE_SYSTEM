@@ -9,14 +9,17 @@
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
     </style>
 
-    <!-- Cold start: "Watchful Eye". Midnight surface, animated eye + green radar pulse.
-         The actual hold time is driven by `MainViewModel.splashHoldActive` via
-         `setKeepOnScreenCondition` so this duration is just an upper bound that lets
-         the AVD finish playing if init resolves earlier than the animation. -->
+    <!-- Cold start: VEYe brand mark over a midnight surface. The PNG is the canonical
+         brand asset (also used as the launcher foreground) so the cold-start frame
+         reads identically to the launcher icon the user just tapped. The actual hold
+         time is driven by `MainViewModel.splashHoldActive` via `setKeepOnScreenCondition`,
+         and `MainActivity.handleSplashExit` runs a scale + fade crossfade on the icon
+         view so the hand-off to the home shell stays smooth even though the icon itself
+         is a raster. -->
     <style name="Theme.VEYe.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_screen_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_brand_eye_animated</item>
-        <item name="windowSplashScreenAnimationDuration">800</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_brand_mark</item>
+        <item name="windowSplashScreenAnimationDuration">500</item>
         <item name="postSplashScreenTheme">@style/Theme.VEYe</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

@@ -7,10 +7,10 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <!-- "Watchful Eye" splash. Midnight rather than pure black so the surface reads
-         as deliberate brand colour and not a dead OLED screen during boot. -->
+    <!-- Cold-start splash surface. Midnight (rather than pure black) so the screen
+         reads as a deliberate brand colour and not a dead OLED during boot, while still
+         giving the white-tile brand mark maximum contrast. -->
     <color name="splash_screen_background">#FF0A0F1C</color>
-    <color name="splash_pulse_green">#FF1F8A70</color>
     <!-- Adaptive launcher background (matches brand asset tile) -->
     <color name="ic_launcher_background">#FFFFFFFF</color>
     <!-- Tint applied to the small notification icon (status-bar) on Android 5+. -->

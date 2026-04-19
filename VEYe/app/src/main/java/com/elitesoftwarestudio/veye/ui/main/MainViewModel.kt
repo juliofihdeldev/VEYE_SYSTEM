@@ -25,10 +25,10 @@ class MainViewModel @Inject constructor(
 
     /**
      * Drives `SplashScreen.setKeepOnScreenCondition` in [com.elitesoftwarestudio.veye.MainActivity].
-     * Stays `true` for [SPLASH_MIN_HOLD_MS] so the "Watchful Eye" animated vector has
-     * room to play, then flips `false`. We deliberately do NOT gate this on auth or
-     * network: this is a safety app and a slow Firebase round-trip should never delay
-     * the user reaching the home shell.
+     * Stays `true` for [SPLASH_MIN_HOLD_MS] so the brand mark has a moment to register
+     * before the system tears the splash down, then flips `false`. We deliberately do
+     * NOT gate this on auth or network: this is a safety app and a slow Firebase
+     * round-trip should never delay the user reaching the home shell.
      */
     private val _splashHoldActive = MutableStateFlow(true)
     val splashHoldActive: StateFlow<Boolean> = _splashHoldActive.asStateFlow()
@@ -52,9 +52,9 @@ class MainViewModel @Inject constructor(
     }
 
     private companion object {
-        // Matches the AVD `pulse_group` duration (800ms) minus a small budget reserved
-        // for the system's own exit transition. Long enough for the eye + pulse to read
-        // as intentional, short enough to never feel like a delay.
-        const val SPLASH_MIN_HOLD_MS = 700L
+        // Static brand mark — long enough for the user to register the logo as
+        // intentional, short enough to never feel like a delay. Pair with the
+        // 240ms exit crossfade in MainActivity for a perceived hand-off near 700ms.
+        const val SPLASH_MIN_HOLD_MS = 450L
     }
 }
