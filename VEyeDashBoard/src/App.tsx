@@ -30,6 +30,7 @@ import LanguageIcon from '@mui/icons-material/Language';
 import {
   DashboardOutlined,
   ErrorOutline,
+  ReportProblemOutlined,
   PlaceOutlined,
   ArticleOutlined,
   GroupsOutlined,
@@ -41,8 +42,13 @@ import {
   RawOffTwoTone,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import Popper from '@mui/material/Popper';
+import ClickAwayListener from '@mui/material/ClickAwayListener';
+import LinearProgress from '@mui/material/LinearProgress';
+import Paper from '@mui/material/Paper';
+import CircularProgress from '@mui/material/CircularProgress';
 import { getSupabase } from './lib/supabase';
-import { useCurrentUser } from './auth/useCurrentUser';
+import { searchGlobal, type GlobalSearchHit, type GlobalSearchKind } from './api';
 
 const drawerWidth = 248;
 
@@ -139,6 +145,7 @@ const sections: NavSection[] = [
     items: [
       { name: 'Dashboard', icon: <DashboardOutlined />, link: '/home' },
       { name: 'Viktim', icon: <ErrorOutline />, link: '/viktim', badge: 142, badgeColor: 'error' },
+      { name: 'Incidents', icon: <ReportProblemOutlined />, link: '/stat-incident', badge: 28, badgeColor: 'warning' },
       { name: 'Zon Danje', icon: <PlaceOutlined />, link: '/zone-danger' },
       { name: 'Nouvo', icon: <ArticleOutlined />, link: '/news' },
     ],
@@ -170,17 +177,256 @@ export interface PropsChildren {
   children?: React.ReactNode;
 }
 
+// ---------------------------------------------------------------------------
+// Global search — display config per result kind.
+// `route` is where we navigate when the user clicks/Enters a result; for now
+// each kind goes to its list page. Per-row deep links can be added later.
+// ---------------------------------------------------------------------------
+const kindConfig: Record<
+  GlobalSearchKind,
+  { label: string; icon: React.ReactNode; route: string; color: string }
+> = {
+  viktim: {
+    label: 'Viktim',
+    icon: <ErrorOutline sx={{ fontSize: 18 }} />,
+    route: '/viktim',
+    color: '#ef4444',
+  },
+  zone_danger: {
+    label: 'Zòn Danje',
+    icon: <PlaceOutlined sx={{ fontSize: 18 }} />,
+    route: '/zone-danger',
+    color: '#f59e0b',
+  },
+  news: {
+    label: 'Nouvo',
+    icon: <ArticleOutlined sx={{ fontSize: 18 }} />,
+    route: '/news',
+    color: '#0ea5e9',
+  },
+  kidnaping_alert: {
+    label: 'Kidnap',
+    icon: <RawOffTwoTone sx={{ fontSize: 18 }} />,
+    route: '/kidnapping',
+    color: '#7c3aed',
+  },
+  moderation_queue: {
+    label: 'Moderasyon',
+    icon: <GavelOutlined sx={{ fontSize: 18 }} />,
+    route: '/moderation',
+    color: '#0f766e',
+  },
+};
+
+const kindOrder: GlobalSearchKind[] = [
+  'viktim',
+  'zone_danger',
+  'moderation_queue',
+  'news',
+  'kidnaping_alert',
+];
+
+type PageHit = {
+  kind: 'page';
+  id: string;
+  title: string;
+  subtitle: string;
+  route: string;
+  icon: React.ReactNode;
+};
+
+type FlatHit =
+  | (PageHit & { sectionLabel: 'Paj' })
+  | (GlobalSearchHit & { sectionLabel: string });
+
+// Wrap matched substring in <mark> for inline highlight. Case-insensitive,
+// safe against regex-special chars. Returns React nodes.
+function highlight(text: string, query: string): React.ReactNode {
+  if (!query || !text) return text;
+  const tokens = query.trim().split(/\s+/).filter((t) => t.length >= 1);
+  if (tokens.length === 0) return text;
+  const escaped = tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  try {
+    const re = new RegExp(`(${escaped})`, 'gi');
+    const parts = text.split(re);
+    return parts.map((p, i) =>
+      re.test(p) ? (
+        <Box
+          key={i}
+          component="mark"
+          sx={{ bgcolor: 'rgba(245, 158, 11, 0.35)', color: 'inherit', px: 0.25, borderRadius: 0.5 }}
+        >
+          {p}
+        </Box>
+      ) : (
+        <React.Fragment key={i}>{p}</React.Fragment>
+      ),
+    );
+  } catch {
+    return text;
+  }
+}
+
 export default function App({ children }: PropsChildren) {
   const theme = useTheme();
   const [open, setOpen] = React.useState(true);
   const [lang, setLang] = React.useState<'FR' | 'KR' | 'EN'>('FR');
   const navigate = useNavigate();
   const location = useLocation();
-  const { displayName, email, roleLabel, initials } = useCurrentUser();
 
   const openLink = (link: string) => navigate(link);
   const handleDrawerOpen = () => setOpen(true);
   const handleDrawerClose = () => setOpen(false);
+
+  // ------------------------------------------------------------------------
+  // Global search
+  // ------------------------------------------------------------------------
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchHits, setSearchHits] = React.useState<GlobalSearchHit[]>([]);
+  const [searchLoading, setSearchLoading] = React.useState(false);
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const [activeIdx, setActiveIdx] = React.useState(0);
+  const searchInputRef = React.useRef<HTMLInputElement | null>(null);
+  const searchAnchorRef = React.useRef<HTMLDivElement | null>(null);
+  const searchAbortRef = React.useRef<AbortController | null>(null);
+
+  // Flat list of all nav targets for the "Pages" group.
+  const allPages = React.useMemo<PageHit[]>(() => {
+    const pages: PageHit[] = [];
+    sections.forEach((sec) => {
+      sec.items.forEach((it) => {
+        pages.push({
+          kind: 'page',
+          id: it.link,
+          title: it.name,
+          subtitle: sec.title,
+          route: it.link,
+          icon: it.icon,
+        });
+      });
+    });
+    legacyExtras.forEach((it) => {
+      pages.push({
+        kind: 'page',
+        id: it.link,
+        title: it.name,
+        subtitle: 'More tools',
+        route: it.link,
+        icon: it.icon,
+      });
+    });
+    return pages;
+  }, []);
+
+  const matchedPages = React.useMemo<PageHit[]>(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return allPages
+      .filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          p.subtitle.toLowerCase().includes(q) ||
+          p.route.toLowerCase().includes(q),
+      )
+      .slice(0, 5);
+  }, [allPages, searchQuery]);
+
+  // Debounced fetch. Aborts any previous in-flight request so the UI never
+  // paints stale results on top of fresh ones.
+  React.useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      searchAbortRef.current?.abort();
+      setSearchHits([]);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    const handle = window.setTimeout(() => {
+      searchAbortRef.current?.abort();
+      const ctl = new AbortController();
+      searchAbortRef.current = ctl;
+      searchGlobal(q, 8, ctl.signal)
+        .then((hits) => {
+          if (ctl.signal.aborted) return;
+          setSearchHits(hits);
+        })
+        .finally(() => {
+          if (!ctl.signal.aborted) setSearchLoading(false);
+        });
+    }, 200);
+    return () => window.clearTimeout(handle);
+  }, [searchQuery]);
+
+  // Cmd/Ctrl+K focuses the search box from anywhere.
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Close on route change.
+  React.useEffect(() => {
+    setSearchOpen(false);
+  }, [location.pathname]);
+
+  // Build the flat, keyboard-navigable list. Pages first, then DB hits grouped
+  // by kind in the configured display order.
+  const flatHits = React.useMemo<FlatHit[]>(() => {
+    const out: FlatHit[] = [];
+    matchedPages.forEach((p) => out.push({ ...p, sectionLabel: 'Paj' }));
+    kindOrder.forEach((kind) => {
+      const group = searchHits.filter((h) => h.kind === kind);
+      group.forEach((h) => out.push({ ...h, sectionLabel: kindConfig[kind].label }));
+    });
+    return out;
+  }, [matchedPages, searchHits]);
+
+  React.useEffect(() => {
+    setActiveIdx(0);
+  }, [flatHits.length]);
+
+  const activateHit = React.useCallback(
+    (hit: FlatHit) => {
+      const route = hit.kind === 'page' ? hit.route : kindConfig[hit.kind].route;
+      setSearchOpen(false);
+      setSearchQuery('');
+      navigate(route);
+    },
+    [navigate],
+  );
+
+  const handleSearchKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setSearchQuery('');
+      setSearchOpen(false);
+      searchInputRef.current?.blur();
+      return;
+    }
+    if (flatHits.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIdx((i) => (i + 1) % flatHits.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIdx((i) => (i - 1 + flatHits.length) % flatHits.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const hit = flatHits[activeIdx] ?? flatHits[0];
+      if (hit) activateHit(hit);
+    }
+  };
+
+  const showPopper =
+    searchOpen && searchQuery.trim().length >= 2 && Boolean(searchAnchorRef.current);
+  const showEmpty = !searchLoading && flatHits.length === 0 && searchQuery.trim().length >= 2;
 
   const fnLogout = async () => {
     await getSupabase().auth.signOut();
@@ -224,30 +470,252 @@ export default function App({ children }: PropsChildren) {
             </Typography>
           </Stack>
 
-          <Box
-            sx={{
-              flex: 1,
-              maxWidth: 520,
-              display: { xs: 'none', md: 'flex' },
-              alignItems: 'center',
-              bgcolor: 'rgba(255,255,255,0.16)',
-              borderRadius: 2,
-              px: 1.5,
-              py: 0.5,
-              '&:focus-within': { bgcolor: 'rgba(255,255,255,0.24)' },
-            }}
-          >
-            <SearchIcon sx={{ color: 'rgba(255,255,255,0.85)', mr: 1 }} />
-            <InputBase
-              placeholder="Chache non, zòn, enfòmasyon, tip…"
+          <ClickAwayListener onClickAway={() => setSearchOpen(false)}>
+            <Box
+              ref={searchAnchorRef}
               sx={{
-                color: '#fff',
                 flex: 1,
-                fontSize: 14,
-                '& input::placeholder': { color: 'rgba(255,255,255,0.7)', opacity: 1 },
+                maxWidth: 520,
+                display: { xs: 'none', md: 'flex' },
+                alignItems: 'center',
+                bgcolor: 'rgba(255,255,255,0.16)',
+                borderRadius: 2,
+                px: 1.5,
+                py: 0.5,
+                position: 'relative',
+                '&:focus-within': { bgcolor: 'rgba(255,255,255,0.24)' },
               }}
-            />
-          </Box>
+            >
+              <SearchIcon sx={{ color: 'rgba(255,255,255,0.85)', mr: 1 }} />
+              <InputBase
+                inputRef={searchInputRef}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSearchOpen(true);
+                }}
+                onFocus={() => {
+                  if (searchQuery.trim().length >= 2) setSearchOpen(true);
+                }}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Chache non, zòn, enfòmasyon, tip…  (⌘K)"
+                inputProps={{
+                  'aria-label': 'Global search',
+                  autoComplete: 'off',
+                  spellCheck: false,
+                }}
+                sx={{
+                  color: '#fff',
+                  flex: 1,
+                  fontSize: 14,
+                  '& input::placeholder': { color: 'rgba(255,255,255,0.7)', opacity: 1 },
+                }}
+              />
+              {searchLoading && (
+                <CircularProgress size={14} sx={{ color: 'rgba(255,255,255,0.85)', mr: 0.5 }} />
+              )}
+              {searchQuery && (
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSearchHits([]);
+                    setSearchOpen(false);
+                    searchInputRef.current?.focus();
+                  }}
+                  sx={{ color: 'rgba(255,255,255,0.85)', p: 0.25 }}
+                  aria-label="Clear search"
+                >
+                  <ChevronRightIcon sx={{ transform: 'rotate(45deg)', fontSize: 18 }} />
+                </IconButton>
+              )}
+
+              <Popper
+                open={showPopper}
+                anchorEl={searchAnchorRef.current}
+                placement="bottom-start"
+                modifiers={[{ name: 'offset', options: { offset: [0, 8] } }]}
+                style={{ zIndex: theme.zIndex.modal + 1, width: searchAnchorRef.current?.clientWidth }}
+              >
+                <Paper
+                  elevation={8}
+                  sx={{
+                    width: '100%',
+                    maxHeight: 'min(70vh, 560px)',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    border: '1px solid rgba(15,23,42,0.08)',
+                  }}
+                >
+                  {searchLoading && <LinearProgress sx={{ height: 2 }} />}
+                  <Box sx={{ overflowY: 'auto', flex: 1 }}>
+                    {showEmpty ? (
+                      <Box sx={{ px: 2.5, py: 3, textAlign: 'center' }}>
+                        <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                          Pa gen rezilta pou{' '}
+                          <Typography component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                            "{searchQuery}"
+                          </Typography>
+                        </Typography>
+                        <Typography sx={{ fontSize: 11, color: 'text.disabled', mt: 0.5 }}>
+                          Eseye yon mo diferan oswa yon non lokal.
+                        </Typography>
+                      </Box>
+                    ) : (
+                      (() => {
+                        let runningIdx = 0;
+                        const groups: { label: string; rows: { hit: FlatHit; idx: number }[] }[] = [];
+                        flatHits.forEach((hit) => {
+                          const label = hit.sectionLabel;
+                          const last = groups[groups.length - 1];
+                          if (!last || last.label !== label) {
+                            groups.push({ label, rows: [{ hit, idx: runningIdx }] });
+                          } else {
+                            last.rows.push({ hit, idx: runningIdx });
+                          }
+                          runningIdx += 1;
+                        });
+                        return groups.map((g, gi) => (
+                          <Box key={`${g.label}-${gi}`} sx={{ pb: 0.5 }}>
+                            <Typography
+                              sx={{
+                                px: 2,
+                                pt: gi === 0 ? 1.25 : 1.5,
+                                pb: 0.5,
+                                fontSize: 10,
+                                fontWeight: 700,
+                                letterSpacing: '0.12em',
+                                textTransform: 'uppercase',
+                                color: 'text.disabled',
+                              }}
+                            >
+                              {g.label}
+                            </Typography>
+                            {g.rows.map(({ hit, idx }) => {
+                              const isPage = hit.kind === 'page';
+                              const accent = isPage ? '#475569' : kindConfig[hit.kind].color;
+                              const subtitle = isPage
+                                ? hit.subtitle
+                                : (hit as GlobalSearchHit).subtitle;
+                              const meta = isPage ? null : (hit as GlobalSearchHit).meta;
+                              const isActive = idx === activeIdx;
+                              return (
+                                <Box
+                                  key={`${hit.kind}-${hit.id}-${idx}`}
+                                  onMouseEnter={() => setActiveIdx(idx)}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    activateHit(hit);
+                                  }}
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1.25,
+                                    px: 2,
+                                    py: 1,
+                                    cursor: 'pointer',
+                                    bgcolor: isActive ? 'rgba(15,118,110,0.08)' : 'transparent',
+                                    borderLeft: isActive
+                                      ? `3px solid ${accent}`
+                                      : '3px solid transparent',
+                                    transition: 'background-color 80ms ease',
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      width: 28,
+                                      height: 28,
+                                      borderRadius: 1.25,
+                                      bgcolor: `${accent}1f`,
+                                      color: accent,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {isPage
+                                      ? (hit as PageHit).icon
+                                      : kindConfig[(hit as GlobalSearchHit).kind].icon}
+                                  </Box>
+                                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Typography
+                                      sx={{
+                                        fontSize: 13,
+                                        fontWeight: 600,
+                                        color: 'text.primary',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                      }}
+                                    >
+                                      {highlight(hit.title, searchQuery)}
+                                    </Typography>
+                                    {subtitle && (
+                                      <Typography
+                                        sx={{
+                                          fontSize: 11,
+                                          color: 'text.secondary',
+                                          whiteSpace: 'nowrap',
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                        }}
+                                      >
+                                        {highlight(subtitle, searchQuery)}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                  {meta && (
+                                    <Typography
+                                      sx={{
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        letterSpacing: '0.05em',
+                                        color: accent,
+                                        bgcolor: `${accent}14`,
+                                        px: 0.75,
+                                        py: 0.25,
+                                        borderRadius: 1,
+                                        flexShrink: 0,
+                                        textTransform: 'uppercase',
+                                      }}
+                                    >
+                                      {meta}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              );
+                            })}
+                          </Box>
+                        ));
+                      })()
+                    )}
+                  </Box>
+                  <Box
+                    sx={{
+                      px: 2,
+                      py: 0.75,
+                      borderTop: '1px solid rgba(15,23,42,0.08)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      bgcolor: 'rgba(15,23,42,0.02)',
+                    }}
+                  >
+                    <Typography sx={{ fontSize: 10, color: 'text.disabled' }}>
+                      ↑↓ navige · ↵ ouvri · esc fèmen
+                    </Typography>
+                    <Typography sx={{ fontSize: 10, color: 'text.disabled' }}>
+                      {searchLoading
+                        ? 'Ap chache…'
+                        : `${flatHits.length} rezilta`}
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Popper>
+            </Box>
+          </ClickAwayListener>
 
           <Stack direction="row" alignItems="center" spacing={1}>
             <Tooltip title="Notifications">
@@ -473,17 +941,13 @@ export default function App({ children }: PropsChildren) {
         <Box sx={{ p: 1.5 }}>
           {open ? (
             <Stack direction="row" alignItems="center" spacing={1.25}>
-              <Tooltip title={email || displayName}>
-                <Avatar sx={{ bgcolor: '#0f766e', width: 36, height: 36, fontWeight: 700 }}>
-                  {initials}
-                </Avatar>
-              </Tooltip>
+              <Avatar sx={{ bgcolor: '#0f766e', width: 36, height: 36, fontWeight: 700 }}>KR</Avatar>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }} noWrap>
-                  {displayName}
+                  Kerby R.
                 </Typography>
                 <Typography sx={{ fontSize: 11, color: 'text.secondary' }} noWrap>
-                  {email || roleLabel}
+                  Administratè
                 </Typography>
               </Box>
               <Tooltip title="Dekonekte">
@@ -494,13 +958,9 @@ export default function App({ children }: PropsChildren) {
             </Stack>
           ) : (
             <Stack alignItems="center" spacing={1}>
-              <Tooltip title={email || displayName}>
-                <Avatar
-                  sx={{ bgcolor: '#0f766e', width: 32, height: 32, fontWeight: 700, fontSize: 13 }}
-                >
-                  {initials}
-                </Avatar>
-              </Tooltip>
+              <Avatar sx={{ bgcolor: '#0f766e', width: 32, height: 32, fontWeight: 700, fontSize: 13 }}>
+                KR
+              </Avatar>
               <IconButton size="small" onClick={fnLogout}>
                 <ExitToApp fontSize="small" />
               </IconButton>

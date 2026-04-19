@@ -873,3 +873,65 @@ export const subscribeToModerationQueue = (
 		sb.removeChannel(channel);
 	};
 };
+
+// ---------------------------------------------------------------------------
+// Global search (app-bar)
+// ---------------------------------------------------------------------------
+
+export type GlobalSearchKind =
+	| "viktim"
+	| "zone_danger"
+	| "news"
+	| "kidnaping_alert"
+	| "moderation_queue";
+
+export type GlobalSearchHit = {
+	kind: GlobalSearchKind;
+	id: string;
+	title: string;
+	subtitle: string | null;
+	meta: string | null;
+	rank: number;
+};
+
+/**
+ * Fan-out full-text search across viktim / zone_danger / news / kidnaping_alert
+ * / moderation_queue. RLS still applies, so e.g. moderation rows are only
+ * returned to moderators+admins.
+ *
+ * Pass `signal` to drop in-flight requests when the user keeps typing.
+ */
+export const searchGlobal = async (
+	query: string,
+	limit = 8,
+	signal?: AbortSignal,
+): Promise<GlobalSearchHit[]> => {
+	const trimmed = query.trim();
+	if (trimmed.length < 2) return [];
+	try {
+		// AbortController integration: PostgREST/Supabase client uses fetch under
+		// the hood; .abortSignal() forwards the signal so the network request is
+		// cancelled when the user keeps typing.
+		const builder = getSupabase().rpc("search_global", {
+			p_query: trimmed,
+			p_limit: limit,
+		});
+		const { data, error } = await (signal ? builder.abortSignal(signal) : builder);
+		if (error) {
+			if (error.message?.toLowerCase().includes("aborted")) return [];
+			throw error;
+		}
+		return (data ?? []).map((r: any) => ({
+			kind: r.kind as GlobalSearchKind,
+			id: String(r.id),
+			title: String(r.title ?? ""),
+			subtitle: (r.subtitle as string | null) ?? null,
+			meta: (r.meta as string | null) ?? null,
+			rank: Number(r.rank ?? 0),
+		}));
+	} catch (e) {
+		if ((e as { name?: string })?.name === "AbortError") return [];
+		console.error("searchGlobal failed", e);
+		return [];
+	}
+};

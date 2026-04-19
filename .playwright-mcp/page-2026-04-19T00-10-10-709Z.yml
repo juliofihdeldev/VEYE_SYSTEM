@@ -1,0 +1,36 @@
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - heading "VEYe Dashboard" [level=1] [ref=e6]
+    - paragraph [ref=e7]: Community-driven safety platform. Report incidents, track alerts, and keep your community informed.
+  - generic [ref=e9]:
+    - heading "Sign in to your account" [level=5] [ref=e10]
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - text: Email Address
+          - generic [ref=e14]: "*"
+        - generic [ref=e15]:
+          - textbox "Email Address" [active] [ref=e16]
+          - group:
+            - generic: Email Address *
+      - generic [ref=e17]:
+        - generic:
+          - text: Password
+          - generic: "*"
+        - generic [ref=e18]:
+          - textbox "Password" [ref=e19]
+          - group:
+            - generic: Password *
+      - generic [ref=e20] [cursor=pointer]:
+        - generic [ref=e21]:
+          - checkbox "Remember me" [ref=e22]
+          - img [ref=e23]
+        - generic [ref=e25]: Remember me
+      - button "Sign In" [ref=e26] [cursor=pointer]: Sign In
+      - link "Forgot password?" [ref=e29] [cursor=pointer]:
+        - /url: /
+    - paragraph [ref=e30]:
+      - text: Copyright ©
+      - link "VEYe" [ref=e31] [cursor=pointer]:
+        - /url: https://veye.dev/
+      - text: "2026."

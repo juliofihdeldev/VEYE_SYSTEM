@@ -15,12 +15,12 @@
     "tauri": "pnpm exec tauri"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.4",
     "@emotion/react": "^11.10.6",
     "@emotion/styled": "^11.10.6",
-    "@mui/icons-material": "^5.11.16",
-    "@mui/material": "^5.11.16",
+    "@mui/icons-material": "^5.18.0",
+    "@mui/material": "^5.18.0",
     "@react-google-maps/api": "^2.18.1",
+    "@supabase/supabase-js": "^2.49.4",
     "google-map-react": "^2.2.0",
     "localforage": "^1.10.0",
     "match-sorter": "^6.3.1",

@@ -20,5 +20,17 @@ export default defineConfig(({ mode }) => {
     envDir: packageDir,
     base: useRelativeBase ? "./" : "/",
     plugins: [react()],
+    // Force Vite to pre-bundle MUI's styled engine + emotion in the right order so
+    // `Popper.js` doesn't crash with `styled_default is not a function` on first load.
+    optimizeDeps: {
+      include: [
+        "@mui/material",
+        "@mui/material/styles",
+        "@mui/material/Popper",
+        "@mui/material/Tooltip",
+        "@emotion/react",
+        "@emotion/styled",
+      ],
+    },
   };
 });
