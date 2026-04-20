@@ -285,7 +285,6 @@ private fun WelcomeStep(
         Spacer(Modifier.height(VEyeSpacing.md))
         StepHeadline(text = stringResource(R.string.onboarding_welcome_kreyol_headline))
         Spacer(Modifier.height(VEyeSpacing.xs))
-        StepSubhead(text = stringResource(R.string.onboarding_welcome_subhead))
         Spacer(Modifier.height(VEyeSpacing.lg))
         LanguagePicker(
             currentTag = currentLocaleTag,

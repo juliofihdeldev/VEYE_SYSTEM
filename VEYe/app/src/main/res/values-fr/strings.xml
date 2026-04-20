@@ -132,7 +132,7 @@
     <string name="onboarding_continue">Continuer</string>
     <string name="onboarding_step_indicator">%1$d sur %2$d</string>
 
-    <string name="onboarding_welcome_kreyol_headline">Veye katye ou. Ann veye youn pou lòt.</string>
+    <string name="onboarding_welcome_kreyol_headline">VEYe Zòn ou. Ann VEYe youn pou lòt.</string>
     <string name="onboarding_welcome_subhead">Veillez sur votre quartier. Veillons les uns sur les autres.</string>
     <string name="onboarding_welcome_pill_anonymous_title">Anonyme</string>
     <string name="onboarding_welcome_pill_anonymous_body">Pas de compte requis. Vos signalements restent anonymes par défaut.</string>
@@ -143,7 +143,7 @@
     <string name="onboarding_welcome_language_label">Langue</string>
     <string name="onboarding_welcome_cta">Commencer</string>
 
-    <string name="onboarding_aware_kreyol_headline">Konnen sa k ap pase toupre w.</string>
+    <string name="onboarding_aware_kreyol_headline">Obtenez des informations sur les zones de danger et les alertes dans votre zone.</string>
     <string name="onboarding_aware_subhead">Recevez une notification dès qu\'un kidnapping, une fusillade ou une zone de danger est signalé près de vous.</string>
     <string name="onboarding_aware_radius_title">M\'alerter dans un rayon de</string>
     <string name="onboarding_aware_radius_value">À moins de %1$d km</string>
@@ -153,7 +153,7 @@
     <string name="onboarding_aware_denied_hint">Pas de souci — vous pouvez toujours consulter les alertes dans l\'app. Activez-les plus tard depuis Profil → Notifications.</string>
     <string name="onboarding_aware_skip">Pas maintenant</string>
 
-    <string name="onboarding_location_kreyol_headline">Wè sa k otou w sou kat la.</string>
+    <string name="onboarding_location_kreyol_headline">Voir ce qui se passe autour de vous.</string>
     <string name="onboarding_location_subhead">Nous utilisons votre position pour centrer la carte et vous montrer les alertes près de vous.</string>
     <string name="onboarding_location_privacy">Votre position reste sur votre appareil — elle n\'est partagée avec personne, pas même les autres utilisateurs.</string>
     <string name="onboarding_location_cta_request">Activer la localisation</string>
