@@ -335,7 +335,7 @@
     "intro": "Lance menm tretman ke tach ki planifye a: pran nouvo mesaj Telegram, pase yo nan IA, ekri nan baz la (ZoneDanger, News, etc.). Li ka pran jiska ~2 minit. Repons lan endike si chak mizajou soti nan yon <1>kanal</1>, yon <3>gwoup</3>, yon <5>supergwoup</5> oswa yon konvèsasyon <7>prive</7> ak bot la.",
     "run": "Lanse moniteur Telegram",
     "running": "Egzekisyon ap fèt…",
-    "errorUnauthorized": "Pa otorize — verifye VITE_PROCESS_ALERT_SECRET.",
+    "errorUnauthorized": "Pa otorize — kont ou dwe gen wòl admin oswa moderatè.",
     "errorGeneric": "Echèk apèl la",
     "successTitle": "Egzekisyon fini",
     "successDetails": "Mizajou Telegram trete: <strong>{{processed}}</strong> · ZoneDanger: <strong>{{zones}}</strong> · Viktim: <strong>{{viktim}}</strong> · News: <strong>{{news}}</strong> · IA pa enpòtan: <strong>{{notRelevant}}</strong> · IA doublon: <strong>{{duplicate}}</strong>",

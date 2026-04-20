@@ -57,8 +57,6 @@ android {
         fun esc(s: String) = s.replace("\\", "\\\\").replace("\"", "\\\"")
         buildConfigField("String", "SUPABASE_URL", "\"${esc(supabaseUrl)}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${esc(supabaseAnonKey)}\"")
-        val processAlertSecret = (localProperties.getProperty("PROCESS_ALERT_SECRET") ?: "").trim()
-        buildConfigField("String", "PROCESS_ALERT_SECRET", "\"${esc(processAlertSecret)}\"")
     }
 
     buildTypes {

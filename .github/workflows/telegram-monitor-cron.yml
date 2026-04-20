@@ -1,8 +1,12 @@
 # Step 4 — Invoke Supabase Edge `telegram-monitor` every 15 minutes (America/Toronto ≈ Haiti-adjacent; adjust if needed).
+#
+# The function enforces `requireDashboardRole` (see `supabase/functions/_shared/auth.ts`),
+# which recognises a bearer token equal to `SUPABASE_SERVICE_ROLE_KEY` as an admin caller.
+# That's the pattern used here because scheduled CI has no interactive Supabase session.
+#
 # Configure repository secrets (Settings → Secrets and variables → Actions):
 #   SUPABASE_FUNCTION_TELEGRAM_URL — full URL, e.g. https://<project-ref>.supabase.co/functions/v1/telegram-monitor
-#   SUPABASE_ANON_KEY — project anon key (Authorization header required by Edge even with verify_jwt=false)
-#   PROCESS_ALERT_SECRET — optional; sent as x-veye-secret if set (must match Edge secret)
+#   SUPABASE_SERVICE_ROLE_KEY      — project service-role key (Settings → API — service_role). Treat as a secret.
 
 name: Telegram monitor (15 min)
 
@@ -24,18 +28,17 @@ jobs:
       - name: POST telegram-monitor
         env:
           URL: ${{ secrets.SUPABASE_FUNCTION_TELEGRAM_URL }}
-          ANON: ${{ secrets.SUPABASE_ANON_KEY }}
-          SECRET: ${{ secrets.PROCESS_ALERT_SECRET }}
+          SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "${URL:-}" ] || [ -z "${ANON:-}" ]; then
-            echo "Missing SUPABASE_FUNCTION_TELEGRAM_URL or SUPABASE_ANON_KEY repository secrets."
+          if [ -z "${URL:-}" ] || [ -z "${SERVICE_ROLE:-}" ]; then
+            echo "Missing SUPABASE_FUNCTION_TELEGRAM_URL or SUPABASE_SERVICE_ROLE_KEY repository secrets."
             exit 1
           fi
-          HDR=( -H "Authorization: Bearer ${ANON}" -H "Content-Type: application/json" )
-          if [ -n "${SECRET:-}" ]; then
-            HDR+=( -H "x-veye-secret: ${SECRET}" )
-          fi
-          curl -sfS -X POST "$URL" "${HDR[@]}" -d '{}' --max-time 120 -D -
+          curl -sfS -X POST "$URL" \
+            -H "Authorization: Bearer ${SERVICE_ROLE}" \
+            -H "apikey: ${SERVICE_ROLE}" \
+            -H "Content-Type: application/json" \
+            -d '{}' --max-time 120 -D -
           echo
           echo "OK"

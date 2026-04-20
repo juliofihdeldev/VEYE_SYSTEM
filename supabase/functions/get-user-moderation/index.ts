@@ -1,19 +1,21 @@
 import { serviceClient } from "../_shared/supabase.ts";
-import { corsPreflightResponse, jsonResponse, verifySecret } from "../_shared/http.ts";
+import { corsPreflightResponse, jsonResponse } from "../_shared/http.ts";
 import { isUserBlocked } from "../_shared/ai_pipeline.ts";
 
-/** Read-only moderation state for the app (may auto-clear `blocked` when 72h cooldown expired — same logic as `process-global-alert`). */
+/**
+ * Read-only moderation state for the app (may auto-clear `blocked` when 72h
+ * cooldown expired — same logic as `process-global-alert`).
+ *
+ * Auth model: invoked by anonymous mobile users. `verify_jwt` at the Supabase
+ * Functions gateway enforces a valid session; the `userId` in the body is
+ * used as the lookup key.
+ */
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return corsPreflightResponse();
   }
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405);
-  }
-
-  const secretOk = await verifySecret(req);
-  if (!secretOk) {
-    return jsonResponse({ error: "Unauthorized" }, 401);
   }
 
   let body: { userId?: string };

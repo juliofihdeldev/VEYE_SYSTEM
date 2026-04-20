@@ -1,18 +1,27 @@
 import { getSupabase } from "../lib/supabase";
 
-/** Call a deployed Edge function from the browser (preferred over raw axios to avoid CORS/header issues). */
+/**
+ * Call a deployed Edge function from the browser.
+ *
+ * Authentication is carried by the caller's Supabase session (JWT attached
+ * automatically by `supabase-js`). Edge functions enforce roles server-side
+ * via `requireDashboardRole` (see `supabase/functions/_shared/auth.ts`).
+ */
 async function invokeEdge<T = unknown>(functionName: string, body: Record<string, unknown> = {}): Promise<T> {
 	const sb = getSupabase();
-	const secret = import.meta.env.VITE_PROCESS_ALERT_SECRET as string | undefined;
-	const headers: Record<string, string> = {};
-	if (secret) headers["x-veye-secret"] = secret;
-
-	const { data, error } = await sb.functions.invoke(functionName, {
-		body,
-		...(Object.keys(headers).length > 0 ? { headers } : {}),
-	});
-
+	const { data, error } = await sb.functions.invoke(functionName, { body });
 	if (error) {
+		// Surface the response body (structured { error, code, hint }) when we can.
+		type FunctionsHttpError = Error & { context?: { status?: number; text?: () => Promise<string> } };
+		const ctx = (error as FunctionsHttpError).context;
+		if (ctx && typeof ctx.text === "function") {
+			try {
+				const payload = await ctx.text();
+				if (payload) throw new Error(payload);
+			} catch (nested) {
+				if (nested instanceof Error && nested !== error) throw nested;
+			}
+		}
 		throw new Error(error.message || "Edge function request failed");
 	}
 	return data as T;
@@ -151,37 +160,8 @@ export const searchDangerZones = async ({
 	}
 };
 
-const TELEGRAM_MONITOR_RUN_URL = import.meta.env.VITE_TELEGRAM_MONITOR_RUN_URL as string | undefined;
-
-/** Manually trigger Telegram channel monitor (Edge, or legacy URL if `VITE_TELEGRAM_MONITOR_RUN_URL` is set). */
-export const runTelegramMonitor = async () => {
-	if (TELEGRAM_MONITOR_RUN_URL) {
-		const secret = import.meta.env.VITE_PROCESS_ALERT_SECRET as string | undefined;
-		const controller = new AbortController();
-		const timer = window.setTimeout(() => controller.abort(), 130_000);
-		try {
-			const res = await fetch(TELEGRAM_MONITOR_RUN_URL, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					...(secret ? { "x-veye-secret": secret } : {}),
-				},
-				body: "{}",
-				signal: controller.signal,
-			});
-			const text = await res.text();
-			if (!res.ok) throw new Error(text || res.statusText);
-			try {
-				return JSON.parse(text);
-			} catch {
-				return text;
-			}
-		} finally {
-			window.clearTimeout(timer);
-		}
-	}
-	return invokeEdge("telegram-monitor", {});
-};
+/** Manually trigger Telegram channel monitor (admin/moderator only — enforced server-side). */
+export const runTelegramMonitor = async () => invokeEdge("telegram-monitor", {});
 
 export const handleSendAlert = async (data: any) => {
 	if (!data) return;

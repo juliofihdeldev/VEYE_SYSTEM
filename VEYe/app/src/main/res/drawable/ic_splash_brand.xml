@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+    Splash icon wrapper.
+
+    Android 12+'s SplashScreen API gives the icon a 288dp container that is
+    circular-masked at runtime. Rendering `ic_brand_mark.png` directly fills
+    the 288dp box, which puts the wide "iVYe" wordmark right against the
+    mask edges and clips the "i" dot and the curl of the "e".
+
+    Insetting the bitmap by 56dp on every side renders the wordmark inside
+    a 176dp box — well within the 192dp inner safe area recommended for
+    splash icon content — so nothing gets clipped on any device.
+-->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_brand_mark"
+    android:inset="56dp" />

@@ -2,7 +2,6 @@ package com.elitesoftwarestudio.veye.data.map
 
 import android.os.Bundle
 import android.util.Log
-import com.elitesoftwarestudio.veye.BuildConfig
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.auth.FirebaseAuth
 import io.github.jan.supabase.SupabaseClient
@@ -50,10 +49,6 @@ class DemantiRepository @Inject constructor(
                 val response =
                     supabase.functions.invoke("process-demanti") {
                         contentType(ContentType.Application.Json)
-                        val secret = BuildConfig.PROCESS_ALERT_SECRET
-                        if (secret.isNotBlank()) {
-                            headers.append("x-veye-secret", secret)
-                        }
                         setBody(json.toString())
                     }
                 val raw = response.bodyAsText()

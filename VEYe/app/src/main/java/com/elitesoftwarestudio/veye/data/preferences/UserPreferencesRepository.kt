@@ -32,6 +32,16 @@ class UserPreferencesRepository @Inject constructor(
         prefs[PrefKeys.LOCALE_TAG] ?: ""
     }
 
+    /** True once the user has completed (or explicitly skipped) the first-launch flow. */
+    val onboardingCompleted: Flow<Boolean> = store.data.map { prefs ->
+        prefs[PrefKeys.ONBOARDING_COMPLETED] ?: false
+    }
+
+    /** Last finished step index (0-based). Used to resume mid-flow on relaunch. */
+    val onboardingLastStep: Flow<Int> = store.data.map { prefs ->
+        prefs[PrefKeys.ONBOARDING_LAST_STEP] ?: 0
+    }
+
     val mapSession: Flow<MapSessionPrefs> = store.data.map { prefs ->
         val hasLat = prefs.contains(PrefKeys.MAP_LATITUDE)
         val hasLon = prefs.contains(PrefKeys.MAP_LONGITUDE)
@@ -72,9 +82,24 @@ class UserPreferencesRepository @Inject constructor(
         store.edit { it[PrefKeys.NOTIFICATIONS_ENABLED] = enabled }
     }
 
+    suspend fun setOnboardingCompleted(completed: Boolean) {
+        store.edit { it[PrefKeys.ONBOARDING_COMPLETED] = completed }
+    }
+
+    suspend fun setOnboardingLastStep(index: Int) {
+        store.edit { it[PrefKeys.ONBOARDING_LAST_STEP] = index }
+    }
+
     /** Used on cold start before first Activity. */
     suspend fun readLocaleTagForStartup(): String =
         store.data.map { it[PrefKeys.LOCALE_TAG] ?: "" }.first()
+
+    /**
+     * Cold-start gate. Reads the onboarding flag synchronously so the activity can route
+     * straight to the onboarding flow without flashing the home shell.
+     */
+    suspend fun readOnboardingCompletedForStartup(): Boolean =
+        store.data.map { it[PrefKeys.ONBOARDING_COMPLETED] ?: false }.first()
 
     companion object {
         const val THEME_SYSTEM = "system"

@@ -1,5 +1,6 @@
 import { serviceClient } from "../_shared/supabase.ts";
-import { corsHeaders, jsonResponse, verifySecret } from "../_shared/http.ts";
+import { corsHeaders, jsonResponse } from "../_shared/http.ts";
+import { requireDashboardRole } from "../_shared/auth.ts";
 import { processPost } from "../_shared/ai_pipeline.ts";
 
 Deno.serve(async (req: Request) => {
@@ -10,8 +11,18 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  const ok = await verifySecret(req);
-  if (!ok) return jsonResponse({ error: "Unauthorized" }, 401);
+  const caller = await requireDashboardRole(req, ["admin", "moderator"]);
+  if (!caller) {
+    return jsonResponse(
+      {
+        error: "Unauthorized",
+        code: "PROCESS_ADMIN_ALERT_FORBIDDEN",
+        hint: "Requires an admin or moderator dashboard session.",
+      },
+      401,
+    );
+  }
+  console.log("process-admin-alert invoked by", caller.email, caller.role);
 
   let body: Record<string, unknown>;
   try {

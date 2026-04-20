@@ -335,7 +335,7 @@
     "intro": "Runs the same job as the scheduled task: fetch new Telegram messages, run them through the AI, write to the database (DangerZone, News, etc.). Can take up to ~2 minutes. The response shows whether each update came from a <1>channel</1>, a <3>group</3>, a <5>supergroup</5>, or a <7>private</7> chat with the bot.",
     "run": "Run Telegram monitor",
     "running": "Running…",
-    "errorUnauthorized": "Unauthorized — check VITE_PROCESS_ALERT_SECRET.",
+    "errorUnauthorized": "Unauthorized — your account needs the admin or moderator role.",
     "errorGeneric": "Call failed",
     "successTitle": "Run complete",
     "successDetails": "Telegram updates processed: <strong>{{processed}}</strong> · DangerZone: <strong>{{zones}}</strong> · Victims: <strong>{{viktim}}</strong> · News: <strong>{{news}}</strong> · AI not relevant: <strong>{{notRelevant}}</strong> · AI duplicate: <strong>{{duplicate}}</strong>",

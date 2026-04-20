@@ -1,7 +1,6 @@
 package com.elitesoftwarestudio.veye.data.user
 
 import android.util.Log
-import com.elitesoftwarestudio.veye.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
@@ -91,10 +90,6 @@ class UserModerationRepository @Inject constructor(
             val response =
                 supabase.functions.invoke("get-user-moderation") {
                     contentType(ContentType.Application.Json)
-                    val secret = BuildConfig.PROCESS_ALERT_SECRET
-                    if (secret.isNotBlank()) {
-                        headers.append("x-veye-secret", secret)
-                    }
                     setBody(json.toString())
                 }
             if (!response.status.isSuccess()) {

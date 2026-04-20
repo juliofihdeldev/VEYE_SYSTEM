@@ -39,7 +39,7 @@ class AlertsViewModel @Inject constructor(
             UserPreferencesRepository.DEFAULT_MAP_SESSION,
         )
 
-    private val _filter = MutableStateFlow(AlertsListFilter.Kidnaping)
+    private val _filter = MutableStateFlow(AlertsListFilter.All)
     val filter: StateFlow<AlertsListFilter> = _filter.asStateFlow()
 
     private val _alerts = MutableStateFlow<List<ViktimAlert>>(emptyList())

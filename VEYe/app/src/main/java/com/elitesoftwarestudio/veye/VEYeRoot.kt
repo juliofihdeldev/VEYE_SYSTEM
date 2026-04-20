@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
@@ -70,51 +71,68 @@ fun VEYeRoot(
         contentWindowInsets = WindowInsets.navigationBars,
         bottomBar = {
             if (MainDestination.entries.any { it.route == currentDestination?.route }) {
-            NavigationBar {
-                MainDestination.entries.forEach { dest ->
-                    val selected = currentDestination?.hierarchy?.any { it.route == dest.route } == true
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(dest.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = NavigationBarDefaults.Elevation,
+                ) {
+                    MainDestination.entries.forEach { dest ->
+                        val selected =
+                            currentDestination?.hierarchy?.any { it.route == dest.route } == true
+                        val iconScale by animateFloatAsState(
+                            targetValue = if (selected) 1.08f else 1f,
+                            animationSpec =
+                                spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMediumLow,
+                                ),
+                            label = "navIconScale",
+                        )
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(dest.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = {
-                            val iconScale by animateFloatAsState(
-                                targetValue = if (selected) 1.08f else 1f,
-                                animationSpec =
-                                    spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMediumLow,
-                                    ),
-                                label = "navIconScale",
-                            )
-                            Icon(
-                                imageVector = dest.icon,
-                                contentDescription = stringResource(dest.labelRes),
-                                modifier = Modifier.scale(iconScale),
-                            )
-                        },
-                        label = { Text(stringResource(dest.labelRes)) },
-                        colors = if (dest.isReportFab) {
-                            NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                indicatorColor = MaterialTheme.colorScheme.primary,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        } else {
-                            NavigationBarItemDefaults.colors()
-                        },
-                    )
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = dest.icon,
+                                    contentDescription = stringResource(dest.labelRes),
+                                    modifier = Modifier.scale(iconScale),
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = stringResource(dest.labelRes),
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            },
+                            alwaysShowLabel = true,
+                            colors =
+                                if (dest.isReportFab) {
+                                    NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                                        indicatorColor = MaterialTheme.colorScheme.primary,
+                                        unselectedIconColor = MaterialTheme.colorScheme.primary,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                } else {
+                                    NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.onSurface,
+                                        selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        indicatorColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                        )
+                    }
                 }
-            }
             }
         },
     ) { innerPadding ->

@@ -1,6 +1,9 @@
 package com.elitesoftwarestudio.veye.ui.profile
 
 import android.app.Activity
+import android.app.LocaleManager
+import android.os.Build
+import android.os.LocaleList
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
@@ -81,29 +84,36 @@ class ProfileViewModel @Inject constructor(
     }
 
     /**
-     * Persists locale, applies it app-wide, and recreates the activity on the next frame so the
-     * entire UI (Compose + resources) reloads. Pass [tag] empty to follow the system language.
+     * Persists the chosen locale and applies it app-wide. Pass [tag] empty to follow the
+     * system language.
+     *
+     * On Android 13+ we drive the framework [LocaleManager] directly — it is the
+     * authoritative per-app-locale store on modern devices, fires a configuration change
+     * on its own, and Settings → System → Languages reflects the choice. On Android 12
+     * and below we fall back to [AppCompatDelegate], which only works because the
+     * `AppLocalesMetadataHolderService` marker is declared in the manifest (without it
+     * the call is a silent no-op pre-API 33).
+     *
+     * Both paths trigger a configuration change that recreates the activity, and
+     * `MainActivity` keys its Compose tree on the locale tag, so the entire UI rebuilds
+     * with the new resources.
      */
     fun applyLanguage(tag: String, activity: Activity) {
         viewModelScope.launch {
             userPreferencesRepository.setLocaleTag(tag)
             withContext(Dispatchers.Main) {
-                val locales = if (tag.isBlank()) {
-                    LocaleListCompat.getEmptyLocaleList()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    val manager = activity.getSystemService(LocaleManager::class.java)
+                    manager?.applicationLocales =
+                        if (tag.isBlank()) LocaleList.getEmptyLocaleList()
+                        else LocaleList.forLanguageTags(tag)
                 } else {
-                    LocaleListCompat.forLanguageTags(tag)
-                }
-                AppCompatDelegate.setApplicationLocales(locales)
-                val decor = activity.window?.decorView
-                val recreate = Runnable {
-                    if (!activity.isFinishing && !activity.isDestroyed) {
-                        activity.recreate()
+                    val locales = if (tag.isBlank()) {
+                        LocaleListCompat.getEmptyLocaleList()
+                    } else {
+                        LocaleListCompat.forLanguageTags(tag)
                     }
-                }
-                if (decor != null) {
-                    decor.post(recreate)
-                } else {
-                    recreate.run()
+                    AppCompatDelegate.setApplicationLocales(locales)
                 }
             }
         }
@@ -120,6 +130,19 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.setNotificationRadiusKm(km)
             runCatching { userDocumentRepository.mergeNotificationRadiusKm(km) }
+        }
+    }
+
+    /**
+     * Debug-only escape hatch to replay the first-launch flow without reinstalling.
+     * Wipes the completion + last-step keys; `MainViewModel.onboardingNeeded` observes
+     * the same DataStore key, so the activity swaps to `OnboardingHost` on the next
+     * emission with no restart required.
+     */
+    fun resetOnboarding() {
+        viewModelScope.launch {
+            userPreferencesRepository.setOnboardingLastStep(0)
+            userPreferencesRepository.setOnboardingCompleted(false)
         }
     }
 

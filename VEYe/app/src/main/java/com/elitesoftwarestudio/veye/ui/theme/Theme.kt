@@ -130,6 +130,7 @@ fun VEYeTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = VEyeShapes,
         content = content,
     )
 }

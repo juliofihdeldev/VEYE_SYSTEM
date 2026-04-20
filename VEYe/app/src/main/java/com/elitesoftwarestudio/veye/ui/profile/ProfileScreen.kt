@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.Radar
+import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -134,6 +135,7 @@ fun ProfileScreen(viewModel: ProfileViewModel = hiltViewModel()) {
         onRadiusPick = { km -> viewModel.setRadiusKm(km) },
         onNotifRadiusPick = { km -> viewModel.setNotificationRadiusKm(km) },
         onLogoutConfirm = { activity?.let { viewModel.logout(it) } },
+        onResetOnboarding = { viewModel.resetOnboarding() },
     )
 }
 
@@ -151,6 +153,7 @@ private fun ProfileScreenContent(
     onRadiusPick: (Double) -> Unit,
     onNotifRadiusPick: (Double) -> Unit,
     onLogoutConfirm: () -> Unit,
+    onResetOnboarding: () -> Unit,
 ) {
     val context = LocalContext.current
     val systemDark = isSystemInDarkTheme()
@@ -165,6 +168,7 @@ private fun ProfileScreenContent(
     var showRadius by rememberSaveable { mutableStateOf(false) }
     var showNotifRadius by rememberSaveable { mutableStateOf(false) }
     var showLogout by rememberSaveable { mutableStateOf(false) }
+    var showResetOnboarding by rememberSaveable { mutableStateOf(false) }
 
     var customRadiusText by remember { mutableStateOf("") }
     var customNotifRadiusText by remember { mutableStateOf("") }
@@ -298,6 +302,31 @@ private fun ProfileScreenContent(
                 )
             }
 
+            if (BuildConfig.DEBUG) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.profile_debug_section),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 6.dp),
+                )
+                ProfileSectionCard {
+                    ProfileMenuRow(
+                        icon = {
+                            Icon(
+                                Icons.Outlined.RestartAlt,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        },
+                        title = stringResource(R.string.profile_debug_reset_onboarding),
+                        subtitle = stringResource(R.string.profile_debug_reset_onboarding_subtitle),
+                        badge = null,
+                        onClick = { showResetOnboarding = true },
+                    )
+                }
+            }
+
             Text(
                 text = stringResource(R.string.profile_version, versionName),
                 style = MaterialTheme.typography.bodySmall,
@@ -402,6 +431,29 @@ private fun ProfileScreenContent(
         )
     }
 
+    if (showResetOnboarding) {
+        AlertDialog(
+            onDismissRequest = { showResetOnboarding = false },
+            title = { Text(stringResource(R.string.profile_debug_reset_onboarding_confirm_title)) },
+            text = { Text(stringResource(R.string.profile_debug_reset_onboarding_confirm_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onResetOnboarding()
+                        showResetOnboarding = false
+                    },
+                ) {
+                    Text(stringResource(R.string.profile_debug_reset_onboarding_confirm_cta))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetOnboarding = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
+
     if (showLogout) {
         AlertDialog(
             onDismissRequest = { showLogout = false },
@@ -498,6 +550,7 @@ private fun ProfileMenuRow(
     title: String,
     badge: String?,
     titleColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+    subtitle: String? = null,
     onClick: () -> Unit,
 ) {
     Row(
@@ -509,14 +562,24 @@ private fun ProfileMenuRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         icon()
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = titleColor,
+        Column(
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 14.dp),
-        )
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = titleColor,
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         if (badge != null) {
             Text(
                 text = badge,
@@ -624,6 +687,7 @@ fun ProfileScreenPreview() {
             onRadiusPick = {},
             onNotifRadiusPick = {},
             onLogoutConfirm = {},
+            onResetOnboarding = {},
         )
     }
 }

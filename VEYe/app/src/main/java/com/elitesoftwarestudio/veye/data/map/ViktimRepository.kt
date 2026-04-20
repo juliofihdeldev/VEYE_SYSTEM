@@ -55,13 +55,18 @@ class ViktimRepository @Inject constructor(
     }
 
     suspend fun fetchViktimAlertById(id: String): ViktimAlert? {
-        val row =
+        // We deliberately avoid `.single()` here: PostgREST returns 406 when zero (or >1)
+        // rows match, which decodeSingleOrNull then surfaces as null on every failure mode
+        // (network blip, deleted row, ambiguous id) and made the alert detail look like a
+        // permanent dead end. limit(1) + firstOrNull keeps the happy path identical and
+        // lets transient errors bubble up as exceptions to the caller for proper handling.
+        val rows =
             supabase.from("viktim").select {
                 filter {
                     eq("id", id)
                 }
-                single()
-            }.decodeSingleOrNull<ViktimRow>()
-        return row?.toAlert()
+                limit(1)
+            }.decodeList<ViktimRow>()
+        return rows.firstOrNull()?.toAlert()
     }
 }

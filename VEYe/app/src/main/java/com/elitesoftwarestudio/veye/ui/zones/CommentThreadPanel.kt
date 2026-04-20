@@ -1,7 +1,6 @@
 package com.elitesoftwarestudio.veye.ui.zones
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Favorite
@@ -40,14 +38,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elitesoftwarestudio.veye.R
@@ -55,6 +49,8 @@ import com.elitesoftwarestudio.veye.data.comments.CommentListRow
 import com.elitesoftwarestudio.veye.data.comments.CommentsRepository
 import com.elitesoftwarestudio.veye.data.comments.StoredComment
 import com.elitesoftwarestudio.veye.data.comments.flattenCommentThread
+import com.elitesoftwarestudio.veye.ui.components.CommentRow
+import com.elitesoftwarestudio.veye.ui.components.rememberAvatarColor
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
@@ -64,25 +60,6 @@ private val IgHeart = Color(0xFFFF3040)
 private val PostActionBlue = Color(0xFF2196F3)
 private val DefaultUserAvatarRed = Color(0xFFFF3040)
 private val ReplyIndent = 16.dp
-
-private val AvatarPalette =
-    listOf(
-        Color(0xFFC13584),
-        Color(0xFFE1306C),
-        Color(0xFFF56040),
-        Color(0xFFFCAF45),
-        Color(0xFF405DE6),
-        Color(0xFF5851DB),
-        Color(0xFF833AB4),
-    )
-
-private fun avatarColor(seed: String): Color {
-    var h = 0
-    for (i in seed.indices) {
-        h = (h + seed[i].code * (i + 1)) % 997
-    }
-    return AvatarPalette[h % AvatarPalette.size]
-}
 
 @Composable
 private fun commentDisplayName(c: StoredComment): String =
@@ -222,14 +199,14 @@ fun CommentThreadPanel(
                 }
             } else {
                 items(rows, key = { it.comment.id }) { row ->
-                    CommentRow(
+                    ThreadCommentRow(
                         row = row,
                         formatTime = ::formatCommentTime,
                         onReply = { replyingTo = it },
                         onToggleLike = { id ->
                             scope.launch { commentsRepository.toggleCommentLike(id) }
                         },
-                        stackedLayout = detailStyle,
+                        horizontalPadding = if (detailStyle) 20.dp else 12.dp,
                     )
                 }
             }
@@ -338,122 +315,66 @@ fun CommentThreadPanel(
     }
 }
 
+/**
+ * Thread-aware wrapper around the design-system [CommentRow]. It supplies depth indent
+ * (replies cascade by [ReplyIndent]), seed-based avatar colour from the design system,
+ * and a like / reply footer fed by the thread state.
+ */
 @Composable
-private fun CommentRow(
+private fun ThreadCommentRow(
     row: CommentListRow,
     formatTime: (Long) -> String,
     onReply: (StoredComment) -> Unit,
     onToggleLike: (String) -> Unit,
-    stackedLayout: Boolean,
+    horizontalPadding: androidx.compose.ui.unit.Dp,
 ) {
     val item = row.comment
     val depth = row.depth
     val name = commentDisplayName(item)
     val genericUser = stringResource(R.string.common_user)
-    val av =
+    val avatar =
         if (!item.isSelf && name == genericUser) {
             DefaultUserAvatarRed
         } else {
-            avatarColor(name + item.id)
+            rememberAvatarColor(name + item.id)
         }
-    val avatarSize = if (depth > 0) 30.dp else 40.dp
-    val hPad = if (stackedLayout) 20.dp else 12.dp
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                start = (depth * ReplyIndent.value).dp + hPad,
-                end = hPad,
-                top = if (stackedLayout) 14.dp else 10.dp,
-            ),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(avatarSize)
-                .clip(CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Surface(color = av, shape = CircleShape, modifier = Modifier.fillMaxSize()) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    Text(
-                        text = name.take(1).uppercase(),
-                        color = Color.White,
-                        style =
-                            if (depth > 0) {
-                                MaterialTheme.typography.labelMedium
-                            } else {
-                                MaterialTheme.typography.titleSmall
-                            },
-                    )
-                }
-            }
+    val likeLabel =
+        when {
+            item.likeCount == 0 -> stringResource(R.string.comments_like_verb)
+            item.likeCount == 1 -> stringResource(R.string.comments_likes_one, item.likeCount)
+            else -> stringResource(R.string.comments_likes_other, item.likeCount)
         }
-        Column(Modifier.padding(start = 12.dp)) {
-            if (stackedLayout) {
-                val scheme = MaterialTheme.colorScheme
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = scheme.onSurface,
-                )
-                Text(
-                    text = item.text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = scheme.onSurface,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-                Text(
-                    text = formatTime(item.createdAt),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = scheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
-            } else {
-                Text(
-                    text =
-                        buildAnnotatedString {
-                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append(name)
-                            }
-                            append(" ")
-                            append(item.text)
-                        },
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Text(
-                    text = formatTime(item.createdAt),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(top = if (stackedLayout) 6.dp else 4.dp),
-            ) {
+    CommentRow(
+        authorName = name,
+        timeLabel = formatTime(item.createdAt),
+        body = item.text,
+        avatarColor = avatar,
+        startIndent = (depth * ReplyIndent.value).dp,
+        modifier = Modifier.padding(horizontal = horizontalPadding),
+        footer = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(
                     onClick = { onToggleLike(item.id) },
                     contentPadding = PaddingValues(0.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = if (item.likedBySelf) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
+                            imageVector =
+                                if (item.likedBySelf) Icons.Outlined.Favorite
+                                else Icons.Outlined.FavoriteBorder,
                             contentDescription = null,
-                            tint = if (item.likedBySelf) IgHeart else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint =
+                                if (item.likedBySelf) IgHeart
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(Modifier.size(4.dp))
-                        val likeLabel =
-                            when {
-                                item.likeCount == 0 -> stringResource(R.string.comments_like_verb)
-                                item.likeCount == 1 -> stringResource(R.string.comments_likes_one, item.likeCount)
-                                else -> stringResource(R.string.comments_likes_other, item.likeCount)
-                            }
                         Text(
                             text = likeLabel,
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (item.likedBySelf) IgHeart else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color =
+                                if (item.likedBySelf) IgHeart
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -467,11 +388,12 @@ private fun CommentRow(
                     contentPadding = PaddingValues(0.dp),
                 ) {
                     Text(
-                        stringResource(R.string.comments_reply),
+                        text = stringResource(R.string.comments_reply),
                         style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
             }
-        }
-    }
+        },
+    )
 }

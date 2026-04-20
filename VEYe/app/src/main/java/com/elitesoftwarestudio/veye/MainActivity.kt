@@ -1,13 +1,19 @@
 package com.elitesoftwarestudio.veye
 
 import android.Manifest
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,6 +21,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.splashscreen.SplashScreenViewProvider
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -22,11 +29,13 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elitesoftwarestudio.veye.ui.util.localeKey
 import com.elitesoftwarestudio.veye.data.preferences.UserPreferencesRepository
 import com.elitesoftwarestudio.veye.ui.main.MainViewModel
 import com.elitesoftwarestudio.veye.ui.main.ThemeViewModel
+import com.elitesoftwarestudio.veye.ui.onboarding.OnboardingHost
 import com.elitesoftwarestudio.veye.ui.theme.VEYeTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -48,10 +57,22 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
+        // Hold the splash on screen until BOTH the brand-mark hold timer expires AND we
+        // know whether onboarding is needed. Routing on an unresolved value would flash
+        // the home shell for one frame before swapping to the onboarding flow, which
+        // looks like a bug. The DataStore read is fast (sub-ms) so this rarely adds time
+        // beyond the existing hold.
+        splashScreen.setKeepOnScreenCondition {
+            mainViewModel.splashHoldActive.value || mainViewModel.onboardingNeeded.value == null
+        }
+        splashScreen.setOnExitAnimationListener(::handleSplashExit)
         super.onCreate(savedInstanceState)
         mainViewModel.handleIntent(intent)
-        maybeRequestNotificationPermission()
+        // Notification permission is requested inside the onboarding flow on first launch.
+        // Returning users (onboarding already completed) get the legacy fast-path here so
+        // an upgrade install behaves the same as today.
+        maybeRequestNotificationPermissionForReturningUser()
         enableEdgeToEdge()
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
@@ -70,6 +91,7 @@ class MainActivity : ComponentActivity() {
                     else -> systemDark
                 }
                 val pendingTab by mainViewModel.pendingTabRoute.collectAsStateWithLifecycle()
+                val onboardingNeeded by mainViewModel.onboardingNeeded.collectAsStateWithLifecycle()
                 VEYeTheme(darkTheme = darkTheme) {
                     val view = LocalView.current
                     SideEffect {
@@ -79,10 +101,16 @@ class MainActivity : ComponentActivity() {
                             isAppearanceLightNavigationBars = !darkTheme
                         }
                     }
-                    VEYeRoot(
-                        pendingTabRoute = pendingTab,
-                        onConsumedPendingTab = { mainViewModel.consumePendingTab() },
-                    )
+                    when (onboardingNeeded) {
+                        // null is impossible here because the splash holds until the
+                        // value is resolved, but render nothing as a defensive fallback.
+                        null -> Unit
+                        true -> OnboardingHost()
+                        false -> VEYeRoot(
+                            pendingTabRoute = pendingTab,
+                            onConsumedPendingTab = { mainViewModel.consumePendingTab() },
+                        )
+                    }
                 }
             }
         }
@@ -94,8 +122,58 @@ class MainActivity : ComponentActivity() {
         mainViewModel.handleIntent(intent)
     }
 
-    private fun maybeRequestNotificationPermission() {
+    /**
+     * Hand off from the platform splash to the home shell with a tiny scale-up + fade
+     * on the brand mark. We honour the system-wide "remove animations" accessibility
+     * setting by skipping straight to [SplashScreenViewProvider.remove] when animator
+     * scale is zero — important for users on low-power profiles or with motion
+     * sensitivities.
+     */
+    private fun handleSplashExit(provider: SplashScreenViewProvider) {
+        val animScale =
+            runCatching {
+                Settings.Global.getFloat(
+                    contentResolver,
+                    Settings.Global.ANIMATOR_DURATION_SCALE,
+                    1f,
+                )
+            }.getOrDefault(1f)
+        if (animScale == 0f) {
+            provider.remove()
+            return
+        }
+
+        val splashView = provider.view
+        val iconView = provider.iconView
+        val scaleX =
+            ObjectAnimator.ofFloat(iconView, View.SCALE_X, 1f, 1.06f).setDuration(EXIT_ANIM_MS)
+        val scaleY =
+            ObjectAnimator.ofFloat(iconView, View.SCALE_Y, 1f, 1.06f).setDuration(EXIT_ANIM_MS)
+        val fade =
+            ObjectAnimator.ofFloat(splashView, View.ALPHA, 1f, 0f).setDuration(EXIT_ANIM_MS)
+        AnimatorSet().apply {
+            interpolator = FastOutSlowInInterpolator()
+            playTogether(scaleX, scaleY, fade)
+            addListener(
+                object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        provider.remove()
+                    }
+                },
+            )
+            start()
+        }
+    }
+
+    /**
+     * Legacy fast-path for users who installed prior to the onboarding flow. We only
+     * fire the system prompt if onboarding has already been completed; otherwise the
+     * `OnboardingHost` requests `POST_NOTIFICATIONS` in-context on step 2 with a much
+     * better explanation than a bare system dialog.
+     */
+    private fun maybeRequestNotificationPermissionForReturningUser() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (mainViewModel.onboardingNeeded.value != false) return
         val alreadyGranted = ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.POST_NOTIFICATIONS,
@@ -108,5 +186,6 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val TAG = "MainActivity"
+        const val EXIT_ANIM_MS = 240L
     }
 }

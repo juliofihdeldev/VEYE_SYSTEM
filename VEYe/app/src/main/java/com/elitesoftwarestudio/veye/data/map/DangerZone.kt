@@ -6,7 +6,7 @@ data class DangerZone(
     val latitude: Double?,
     val longitude: Double?,
     val rezon: String?,
-    override val date: Any?,
+    val date: Any?,
     val incidentType: String?,
     val tag: String?,
-) : MapTimedRow
+)

@@ -48,6 +48,7 @@ import com.elitesoftwarestudio.veye.data.comments.CommentsRepository
 import com.elitesoftwarestudio.veye.R
 import com.elitesoftwarestudio.veye.ui.BottomSheetMaxHeightFraction
 import com.elitesoftwarestudio.veye.data.map.DangerZone
+import com.elitesoftwarestudio.veye.ui.components.DetailErrorState
 import com.elitesoftwarestudio.veye.ui.map.VEYeMapMarkerBitmaps
 import com.elitesoftwarestudio.veye.ui.map.dangerPinIconForZone
 import com.elitesoftwarestudio.veye.ui.map.pinFillColorArgb
@@ -74,7 +75,8 @@ fun DangerZoneDetailScreen(
     viewModel: DangerZoneDetailViewModel = hiltViewModel(),
 ) {
     val zone by viewModel.zone.collectAsStateWithLifecycle()
-    val snapshotReady by viewModel.hasReceivedZonesSnapshot.collectAsStateWithLifecycle()
+    val loadFinished by viewModel.loadFinished.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val session by viewModel.mapSession.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -109,13 +111,15 @@ fun DangerZoneDetailScreen(
             val lat = z.latitude
             val lng = z.longitude
             if (lat == null || lng == null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.map_no_detail),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                // Distinct from "zone unavailable": the row exists, it just has no
+                // coordinates. Same friendly UX, different copy.
+                DetailErrorState(
+                    title = stringResource(R.string.zone_detail_no_coordinates_title),
+                    message = stringResource(R.string.zone_detail_no_coordinates_message),
+                    rawError = null,
+                    onRetry = { viewModel.retry() },
+                    onBack = onBack,
+                )
             } else {
                 DangerZoneDetailContent(
                     zone = z,
@@ -128,19 +132,26 @@ fun DangerZoneDetailScreen(
                 )
             }
         }
-        !snapshotReady -> {
+        !loadFinished -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         }
         else -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = stringResource(R.string.map_no_detail),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            val isNotFound = errorMessage == "not_found"
+            DetailErrorState(
+                title = stringResource(R.string.zone_detail_unavailable_title),
+                message = stringResource(
+                    if (isNotFound) {
+                        R.string.zone_detail_not_found_message
+                    } else {
+                        R.string.zone_detail_load_failed_message
+                    },
+                ),
+                rawError = errorMessage,
+                onRetry = { viewModel.retry() },
+                onBack = onBack,
+            )
         }
     }
 }

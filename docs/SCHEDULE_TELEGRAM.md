@@ -1,5 +1,10 @@
 # Schedule `telegram-monitor` every 15 minutes (step 4)
 
+`telegram-monitor` is gated by `requireDashboardRole(["admin", "moderator"])`.
+Scheduled callers have no interactive Supabase session, so they authenticate
+with the project's **service-role** key, which `requireDashboardRole` recognises
+as an admin caller.
+
 ## Option A — GitHub Actions (in this repo)
 
 Workflow: [`.github/workflows/telegram-monitor-cron.yml`](../.github/workflows/telegram-monitor-cron.yml)
@@ -9,8 +14,7 @@ Workflow: [`.github/workflows/telegram-monitor-cron.yml`](../.github/workflows/t
 | Secret | Example / notes |
 |--------|------------------|
 | `SUPABASE_FUNCTION_TELEGRAM_URL` | `https://<project-ref>.supabase.co/functions/v1/telegram-monitor` |
-| `SUPABASE_ANON_KEY` | Project **anon** key (Dashboard → Project Settings → API) |
-| `PROCESS_ALERT_SECRET` | Optional; must match the Edge secret if you set `PROCESS_ALERT_SECRET` on Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | Project **service-role** key (Dashboard → Project Settings → API — keep private) |
 
 Cron runs **every 15 minutes UTC** (`*/15 * * * *`). Edit the workflow file if you want a different timezone pattern (GitHub Actions cron is UTC-only; use a single hourly offset or an external scheduler for exact Haiti time).
 
@@ -24,8 +28,8 @@ If your plan includes **`pg_cron`** + **`pg_net`**, you can schedule an HTTP POS
 
 Any cron (cron-job.org, Cloud Scheduler, etc.) that `POST`s the function URL with:
 
-- `Authorization: Bearer <SUPABASE_ANON_KEY>`
+- `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>`
+- `apikey: <SUPABASE_SERVICE_ROLE_KEY>`
 - `Content-Type: application/json`
-- `x-veye-secret: …` if your function expects it
 
 Body can be `{}`.

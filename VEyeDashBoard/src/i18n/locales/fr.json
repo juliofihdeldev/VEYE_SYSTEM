@@ -335,7 +335,7 @@
     "intro": "Lance le même traitement que la tâche planifiée : récupération des nouveaux messages Telegram, passage par l’IA, écriture en base (ZoneDanger, News, etc.). Peut prendre jusqu’à ~2 minutes. La réponse indique si chaque mise à jour vient d’un <1>canal</1>, d’un <3>groupe</3>, d’un <5>supergroupe</5> ou d’une conversation <7>privée</7> avec le bot.",
     "run": "Lancer le moniteur Telegram",
     "running": "Exécution en cours…",
-    "errorUnauthorized": "Non autorisé — vérifiez VITE_PROCESS_ALERT_SECRET.",
+    "errorUnauthorized": "Non autorisé — votre compte doit avoir le rôle admin ou modérateur.",
     "errorGeneric": "Échec de l’appel",
     "successTitle": "Exécution terminée",
     "successDetails": "Mises à jour Telegram traitées : <strong>{{processed}}</strong> · ZoneDanger : <strong>{{zones}}</strong> · Victimes : <strong>{{viktim}}</strong> · Actualités : <strong>{{news}}</strong> · IA non pertinent : <strong>{{notRelevant}}</strong> · IA doublon : <strong>{{duplicate}}</strong>",

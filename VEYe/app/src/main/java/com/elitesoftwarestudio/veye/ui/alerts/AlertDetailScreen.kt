@@ -4,40 +4,43 @@ import android.content.Intent
 import android.graphics.Color as AndroidColor
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,10 +51,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -60,35 +65,47 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.elitesoftwarestudio.veye.R
 import com.elitesoftwarestudio.veye.data.comments.CommentsRepository
-import com.elitesoftwarestudio.veye.ui.util.DialogTransparentSystemBars
+import com.elitesoftwarestudio.veye.data.comments.StoredComment
+import com.elitesoftwarestudio.veye.data.geo.distanceKm
 import com.elitesoftwarestudio.veye.data.map.ViktimAlert
 import com.elitesoftwarestudio.veye.data.preferences.MapSessionPrefs
+import com.elitesoftwarestudio.veye.ui.components.CommentRow
+import com.elitesoftwarestudio.veye.ui.components.PrimaryPillButton
+import com.elitesoftwarestudio.veye.ui.components.SeverityBadge
+import com.elitesoftwarestudio.veye.ui.components.rememberAvatarColor
 import com.elitesoftwarestudio.veye.ui.map.DangerMapPinIcon
 import com.elitesoftwarestudio.veye.ui.map.VEYeMapMarkerBitmaps
 import com.elitesoftwarestudio.veye.ui.map.pinFillColorArgb
+import com.elitesoftwarestudio.veye.ui.theme.SeverityKind
+import com.elitesoftwarestudio.veye.ui.theme.VEyeRadius
+import com.elitesoftwarestudio.veye.ui.theme.VEyeSpacing
+import com.elitesoftwarestudio.veye.ui.theme.severityFromAlertType
+import com.elitesoftwarestudio.veye.ui.theme.severityTokensOf
+import com.elitesoftwarestudio.veye.ui.util.DialogTransparentSystemBars
 import com.elitesoftwarestudio.veye.ui.zones.CommentThreadPanel
+import com.elitesoftwarestudio.veye.ui.zones.firestoreDateToMillis
+import com.elitesoftwarestudio.veye.ui.zones.formatRelativeMapTime
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.firebase.Timestamp
 import com.google.maps.android.compose.Circle
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapsComposeExperimentalApi
 import com.google.maps.android.compose.MapType
 import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.MapsComposeExperimentalApi
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
-import java.text.DateFormat
-import java.util.Date
+import java.util.concurrent.TimeUnit
 
-private val EmergencyRed = Color(0xFFC41E3A)
 private val UserRadiusStroke = Color(0xE61BC21B)
 private val UserRadiusFill = Color(0x261BC21B)
 private val ReleasedGreen = AndroidColor.parseColor("#22C55E")
+private val LiveDotRed = Color(0xFFEF4444)
+private val LiveDotGreen = Color(0xFF22C55E)
+private const val LIVE_WINDOW_HOURS = 24L
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlertDetailScreen(
     alert: ViktimAlert?,
@@ -105,9 +122,6 @@ fun AlertDetailScreen(
     val threadId = remember(alert.id) { commentsRepository.alertCommentsThreadId(alert) }
     val commentFlow = remember(threadId) { commentsRepository.observeThread(threadId) }
     val comments by commentFlow.collectAsStateWithLifecycle(initialValue = emptyList())
-    val commentCount = comments.size
-
-    val severity = rememberAlertSeverityStyle(alert)
 
     fun shareAlert() {
         val msg =
@@ -129,6 +143,15 @@ fun AlertDetailScreen(
         context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:114")))
     }
 
+    fun openInMaps() {
+        val lat = alert.latitude ?: return
+        val lng = alert.longitude ?: return
+        val label = alert.fullName?.takeIf { it.isNotBlank() } ?: alert.city.orEmpty()
+        val uri = Uri.parse("geo:$lat,$lng?q=$lat,$lng(${Uri.encode(label)})")
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+        runCatching { context.startActivity(intent) }
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties =
@@ -139,284 +162,576 @@ fun AlertDetailScreen(
     ) {
         DialogTransparentSystemBars()
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            Scaffold(
-                topBar = {
-                    CenterAlignedTopAppBar(
-                        title = { Text(stringResource(R.string.alerts_title)) },
-                        navigationIcon = {
-                            IconButton(onClick = onDismiss) {
-                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_close))
-                            }
-                        },
-                        actions = {
-                            IconButton(onClick = { dialEmergency() }) {
-                                Icon(Icons.Outlined.Phone, contentDescription = stringResource(R.string.header_sos))
-                            }
-                        },
-                    )
+            AlertDetailContent(
+                alert = alert,
+                comments = comments,
+                mapSession = mapSession,
+                onClose = onDismiss,
+                onShare = ::shareAlert,
+                onCall = ::dialEmergency,
+                onOpenInMaps = ::openInMaps,
+                onSubmitTip = {
+                    onDismiss()
+                    onReportFromAlert(alert)
                 },
-            ) { padding ->
-                Column(
-                    modifier =
-                        Modifier
-                            .padding(padding)
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp)
-                            .padding(bottom = 32.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 16.dp)) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(severity.dotColor),
-                        )
-                        Text(
-                            text = severity.label,
-                            style = MaterialTheme.typography.titleLarge,
-                            color = severity.color,
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
-
-                    Card(
-                        shape = RoundedCornerShape(14.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            val url = alert.imageSource?.trim()?.takeIf { it.isNotEmpty() }
-                            if (url != null) {
-                                AsyncImage(
-                                    model =
-                                        ImageRequest.Builder(context)
-                                            .data(url)
-                                            .crossfade(true)
-                                            .build(),
-                                    contentDescription = null,
-                                    modifier =
-                                        Modifier
-                                            .size(100.dp, 120.dp)
-                                            .clip(RoundedCornerShape(12.dp)),
-                                    contentScale = ContentScale.Crop,
-                                )
-                            } else {
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .size(100.dp, 120.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                                )
-                            }
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                InfoLine(stringResource(R.string.alert_details_name), alert.fullName)
-                                InfoLine(
-                                    stringResource(R.string.alert_details_age),
-                                    alert.amount?.takeIf { it.isNotBlank() } ?: stringResource(R.string.time_dash),
-                                )
-                                InfoLine(stringResource(R.string.alert_details_location), alert.city)
-                                InfoLine(
-                                    stringResource(R.string.alert_details_time),
-                                    formatAlertDetailDate(alert.date),
-                                )
-                            }
-                        }
-                    }
-
-                    alert.details?.takeIf { it.isNotBlank() }?.let { details ->
-                        Card(
-                            modifier = Modifier.padding(top = 12.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                Text(
-                                    text = stringResource(R.string.alert_details_description),
-                                    style = MaterialTheme.typography.titleSmall,
-                                )
-                                Text(
-                                    text = details,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(top = 6.dp),
-                                )
-                            }
-                        }
-                    }
-
-                    OutlinedButton(
-                        onClick = { commentsOpen = true },
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(top = 12.dp),
-                        shape = RoundedCornerShape(14.dp),
-                    ) {
-                        Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = null)
-                        Text(
-                            text = stringResource(R.string.comments_title),
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier =
-                                Modifier
-                                    .padding(horizontal = 10.dp)
-                                    .weight(1f),
-                        )
-                        if (commentCount > 0) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                            ) {
-                                Text(
-                                    text = commentCount.toString(),
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelMedium,
-                                )
-                            }
-                        }
-                        Icon(Icons.Outlined.ChevronRight, contentDescription = null)
-                    }
-
-                    Text(
-                        text = stringResource(R.string.alert_details_last_known_location),
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-                    )
-                    AlertLocationMiniMap(alert = alert, mapSession = mapSession)
-
-                    Text(
-                        text = stringResource(R.string.alert_details_actions),
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = { shareAlert() },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Text(
-                                stringResource(R.string.alert_details_share_alert),
-                                modifier = Modifier.padding(start = 6.dp),
-                            )
-                        }
-                        OutlinedButton(
-                            onClick = {
-                                onDismiss()
-                                onReportFromAlert(alert)
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Icon(Icons.Outlined.Description, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Text(
-                                stringResource(R.string.alert_details_report_info),
-                                modifier = Modifier.padding(start = 6.dp),
-                            )
-                        }
-                    }
-
-                    Button(
-                        onClick = { dialEmergency() },
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(top = 12.dp),
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = EmergencyRed,
-                                contentColor = Color.White,
-                            ),
-                    ) {
-                        Icon(Icons.Outlined.Phone, contentDescription = null)
-                        Text(
-                            stringResource(R.string.alert_details_call_emergency),
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
-                }
-            }
+                onOpenComments = { commentsOpen = true },
+            )
         }
     }
 
     if (commentsOpen) {
-        Dialog(
-            onDismissRequest = { commentsOpen = false },
-            properties =
-                DialogProperties(
-                    usePlatformDefaultWidth = false,
-                    decorFitsSystemWindows = false,
-                ),
+        FullCommentsDialog(
+            alert = alert,
+            threadId = threadId,
+            commentsRepository = commentsRepository,
+            onDismiss = { commentsOpen = false },
+        )
+    }
+}
+
+@Composable
+private fun AlertDetailContent(
+    alert: ViktimAlert,
+    comments: List<StoredComment>,
+    mapSession: MapSessionPrefs,
+    onClose: () -> Unit,
+    onShare: () -> Unit,
+    onCall: () -> Unit,
+    onOpenInMaps: () -> Unit,
+    onSubmitTip: () -> Unit,
+    onOpenComments: () -> Unit,
+) {
+    val severityKind: SeverityKind = severityFromAlertType(alert.type, alert.status)
+
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
         ) {
-            DialogTransparentSystemBars()
-            Surface(modifier = Modifier.fillMaxSize()) {
-                Column(Modifier.fillMaxSize()) {
-                    CenterAlignedTopAppBar(
-                        title = { Text(stringResource(R.string.comments_title)) },
-                        navigationIcon = {
-                            IconButton(onClick = { commentsOpen = false }) {
-                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_close))
-                            }
-                        },
-                    )
-                    CommentThreadPanel(
-                        threadId = threadId,
-                        enabled = true,
-                        commentsRepository = commentsRepository,
-                        modifier = Modifier.weight(1f),
-                        listHeader = {
-                            alert.fullName?.takeIf { it.isNotBlank() }?.let { name ->
-                                Text(
-                                    text = name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                )
-                            }
-                        },
-                    )
+            AlertDetailHero(
+                alert = alert,
+                kind = severityKind,
+                onClose = onClose,
+                onShare = onShare,
+            )
+
+            AlertDetailChipsRow(
+                alert = alert,
+                mapSession = mapSession,
+                commentCount = comments.size,
+            )
+
+            Spacer(Modifier.height(VEyeSpacing.sm))
+
+            AlertDetailAboutSection(alert = alert)
+
+            Spacer(Modifier.height(VEyeSpacing.lg))
+
+            AlertDetailLocationSection(
+                alert = alert,
+                mapSession = mapSession,
+                onOpenInMaps = onOpenInMaps,
+            )
+
+            Spacer(Modifier.height(VEyeSpacing.lg))
+
+            AlertDetailCommunitySection(
+                comments = comments,
+                onOpenAll = onOpenComments,
+                onLeaveComment = onOpenComments,
+            )
+
+            // Reserve space for the sticky bottom bar so the last comment / CTA is reachable.
+            Spacer(Modifier.height(120.dp))
+            Spacer(modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars))
+        }
+
+        AlertDetailBottomActionBar(
+            kind = severityKind,
+            onCall = onCall,
+            onShare = onShare,
+            onSubmitTip = onSubmitTip,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
+}
+
+@Composable
+private fun AlertDetailHero(
+    alert: ViktimAlert,
+    kind: SeverityKind,
+    onClose: () -> Unit,
+    onShare: () -> Unit,
+) {
+    val tokens = severityTokensOf(kind)
+    val context = LocalContext.current
+    val imageUrl = alert.imageSource?.trim()?.takeIf { it.isNotEmpty() }
+
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(380.dp),
+    ) {
+        // Backdrop: photo when available, otherwise a severity-themed gradient with a
+        // large faded category icon so the surface still feels intentional, not blank.
+        if (imageUrl != null) {
+            AsyncImage(
+                model =
+                    ImageRequest.Builder(context)
+                        .data(imageUrl)
+                        .crossfade(true)
+                        .build(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    tokens.containerSoft,
+                                    tokens.accent.copy(alpha = 0.85f),
+                                ),
+                            ),
+                        ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = tokens.icon,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.32f),
+                    modifier = Modifier.size(160.dp),
+                )
+            }
+        }
+
+        // Bottom darkening gradient so the overlaid text is always readable.
+        Box(
+            modifier =
+                Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0.40f to Color.Transparent,
+                            1f to Color.Black.copy(alpha = 0.85f),
+                        ),
+                    ),
+        )
+
+        // Floating top-row controls.
+        Row(
+            modifier =
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .fillMaxWidth()
+                    .padding(horizontal = VEyeSpacing.sm, vertical = VEyeSpacing.xs),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            HeroCircleButton(
+                onClick = onClose,
+                contentDescription = stringResource(R.string.common_close),
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = null,
+                    tint = Color.White,
+                )
+            }
+            HeroCircleButton(
+                onClick = onShare,
+                contentDescription = stringResource(R.string.common_share),
+            ) {
+                Icon(
+                    Icons.Outlined.Share,
+                    contentDescription = null,
+                    tint = Color.White,
+                )
+            }
+        }
+
+        // Bottom overlay: severity badge + status pill, name, city · time.
+        Column(
+            modifier =
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .padding(VEyeSpacing.lg),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(VEyeSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SeverityBadge(kind = kind)
+                AlertStatusPill(alert = alert)
+            }
+            Spacer(Modifier.height(VEyeSpacing.sm))
+            Text(
+                text =
+                    alert.fullName?.takeIf { it.isNotBlank() }
+                        ?: stringResource(R.string.map_alert_untitled),
+                style =
+                    MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                color = Color.White,
+            )
+            Spacer(Modifier.height(VEyeSpacing.xxs))
+            val context2 = LocalContext.current
+            val subtitle =
+                buildString {
+                    val city = alert.city?.trim().orEmpty()
+                    if (city.isNotEmpty()) append(city)
+                    val time = formatRelativeMapTime(context2.resources, alert.date)
+                    if (time.isNotEmpty() && time != "—") {
+                        if (isNotEmpty()) append(" · ")
+                        append(time)
+                    }
                 }
+            if (subtitle.isNotBlank()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.85f),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun InfoLine(label: String, value: String?) {
-    Row(Modifier.fillMaxWidth()) {
-        Text(
-            text = "$label:",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(end = 8.dp),
+private fun HeroCircleButton(
+    onClick: () -> Unit,
+    contentDescription: String,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = Color.Black.copy(alpha = 0.45f),
+        modifier = Modifier.size(40.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+            // Reuse the icon-tint hint: callers pass a Color.White Icon in [content].
+            content()
+        }
+    }
+}
+
+@Composable
+private fun AlertStatusPill(alert: ViktimAlert) {
+    val released =
+        alert.status == "Libérer" || alert.status?.lowercase() == "released"
+    val isLive =
+        !released && isAlertWithinLiveWindow(alert.date)
+    val (label, dot) =
+        when {
+            released ->
+                stringResource(R.string.alert_detail_status_released) to LiveDotGreen
+            isLive ->
+                stringResource(R.string.alert_detail_status_live) to LiveDotRed
+            else -> return
+        }
+    Row(
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(VEyeRadius.chip))
+                .background(Color.White.copy(alpha = 0.18f))
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(dot),
         )
         Text(
-            text = value?.takeIf { it.isNotBlank() } ?: stringResource(R.string.time_dash),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f),
+            text = label.uppercase(),
+            color = Color.White,
+            modifier = Modifier.padding(start = 6.dp),
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
         )
     }
 }
 
-private fun formatAlertDetailDate(date: Any?): String {
-    if (date == null) return "—"
-    val d: Date =
-        when (date) {
-            is Timestamp -> date.toDate()
-            is Date -> date
-            is Number -> Date(date.toLong())
-            else -> return "—"
+private fun isAlertWithinLiveWindow(date: Any?): Boolean {
+    val ms = firestoreDateToMillis(date) ?: return false
+    val ageHours = TimeUnit.MILLISECONDS.toHours(System.currentTimeMillis() - ms)
+    return ageHours in 0..LIVE_WINDOW_HOURS
+}
+
+@Composable
+private fun AlertDetailChipsRow(
+    alert: ViktimAlert,
+    mapSession: MapSessionPrefs,
+    commentCount: Int,
+) {
+    val distanceKm = computeDistanceKm(alert, mapSession)
+    val distanceLabel =
+        distanceKm?.let { stringResource(R.string.alert_detail_distance_chip, it) }
+    val ageLabel =
+        alert.amount
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() && it != "0" }
+            ?.let { stringResource(R.string.alert_detail_age_chip, it) }
+    val cityLabel = alert.city?.trim()?.takeIf { it.isNotEmpty() }
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(top = VEyeSpacing.md)
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = VEyeSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(VEyeSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (distanceLabel != null) {
+            DetailChip(icon = Icons.Outlined.LocationOn, label = distanceLabel)
+        } else if (cityLabel != null) {
+            DetailChip(icon = Icons.Outlined.LocationOn, label = cityLabel)
         }
-    return DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(d)
+        if (ageLabel != null) {
+            DetailChip(icon = Icons.Outlined.Person, label = ageLabel)
+        }
+        DetailChip(
+            icon = Icons.Outlined.ChatBubbleOutline,
+            label = commentCount.toString(),
+        )
+    }
+}
+
+private fun computeDistanceKm(alert: ViktimAlert, session: MapSessionPrefs): Double? {
+    val aLat = alert.latitude ?: return null
+    val aLng = alert.longitude ?: return null
+    val uLat = session.latitude ?: return null
+    val uLng = session.longitude ?: return null
+    return distanceKm(uLat, uLng, aLat, aLng)
+}
+
+@Composable
+private fun DetailChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+) {
+    Row(
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(VEyeRadius.chip))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = label,
+            modifier = Modifier.padding(start = 6.dp),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun AlertDetailAboutSection(alert: ViktimAlert) {
+    Column(
+        modifier = Modifier.padding(horizontal = VEyeSpacing.md),
+    ) {
+        SectionTitle(text = stringResource(R.string.alert_detail_about))
+        val description =
+            alert.details?.trim()?.takeIf { it.isNotEmpty() }
+        Text(
+            text = description ?: stringResource(R.string.alert_detail_no_description),
+            style = MaterialTheme.typography.bodyLarge,
+            color =
+                if (description != null) MaterialTheme.colorScheme.onSurface
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = VEyeSpacing.xs),
+        )
+    }
+}
+
+@Composable
+private fun SectionTitle(
+    text: String,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = text,
+            style =
+                MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        trailing?.invoke()
+    }
+}
+
+@Composable
+private fun AlertDetailLocationSection(
+    alert: ViktimAlert,
+    mapSession: MapSessionPrefs,
+    onOpenInMaps: () -> Unit,
+) {
+    Column(modifier = Modifier.padding(horizontal = VEyeSpacing.md)) {
+        SectionTitle(text = stringResource(R.string.alert_details_last_known_location))
+        Spacer(Modifier.height(VEyeSpacing.sm))
+        AlertLocationMap(
+            alert = alert,
+            mapSession = mapSession,
+            onOpenInMaps = onOpenInMaps,
+        )
+    }
+}
+
+@Composable
+private fun AlertDetailCommunitySection(
+    comments: List<StoredComment>,
+    onOpenAll: () -> Unit,
+    onLeaveComment: () -> Unit,
+) {
+    Column(modifier = Modifier.padding(horizontal = VEyeSpacing.md)) {
+        SectionTitle(
+            text =
+                "${stringResource(R.string.alert_detail_community)}  ·  ${comments.size}",
+            trailing = {
+                if (comments.isNotEmpty()) {
+                    TextButton(onClick = onOpenAll) {
+                        Text(text = stringResource(R.string.alert_detail_see_all))
+                    }
+                }
+            },
+        )
+
+        if (comments.isEmpty()) {
+            Text(
+                text = stringResource(R.string.alert_detail_no_comments_short),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = VEyeSpacing.sm),
+            )
+        } else {
+            // Show only the two most recent root-level comments inline. Power users tap
+            // "See all" to drop into the full thread modal.
+            val context = LocalContext.current
+            comments
+                .filter { it.parentId == null }
+                .sortedByDescending { it.createdAt }
+                .take(2)
+                .forEach { comment ->
+                    val authorName =
+                        if (comment.isSelf) {
+                            stringResource(R.string.comments_you)
+                        } else {
+                            stringResource(R.string.common_user)
+                        }
+                    CommentRow(
+                        authorName = authorName,
+                        timeLabel =
+                            formatRelativeMapTime(context.resources, comment.createdAt),
+                        body = comment.text,
+                        avatarColor = rememberAvatarColor(comment.id),
+                    )
+                }
+        }
+
+        Spacer(Modifier.height(VEyeSpacing.xs))
+        OutlinedButton(
+            onClick = onLeaveComment,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(VEyeRadius.pill),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.ChatBubbleOutline,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.size(VEyeSpacing.xs))
+            Text(text = stringResource(R.string.alert_detail_leave_comment))
+        }
+    }
+}
+
+@Composable
+private fun AlertDetailBottomActionBar(
+    kind: SeverityKind,
+    onCall: () -> Unit,
+    onShare: () -> Unit,
+    onSubmitTip: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val accent = severityTokensOf(kind).accent
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 12.dp,
+        tonalElevation = 0.dp,
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(
+                        horizontal = VEyeSpacing.md,
+                        vertical = VEyeSpacing.sm,
+                    ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(VEyeSpacing.xs),
+        ) {
+            OutlinedIconButton(
+                onClick = onCall,
+                modifier = Modifier.size(52.dp),
+                shape = CircleShape,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Phone,
+                    contentDescription = stringResource(R.string.alerts_call_emergency_short),
+                )
+            }
+            OutlinedIconButton(
+                onClick = onShare,
+                modifier = Modifier.size(52.dp),
+                shape = CircleShape,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Share,
+                    contentDescription = stringResource(R.string.common_share),
+                )
+            }
+            PrimaryPillButton(
+                label = stringResource(R.string.alert_detail_submit_tip),
+                onClick = onSubmitTip,
+                accent = accent,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
 }
 
 @OptIn(MapsComposeExperimentalApi::class)
 @Composable
-private fun AlertLocationMiniMap(
+private fun AlertLocationMap(
     alert: ViktimAlert,
     mapSession: MapSessionPrefs,
+    onOpenInMaps: () -> Unit,
 ) {
     val lat = alert.latitude
     val lng = alert.longitude
@@ -426,9 +741,9 @@ private fun AlertLocationMiniMap(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .height(160.dp)
+                    .clip(RoundedCornerShape(VEyeRadius.card))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -467,8 +782,8 @@ private fun AlertLocationMiniMap(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(160.dp)
-                .clip(RoundedCornerShape(14.dp)),
+                .height(200.dp)
+                .clip(RoundedCornerShape(VEyeRadius.card)),
     ) {
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
@@ -478,7 +793,15 @@ private fun AlertLocationMiniMap(
                     mapType = MapType.HYBRID,
                     isBuildingEnabled = true,
                 ),
-            uiSettings = MapUiSettings(zoomControlsEnabled = false, compassEnabled = false),
+            uiSettings =
+                MapUiSettings(
+                    zoomControlsEnabled = false,
+                    compassEnabled = false,
+                    scrollGesturesEnabled = false,
+                    zoomGesturesEnabled = false,
+                    tiltGesturesEnabled = false,
+                    rotationGesturesEnabled = false,
+                ),
         ) {
             userLatLng?.let { u ->
                 Circle(
@@ -496,6 +819,90 @@ private fun AlertLocationMiniMap(
                 icon = icon,
                 anchor = Offset(0.5f, 1f),
             )
+        }
+
+        // Floating "Open in Maps" pill — turns the map into an actual jumping-off point
+        // instead of a passive thumbnail.
+        Surface(
+            onClick = onOpenInMaps,
+            shape = RoundedCornerShape(VEyeRadius.pill),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 4.dp,
+            modifier =
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(VEyeSpacing.sm),
+        ) {
+            Row(
+                modifier =
+                    Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.size(6.dp))
+                Text(
+                    text = stringResource(R.string.alert_detail_open_in_maps),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
+
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FullCommentsDialog(
+    alert: ViktimAlert,
+    threadId: String,
+    commentsRepository: CommentsRepository,
+    onDismiss: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties =
+            DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false,
+            ),
+    ) {
+        DialogTransparentSystemBars()
+        Surface(modifier = Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize()) {
+                CenterAlignedTopAppBar(
+                    title = { Text(stringResource(R.string.comments_title)) },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = stringResource(R.string.common_close),
+                            )
+                        }
+                    },
+                )
+                CommentThreadPanel(
+                    threadId = threadId,
+                    enabled = true,
+                    commentsRepository = commentsRepository,
+                    modifier = Modifier.weight(1f),
+                    listHeader = {
+                        alert.fullName?.takeIf { it.isNotBlank() }?.let { name ->
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            )
+                        }
+                    },
+                )
+            }
         }
     }
 }

@@ -1,6 +1,5 @@
 package com.elitesoftwarestudio.veye.data.comments
 
-import com.elitesoftwarestudio.veye.BuildConfig
 import com.elitesoftwarestudio.veye.data.map.ViktimAlert
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -138,10 +137,6 @@ class CommentsRepository @Inject constructor(
                 }
             supabase.functions.invoke("process-veye-comment") {
                 contentType(ContentType.Application.Json)
-                val secret = BuildConfig.PROCESS_ALERT_SECRET
-                if (secret.isNotBlank()) {
-                    headers.append("x-veye-secret", secret)
-                }
                 setBody(json.toString())
             }
         }
@@ -158,10 +153,6 @@ class CommentsRepository @Inject constructor(
                 }
             supabase.functions.invoke("process-veye-comment") {
                 contentType(ContentType.Application.Json)
-                val secret = BuildConfig.PROCESS_ALERT_SECRET
-                if (secret.isNotBlank()) {
-                    headers.append("x-veye-secret", secret)
-                }
                 setBody(json.toString())
             }
         }

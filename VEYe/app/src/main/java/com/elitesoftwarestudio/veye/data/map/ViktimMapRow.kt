@@ -7,7 +7,7 @@ data class ViktimMapRow(
     val city: String?,
     val details: String?,
     val type: String?,
-    override val date: Any?,
+    val date: Any?,
     val latitude: Double?,
     val longitude: Double?,
-) : MapTimedRow
+)

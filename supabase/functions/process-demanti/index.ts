@@ -1,18 +1,20 @@
 import { serviceClient } from "../_shared/supabase.ts";
-import { corsPreflightResponse, jsonResponse, verifySecret } from "../_shared/http.ts";
+import { corsPreflightResponse, jsonResponse } from "../_shared/http.ts";
 
-/** Mobile demanti (RN `konfimeManti`): insert `demanti_alert`, increment `zone_danger.manti_count`. */
+/**
+ * Mobile demanti (RN `konfimeManti`): insert `demanti_alert`, increment `zone_danger.manti_count`.
+ *
+ * Auth model: the function is invoked by anonymous mobile users. The Supabase
+ * Functions gateway already enforces `verify_jwt` so the caller must have a
+ * valid Supabase session; we additionally require `userId` in the body to be
+ * non-empty (caller's uid, used as the denial key). No shared-secret check.
+ */
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return corsPreflightResponse();
   }
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405);
-  }
-
-  const secretOk = await verifySecret(req);
-  if (!secretOk) {
-    return jsonResponse({ error: "Unauthorized" }, 401);
   }
 
   let body: Record<string, unknown>;

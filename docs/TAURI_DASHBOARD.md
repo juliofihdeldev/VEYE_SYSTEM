@@ -64,7 +64,7 @@ pnpm dev:dashboard:tauri
 Packaged builds use **`import.meta.env.PROD`** and **do not** use the dev-only “switch to local when hostname is localhost” path. You must bake **hosted** `VITE_*` values into the Vite bundle.
 
 1. Copy **`VEyeDashBoard/.env.desktop.example`** → **`VEyeDashBoard/.env.desktop`**.
-2. Set **`VITE_SUPABASE_URL`**, **`VITE_SUPABASE_ANON_KEY`**, **`VITE_PROCESS_ALERT_SECRET`** (must match deployed Edge secrets where used). Keep **`VITE_USE_REMOTE_SUPABASE=true`** so the bundle always targets hosted Supabase.
+2. Set **`VITE_SUPABASE_URL`** and **`VITE_SUPABASE_ANON_KEY`**. Keep **`VITE_USE_REMOTE_SUPABASE=true`** so the bundle always targets hosted Supabase. Edge Functions authenticate the dashboard via the signed-in user's JWT + `public.user_roles`, so no shared secret is baked into the bundle.
 3. **Do not commit** `.env.desktop` (gitignored via `.env.*`).
 
 Build:
@@ -118,7 +118,7 @@ Follow [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS
 ## Security notes
 
 - **Never** put the Supabase **service_role** key in `VITE_*` env; the dashboard uses the **anon** key only.
-- **`VITE_PROCESS_ALERT_SECRET`** is still a secret: treat `.env` / `.env.desktop` like production credentials.
+- Role-gated Edge Functions (`dashboard-mutate`, `telegram-monitor`, `unblock-user`, `process-admin-alert`) require the caller's Supabase session to match a row in **`public.user_roles`** with `admin` / `moderator`. Manage roles in Supabase Studio → SQL Editor.
 
 ## See also
 
