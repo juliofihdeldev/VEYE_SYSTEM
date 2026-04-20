@@ -6,13 +6,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
@@ -50,9 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.elitesoftwarestudio.veye.R
 import com.elitesoftwarestudio.veye.ui.BottomSheetMaxHeightFraction
 import com.elitesoftwarestudio.veye.data.map.DangerZone
-import com.elitesoftwarestudio.veye.data.map.MapTimeRange
 import com.elitesoftwarestudio.veye.data.map.ViktimMapRow
-import com.elitesoftwarestudio.veye.data.map.filterItemsByMapTimeRange
 import com.elitesoftwarestudio.veye.data.map.nearestDangerBearingWithinKm
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -97,7 +92,6 @@ fun MapScreen(
     onNavigateToAlertDetail: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
-    var timeRange by remember { mutableStateOf(MapTimeRange.All) }
     var showHeatmap by rememberSaveable { mutableStateOf(true) }
     var mapSatellite by rememberSaveable { mutableStateOf(false) }
     var map3d by rememberSaveable { mutableStateOf(true) }
@@ -162,20 +156,11 @@ fun MapScreen(
         )
     }
 
-    val mapZonesForPins = remember(dangerZonesForMap, timeRange) {
-        filterItemsByMapTimeRange(dangerZonesForMap, timeRange)
+    val clusterItems = remember(dangerZonesForMap, viktims) {
+        buildClusterItems(dangerZonesForMap, viktims)
     }
-    val nearbyZonesForSheet = remember(dangerZonesNearby, timeRange) {
-        filterItemsByMapTimeRange(dangerZonesNearby, timeRange)
-    }
-    val filteredViktims = remember(viktims, timeRange) {
-        filterItemsByMapTimeRange(viktims, timeRange)
-    }
-    val clusterItems = remember(mapZonesForPins, filteredViktims) {
-        buildClusterItems(mapZonesForPins, filteredViktims)
-    }
-    val heatmapPoints = remember(mapZonesForPins, filteredViktims) {
-        buildHeatmapLatLngs(mapZonesForPins, filteredViktims)
+    val heatmapPoints = remember(dangerZonesForMap, viktims) {
+        buildHeatmapLatLngs(dangerZonesForMap, viktims)
     }
 
     val userLatLng = session.latitude?.let { lat ->
@@ -183,9 +168,9 @@ fun MapScreen(
     }
     val radiusMeters = session.radiusKm * 1000.0
 
-    val dangerBearingLine = remember(userLatLng, nearbyZonesForSheet) {
+    val dangerBearingLine = remember(userLatLng, dangerZonesNearby) {
         val u = userLatLng ?: return@remember null
-        nearestDangerBearingWithinKm(u.latitude, u.longitude, nearbyZonesForSheet)
+        nearestDangerBearingWithinKm(u.latitude, u.longitude, dangerZonesNearby)
     }
 
     val sheetState = rememberStandardBottomSheetState(
@@ -206,8 +191,8 @@ fun MapScreen(
                     .fillMaxHeight(BottomSheetMaxHeightFraction),
             sheetContent = {
                 MapDashboardSheetContent(
-                    filteredZones = nearbyZonesForSheet,
-                    filteredViktims = filteredViktims,
+                    filteredZones = dangerZonesNearby,
+                    filteredViktims = viktims,
                     session = session,
                     viktimLoading = viktimLoading,
                     onNavigateToZones = onNavigateToZones,
@@ -254,14 +239,14 @@ fun MapScreen(
                             onClusterItemClick = { item ->
                                 when (item.kind) {
                                     MapPinKind.Victim -> {
-                                        val row = filteredViktims.find { it.id == item.rawId }
+                                        val row = viktims.find { it.id == item.rawId }
                                         if (row != null) {
                                             viewModel.primeAlertCache(row)
                                             onNavigateToAlertDetail(row.id)
                                         }
                                     }
                                     MapPinKind.Zone -> {
-                                        val z = mapZonesForPins.find { it.id == item.rawId }
+                                        val z = dangerZonesForMap.find { it.id == item.rawId }
                                         if (z != null) {
                                             viewModel.primeZoneCache(z)
                                             onNavigateToZoneDetail(z)
@@ -271,34 +256,25 @@ fun MapScreen(
                             },
                         )
                     }
-                    Column(
+                    Row(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .fillMaxWidth()
                             .windowInsetsPadding(WindowInsets.statusBars)
                             .padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top,
                     ) {
-                        MapTimeSegmentControl(
-                            selected = timeRange,
-                            onSelect = { timeRange = it },
+                        MapLegendCard()
+                        MapRightControlColumn(
+                            showHeatmap = showHeatmap,
+                            onHeatmapClick = { showHeatmap = !showHeatmap },
+                            map3d = map3d,
+                            on3dClick = { map3d = !map3d },
+                            mapSatellite = mapSatellite,
+                            onSatelliteClick = { mapSatellite = !mapSatellite },
+                            onRefreshClick = { viewModel.refreshViktims() },
                         )
-                        Spacer(Modifier.height(10.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top,
-                        ) {
-                            MapLegendCard()
-                            MapRightControlColumn(
-                                showHeatmap = showHeatmap,
-                                onHeatmapClick = { showHeatmap = !showHeatmap },
-                                map3d = map3d,
-                                on3dClick = { map3d = !map3d },
-                                mapSatellite = mapSatellite,
-                                onSatelliteClick = { mapSatellite = !mapSatellite },
-                                onRefreshClick = { viewModel.refreshViktims() },
-                            )
-                        }
                     }
                     Surface(
                         modifier = Modifier

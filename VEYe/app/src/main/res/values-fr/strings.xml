@@ -6,9 +6,6 @@
     <string name="tab_zones">Zones</string>
     <string name="tab_profile">Profil</string>
     <string name="placeholder_coming_soon">Port en cours — bientôt disponible.</string>
-    <string name="map_time_live">Direct</string>
-    <string name="map_time_7d">7 jours</string>
-    <string name="map_time_all">Tout</string>
     <string name="map_refresh_viktims">Actualiser les alertes</string>
     <string name="map_my_location">Centrer sur ma position</string>
     <string name="map_heatmap">Carte thermique</string>

@@ -2,7 +2,6 @@ package com.elitesoftwarestudio.veye.ui.zones
 
 import android.Manifest
 import android.content.pm.PackageManager
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -71,8 +70,6 @@ import com.elitesoftwarestudio.veye.data.map.DangerZone
 import com.elitesoftwarestudio.veye.data.pending.PendingReport
 import com.elitesoftwarestudio.veye.data.pending.PendingReportStatus
 import com.elitesoftwarestudio.veye.data.map.DemantiRepository
-import com.elitesoftwarestudio.veye.data.map.MapTimeRange
-import com.elitesoftwarestudio.veye.data.map.filterItemsByMapTimeRange
 import com.elitesoftwarestudio.veye.data.map.nearestDangerBearingWithinKm
 import com.elitesoftwarestudio.veye.ui.map.DefaultMapZoom
 import com.elitesoftwarestudio.veye.ui.map.MapClusteringLayer
@@ -151,15 +148,6 @@ private fun applyZoneQuickFilter(
             }
     }
 
-@get:StringRes
-private val MapTimeRange.labelRes: Int
-    get() =
-        when (this) {
-            MapTimeRange.Live -> R.string.map_time_live
-            MapTimeRange.SevenDays -> R.string.map_time_7d
-            MapTimeRange.All -> R.string.map_time_all
-        }
-
 private fun zoneHeatmapPoints(zones: List<DangerZone>): List<LatLng> =
     zones.mapNotNull { z ->
         val lat = z.latitude ?: return@mapNotNull null
@@ -175,7 +163,6 @@ fun ZonesScreen(
     onNavigateToZoneDetail: (DangerZone) -> Unit = {},
 ) {
     val context = LocalContext.current
-    var timeRange by remember { mutableStateOf(MapTimeRange.All) }
     var showHeatmap by rememberSaveable { mutableStateOf(true) }
     var mapSatellite by rememberSaveable { mutableStateOf(false) }
     var map3d by rememberSaveable { mutableStateOf(true) }
@@ -242,16 +229,10 @@ fun ZonesScreen(
         )
     }
 
-    val mapZonesForPins = remember(dangerZonesForMap, timeRange) {
-        filterItemsByMapTimeRange(dangerZonesForMap, timeRange)
+    val clusterItems = remember(dangerZonesForMap) {
+        buildClusterItems(dangerZonesForMap, emptyList())
     }
-    val nearbyZonesForSheet = remember(dangerZonesNearby, timeRange) {
-        filterItemsByMapTimeRange(dangerZonesNearby, timeRange)
-    }
-    val clusterItems = remember(mapZonesForPins) {
-        buildClusterItems(mapZonesForPins, emptyList())
-    }
-    val heatPoints = remember(mapZonesForPins) { zoneHeatmapPoints(mapZonesForPins) }
+    val heatPoints = remember(dangerZonesForMap) { zoneHeatmapPoints(dangerZonesForMap) }
 
     val userLatLng =
         session.latitude?.let { lat ->
@@ -260,9 +241,9 @@ fun ZonesScreen(
     val radiusMeters = session.radiusKm * 1000.0
 
     val dangerBearingLine =
-        remember(userLatLng, nearbyZonesForSheet) {
+        remember(userLatLng, dangerZonesNearby) {
             val u = userLatLng ?: return@remember null
-            nearestDangerBearingWithinKm(u.latitude, u.longitude, nearbyZonesForSheet)
+            nearestDangerBearingWithinKm(u.latitude, u.longitude, dangerZonesNearby)
         }
 
     val sheetState = rememberStandardBottomSheetState(skipHiddenState = true)
@@ -280,7 +261,7 @@ fun ZonesScreen(
                 ZonesSheetList(
                     pendingReports = pendingReports,
                     onDismissPending = { viewModel.removePendingReport(it) },
-                    zones = nearbyZonesForSheet,
+                    zones = dangerZonesNearby,
                     userLatitude = session.latitude,
                     userLongitude = session.longitude,
                     selectedZoneId = selectedZoneId,
@@ -343,7 +324,7 @@ fun ZonesScreen(
                             items = clusterItems,
                             onClusterItemClick = { item ->
                                 if (item.kind == MapPinKind.Zone) {
-                                    val z = mapZonesForPins.find { it.id == item.rawId } ?: return@MapClusteringLayer
+                                    val z = dangerZonesForMap.find { it.id == item.rawId } ?: return@MapClusteringLayer
                                     selectedZoneId = z.id
                                     openSwipeZoneId = null
                                     viewModel.primeZoneCache(z)

@@ -9,9 +9,6 @@
     <string name="tab_zones">Zones</string>
     <string name="tab_profile">Profile</string>
     <string name="placeholder_coming_soon">Port in progress — feature coming soon.</string>
-    <string name="map_time_live">Live</string>
-    <string name="map_time_7d">7 Days</string>
-    <string name="map_time_all">All</string>
     <string name="map_refresh_viktims">Refresh map alerts</string>
     <string name="map_my_location">Center on my location</string>
     <string name="map_heatmap">Heatmap</string>
