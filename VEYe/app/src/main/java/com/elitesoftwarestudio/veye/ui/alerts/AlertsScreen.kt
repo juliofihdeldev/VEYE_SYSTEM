@@ -33,9 +33,12 @@ import com.elitesoftwarestudio.veye.data.map.ViktimAlert
 import com.elitesoftwarestudio.veye.ui.components.FilterPillItem
 import com.elitesoftwarestudio.veye.ui.components.FilterPillRow
 import com.elitesoftwarestudio.veye.ui.components.ScreenHeader
+import com.elitesoftwarestudio.veye.ui.components.StatTileEntry
+import com.elitesoftwarestudio.veye.ui.components.StatTileRow
 import com.elitesoftwarestudio.veye.ui.theme.SeverityKind
 import com.elitesoftwarestudio.veye.ui.theme.VEyeSpacing
 import com.elitesoftwarestudio.veye.ui.theme.severityAccent
+import com.elitesoftwarestudio.veye.ui.theme.severityFromAlertType
 
 @Composable
 fun AlertsScreen(
@@ -55,13 +58,19 @@ fun AlertsScreen(
         viewModel.refreshUserLocation()
     }
 
+    val severityCounts = remember(alerts) {
+        alerts
+            .groupingBy { severityFromAlertType(it.type, it.status) }
+            .eachCount()
+    }
+
     val filterItems =
         remember(filter, alerts.size) {
             listOf(
                 FilterPillItem(
                     key = AlertsListFilter.All.name,
                     label = stringResource_(context, R.string.alerts_filter_all),
-                    count = alerts.size,
+                    count = if (filter == AlertsListFilter.All) alerts.size else null,
                 ),
                 FilterPillItem(
                     key = AlertsListFilter.Kidnaping.name,
@@ -94,6 +103,31 @@ fun AlertsScreen(
             subtitle = stringResource(R.string.alerts_subtitle_simple, alerts.size),
         )
 
+        StatTileRow(
+            items =
+                listOf(
+                    StatTileEntry(
+                        kind = SeverityKind.Kidnapping,
+                        count = severityCounts[SeverityKind.Kidnapping] ?: 0,
+                    ),
+                    StatTileEntry(
+                        kind = SeverityKind.Missing,
+                        count = severityCounts[SeverityKind.Missing] ?: 0,
+                    ),
+                    StatTileEntry(
+                        kind = SeverityKind.Released,
+                        count = severityCounts[SeverityKind.Released] ?: 0,
+                    ),
+                ),
+            modifier =
+                Modifier.padding(
+                    start = VEyeSpacing.md,
+                    end = VEyeSpacing.md,
+                    top = VEyeSpacing.xs,
+                    bottom = VEyeSpacing.sm,
+                ),
+        )
+
         FilterPillRow(
             items = filterItems,
             selectedKey = filter.name,
@@ -104,7 +138,7 @@ fun AlertsScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = VEyeSpacing.xs, bottom = VEyeSpacing.sm),
+                .padding(bottom = VEyeSpacing.sm),
         )
 
         Box(
