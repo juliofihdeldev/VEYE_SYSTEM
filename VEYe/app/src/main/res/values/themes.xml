@@ -18,7 +18,7 @@
          is a raster. -->
     <style name="Theme.VEYe.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_screen_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_brand_mark</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_brand</item>
         <item name="windowSplashScreenAnimationDuration">500</item>
         <item name="postSplashScreenTheme">@style/Theme.VEYe</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
