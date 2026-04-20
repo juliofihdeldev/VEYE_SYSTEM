@@ -9,10 +9,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,6 +24,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,8 +41,71 @@ import com.elitesoftwarestudio.veye.data.geo.distanceKm
 import com.elitesoftwarestudio.veye.data.map.DangerZone
 import com.elitesoftwarestudio.veye.data.map.ViktimMapRow
 import com.elitesoftwarestudio.veye.data.preferences.MapSessionPrefs
+import com.elitesoftwarestudio.veye.ui.components.FilterPillItem
+import com.elitesoftwarestudio.veye.ui.components.FilterPillRow
+import com.elitesoftwarestudio.veye.ui.components.ScreenHeader
+import com.elitesoftwarestudio.veye.ui.components.StatTileEntry
+import com.elitesoftwarestudio.veye.ui.components.StatTileRow
+import com.elitesoftwarestudio.veye.ui.theme.SeverityKind
+import com.elitesoftwarestudio.veye.ui.theme.VEyeSpacing
+import com.elitesoftwarestudio.veye.ui.theme.severityFromAlertType
 
 private val DangerZoneOrange = Color(0xFFE85D04)
+
+/** Quick filter chips on top of the Map dashboard alerts list. */
+private enum class MapAlertQuickFilter { All, NearMe, Last24h, Highest }
+
+private const val NearMeRadiusKm = 5.0
+private const val OneDayMillis = 24L * 60L * 60L * 1000L
+
+private fun ViktimMapRow.epochMillisOrNull(): Long? {
+    val raw = date ?: return null
+    return when (raw) {
+        is Number -> raw.toLong()
+        is com.google.firebase.Timestamp -> raw.toDate().time
+        is java.util.Date -> raw.time
+        else -> null
+    }
+}
+
+/** Higher value = more severe. Mirrors the Zones screen weighting. */
+private fun SeverityKind.severityWeight(): Int =
+    when (this) {
+        SeverityKind.Kidnapping -> 5
+        SeverityKind.Shooting -> 4
+        SeverityKind.DangerZone -> 3
+        SeverityKind.Suspicious -> 3
+        SeverityKind.Missing -> 2
+        SeverityKind.Info -> 1
+        SeverityKind.Released -> 0
+    }
+
+private fun applyAlertQuickFilter(
+    rows: List<ViktimMapRow>,
+    filter: MapAlertQuickFilter,
+    userLat: Double?,
+    userLon: Double?,
+): List<ViktimMapRow> =
+    when (filter) {
+        MapAlertQuickFilter.All -> rows
+        MapAlertQuickFilter.NearMe -> {
+            if (userLat == null || userLon == null) rows
+            else rows.filter { v ->
+                val vLat = v.latitude
+                val vLon = v.longitude
+                if (vLat == null || vLon == null) false
+                else distanceKm(userLat, userLon, vLat, vLon) <= NearMeRadiusKm
+            }
+        }
+        MapAlertQuickFilter.Last24h -> {
+            val cutoff = System.currentTimeMillis() - OneDayMillis
+            rows.filter { (it.epochMillisOrNull() ?: 0L) >= cutoff }
+        }
+        MapAlertQuickFilter.Highest ->
+            rows.sortedByDescending {
+                severityFromAlertType(it.type, it.status).severityWeight()
+            }
+    }
 
 @Composable
 internal fun DangerZoneShortcutCard(
@@ -196,89 +263,158 @@ internal fun MapDashboardSheetContent(
     onViktimClick: (ViktimMapRow) -> Unit,
 ) {
     val latestZoneName = filteredZones.firstOrNull()?.name
-    val subtitle = if (!latestZoneName.isNullOrBlank()) {
+    val shortcutSubtitle = if (!latestZoneName.isNullOrBlank()) {
         stringResource(R.string.map_danger_zone_latest, latestZoneName)
     } else {
         stringResource(R.string.map_danger_zone_no_latest)
     }
-    val primary = MaterialTheme.colorScheme.primary
-    val onPrimary = MaterialTheme.colorScheme.onPrimary
 
-    val viktimRows = filteredViktims.take(7)
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        item {
-            Column(Modifier.padding(bottom = 12.dp)) {
-                DangerZoneShortcutCard(subtitle = subtitle, onClick = onNavigateToZones)
-            }
+    var quickFilter by remember { mutableStateOf(MapAlertQuickFilter.All) }
+    val visibleAlerts =
+        remember(filteredViktims, quickFilter, session.latitude, session.longitude) {
+            applyAlertQuickFilter(
+                rows = filteredViktims,
+                filter = quickFilter,
+                userLat = session.latitude,
+                userLon = session.longitude,
+            )
         }
-        item {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(R.string.map_nearby_alerts),
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(primary),
-                    contentAlignment = Alignment.Center,
-                ) {
+    val severityCounts = remember(filteredViktims) {
+        filteredViktims
+            .groupingBy { severityFromAlertType(it.type, it.status) }
+            .eachCount()
+    }
+
+    val quickFilterItems =
+        listOf(
+            FilterPillItem(
+                key = MapAlertQuickFilter.All.name,
+                label = stringResource(R.string.alerts_filter_all),
+                count = filteredViktims.size,
+            ),
+            FilterPillItem(
+                key = MapAlertQuickFilter.NearMe.name,
+                label = stringResource(R.string.alerts_filter_near_me),
+            ),
+            FilterPillItem(
+                key = MapAlertQuickFilter.Last24h.name,
+                label = stringResource(R.string.alerts_filter_last_24h),
+            ),
+            FilterPillItem(
+                key = MapAlertQuickFilter.Highest.name,
+                label = stringResource(R.string.alerts_filter_highest),
+            ),
+        )
+
+    Column(Modifier.fillMaxWidth()) {
+        Column(
+            modifier =
+                Modifier.padding(
+                    start = VEyeSpacing.md,
+                    end = VEyeSpacing.md,
+                    top = VEyeSpacing.xs,
+                ),
+        ) {
+            DangerZoneShortcutCard(
+                subtitle = shortcutSubtitle,
+                onClick = onNavigateToZones,
+            )
+        }
+
+        ScreenHeader(
+            title = stringResource(R.string.map_nearby_alerts),
+            subtitle = stringResource(R.string.alerts_subtitle_simple, filteredViktims.size),
+            applyStatusBarPadding = false,
+        )
+
+        StatTileRow(
+            items =
+                listOf(
+                    StatTileEntry(
+                        kind = SeverityKind.Kidnapping,
+                        count = severityCounts[SeverityKind.Kidnapping] ?: 0,
+                    ),
+                    StatTileEntry(
+                        kind = SeverityKind.Missing,
+                        count = severityCounts[SeverityKind.Missing] ?: 0,
+                    ),
+                    StatTileEntry(
+                        kind = SeverityKind.Released,
+                        count = severityCounts[SeverityKind.Released] ?: 0,
+                    ),
+                ),
+            modifier =
+                Modifier.padding(
+                    start = VEyeSpacing.md,
+                    end = VEyeSpacing.md,
+                    top = VEyeSpacing.xs,
+                    bottom = VEyeSpacing.sm,
+                ),
+        )
+
+        FilterPillRow(
+            items = quickFilterItems,
+            selectedKey = quickFilter.name,
+            onSelect = { key -> quickFilter = MapAlertQuickFilter.valueOf(key) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = VEyeSpacing.sm),
+        )
+
+        LazyColumn(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 520.dp),
+            contentPadding =
+                PaddingValues(
+                    start = VEyeSpacing.md,
+                    end = VEyeSpacing.md,
+                    bottom = VEyeSpacing.md,
+                ),
+        ) {
+            when {
+                viktimLoading && filteredViktims.isEmpty() -> item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                !viktimLoading && filteredViktims.isEmpty() -> item {
                     Text(
-                        text = "${filteredViktims.size}",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        color = onPrimary,
+                        text = stringResource(R.string.map_no_alerts_nearby),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                }
+                visibleAlerts.isEmpty() -> item {
+                    Text(
+                        text = stringResource(R.string.map_no_alerts_nearby),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp),
                     )
                 }
             }
-        }
-        item {
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        }
-        when {
-            viktimLoading && filteredViktims.isEmpty() -> item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            !viktimLoading && filteredViktims.isEmpty() -> item {
-                Text(
-                    text = stringResource(R.string.map_no_alerts_nearby),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 8.dp),
-                )
-            }
-        }
-        items(
-            count = viktimRows.size,
-            key = { viktimRows[it].id },
-        ) { index ->
-            val row = viktimRows[index]
-            Column(Modifier.fillMaxWidth()) {
-                MapSheetViktimRow(
-                    row = row,
-                    session = session,
-                    onClick = { onViktimClick(row) },
-                )
-                if (index < viktimRows.lastIndex) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            items(
+                count = visibleAlerts.size,
+                key = { visibleAlerts[it].id },
+            ) { index ->
+                val row = visibleAlerts[index]
+                Column(Modifier.fillMaxWidth()) {
+                    MapSheetViktimRow(
+                        row = row,
+                        session = session,
+                        onClick = { onViktimClick(row) },
+                    )
+                    if (index < visibleAlerts.lastIndex) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
                 }
             }
         }
