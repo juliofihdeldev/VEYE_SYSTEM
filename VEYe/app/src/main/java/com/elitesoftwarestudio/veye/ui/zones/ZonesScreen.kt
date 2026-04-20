@@ -303,15 +303,6 @@ fun ZonesScreen(
                         uiSettings = MapUiSettings(zoomControlsEnabled = false, compassEnabled = true),
                     ) {
                         MapHeatmapOverlay(enabled = showHeatmap, points = heatPoints)
-                        if (userLatLng != null) {
-                            Circle(
-                                center = userLatLng,
-                                radius = radiusMeters,
-                                strokeWidth = 2f,
-                                strokeColor = Color(0xFFE1306C),
-                                fillColor = Color(0x33E1306C),
-                            )
-                        }
                         dangerBearingLine?.let { line ->
                             Polyline(
                                 points = listOf(line.from, line.to),
