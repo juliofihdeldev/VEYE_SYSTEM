@@ -84,7 +84,7 @@ pnpm dev:dashboard
 pnpm --filter veye-dashboard dev
 ```
 
-Opens the Vite dev server (see `VEyeDashBoard/package.json`). **Supabase (Phase B):** copy `VEyeDashBoard/.env.example` to **`VEyeDashBoard/.env`** (same folder as `vite.config.ts` — not only the repo root). Set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_PROCESS_ALERT_SECRET` (must match Edge `PROCESS_ALERT_SECRET` when set). Deploy Edge `dashboard-mutate` for admin inserts/deletes/zone updates. **Auth:** dashboard sign-in is **Supabase Auth** (email + password); create users in the Supabase dashboard (or invite) and add `/auth/reset` to allowed redirect URLs for password reset emails.
+Opens the Vite dev server (see `VEyeDashBoard/package.json`). **Supabase (Phase B):** copy `VEyeDashBoard/.env.example` to **`VEyeDashBoard/.env`** (same folder as `vite.config.ts` — not only the repo root). Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Deploy Edge `dashboard-mutate` for admin inserts/deletes/zone updates. Admin/moderator Edge Functions authenticate via the caller's Supabase session + a row in `public.user_roles` (no shared secret baked into the bundle). **Auth:** dashboard sign-in is **Supabase Auth** (email + password); create users in the Supabase dashboard (or invite) and add `/auth/reset` to allowed redirect URLs for password reset emails.
 
 ### Public web app (`veyeWebApp`)
 
@@ -104,7 +104,7 @@ pnpm --filter veye-web-app deploy
 
 ### Supabase Edge (smoke + cron)
 
-- **Smoke (local):** `chmod +x scripts/smoke-edge.sh` then set `SUPABASE_FUNCTIONS_BASE`, `SUPABASE_ANON_KEY`, optional `PROCESS_ALERT_SECRET` and run `./scripts/smoke-edge.sh`.
+- **Smoke (local):** `chmod +x scripts/smoke-edge.sh` then set `SUPABASE_FUNCTIONS_BASE`, `SUPABASE_ANON_KEY` (optional `SUPABASE_SERVICE_ROLE_KEY` to also hit admin endpoints like `telegram-monitor`) and run `./scripts/smoke-edge.sh`.
 - **Smoke / cron (GitHub):** see [SCHEDULE_TELEGRAM.md](./SCHEDULE_TELEGRAM.md) and `.github/workflows/*.yml`.
 
 Production build:
@@ -144,9 +144,9 @@ Not part of pnpm. Open `VEYe/` in **Android Studio** and sync Gradle, then Run o
 ```properties
 SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_ANON_KEY=
-# Optional; if Edge `PROCESS_ALERT_SECRET` is set, match it here so `process-global-alert` receives x-veye-secret from the app.
-PROCESS_ALERT_SECRET=
 ```
+
+App-facing Edge Functions (`process-global-alert`, `process-demanti`, `process-user-merge`, `get-user-moderation`, `process-veye-comment`) authenticate via the caller's Supabase session alone — no shared secret baked into the APK.
 
 Leave `SUPABASE_ANON_KEY` empty to use the bundled **local demo** anon, or paste `ANON_KEY` from `supabase status -o env` if your CLI uses a different key format.
 

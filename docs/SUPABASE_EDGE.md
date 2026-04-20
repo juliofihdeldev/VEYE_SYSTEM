@@ -76,7 +76,7 @@ Use project-linked CLI and CI secrets for production.
 
 ## Secrets
 
-Store API keys in Supabase **Function secrets** or **Vault**, not in client apps. Mirror the existing `PROCESS_ALERT_SECRET` / bot token patterns from Firebase config.
+Store API keys (Telegram bot token, Gemini, geocoding, FCM service account) in Supabase **Function secrets** or **Vault**, never in client apps. Dashboard and admin Edge Functions authenticate via the caller's Supabase session + `public.user_roles` — no shared secret baked into the browser bundle or mobile APK.
 
 ## Database schema
 

@@ -1,19 +1,21 @@
 import { serviceClient } from "../_shared/supabase.ts";
-import { corsPreflightResponse, jsonResponse, verifySecret } from "../_shared/http.ts";
+import { corsPreflightResponse, jsonResponse } from "../_shared/http.ts";
 
 const MAX_COMMENT_BODY = 12_000;
 
-/** App comment writes for Firebase-era clients — service role bypasses RLS (`verifySecret` when `PROCESS_ALERT_SECRET` set). */
+/**
+ * App comment writes — service role bypasses RLS.
+ *
+ * Auth model: invoked by anonymous mobile users; `verify_jwt` at the Supabase
+ * Functions gateway enforces a valid session, and we require `userId` in the
+ * body (the caller's uid, recorded on each comment row).
+ */
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return corsPreflightResponse();
   }
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405);
-  }
-
-  if (!(await verifySecret(req))) {
-    return jsonResponse({ error: "Unauthorized" }, 401);
   }
 
   let body: Record<string, unknown>;

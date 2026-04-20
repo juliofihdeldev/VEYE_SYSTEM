@@ -1,7 +1,6 @@
 package com.elitesoftwarestudio.veye.push
 
 import android.util.Log
-import com.elitesoftwarestudio.veye.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessaging
 import io.github.jan.supabase.SupabaseClient
@@ -53,10 +52,6 @@ class FcmDeviceRepository @Inject constructor(
                 }
                 val response = supabase.functions.invoke("process-user-merge") {
                     contentType(ContentType.Application.Json)
-                    val secret = BuildConfig.PROCESS_ALERT_SECRET
-                    if (secret.isNotBlank()) {
-                        headers.append("x-veye-secret", secret)
-                    }
                     setBody(body.toString())
                 }
                 if (!response.status.isSuccess()) {

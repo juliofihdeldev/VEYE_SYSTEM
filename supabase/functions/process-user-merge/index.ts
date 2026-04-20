@@ -1,5 +1,5 @@
 import { serviceClient } from "../_shared/supabase.ts";
-import { corsPreflightResponse, jsonResponse, verifySecret } from "../_shared/http.ts";
+import { corsPreflightResponse, jsonResponse } from "../_shared/http.ts";
 
 type UserRow = {
   radius_km: number | null;
@@ -9,18 +9,19 @@ type UserRow = {
   longitude: number | null;
 };
 
-/** App merges on `users` (radius prefs, FCM device token) — same trust model as `process-demanti` (`verifySecret` when secret set). */
+/**
+ * App merges on `users` (radius prefs, FCM device token).
+ *
+ * Auth model: invoked by anonymous mobile users. `verify_jwt` at the Supabase
+ * Functions gateway enforces that the caller holds a valid Supabase session;
+ * the `userId` in the body must match the caller's uid (see note at the end).
+ */
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return corsPreflightResponse();
   }
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405);
-  }
-
-  const secretOk = await verifySecret(req);
-  if (!secretOk) {
-    return jsonResponse({ error: "Unauthorized" }, 401);
   }
 
   let body: Record<string, unknown>;

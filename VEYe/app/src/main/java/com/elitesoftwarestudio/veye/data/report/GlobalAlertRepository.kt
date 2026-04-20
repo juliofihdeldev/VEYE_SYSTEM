@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import com.elitesoftwarestudio.veye.BuildConfig
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.SupabaseClient
@@ -95,10 +94,6 @@ class GlobalAlertRepository @Inject constructor(
                 val response =
                     supabase.functions.invoke("process-global-alert") {
                         contentType(ContentType.Application.Json)
-                        val secret = BuildConfig.PROCESS_ALERT_SECRET
-                        if (secret.isNotBlank()) {
-                            headers.append("x-veye-secret", secret)
-                        }
                         setBody(json.toString())
                     }
 

@@ -1,5 +1,6 @@
 import { serviceClient } from "../_shared/supabase.ts";
-import { corsHeaders, jsonResponse, verifySecret } from "../_shared/http.ts";
+import { corsHeaders, jsonResponse } from "../_shared/http.ts";
+import { requireDashboardRole } from "../_shared/auth.ts";
 
 type Table = "zone_danger" | "viktim" | "news" | "kidnaping_alert";
 
@@ -129,8 +130,17 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  const ok = await verifySecret(req);
-  if (!ok) return jsonResponse({ error: "Unauthorized" }, 401);
+  const caller = await requireDashboardRole(req, ["admin", "moderator"]);
+  if (!caller) {
+    return jsonResponse(
+      {
+        error: "Unauthorized",
+        code: "DASHBOARD_MUTATE_FORBIDDEN",
+        hint: "Sign in to the dashboard with an admin or moderator account.",
+      },
+      401,
+    );
+  }
 
   let body: Record<string, unknown>;
   try {
@@ -146,6 +156,8 @@ Deno.serve(async (req: Request) => {
   if (!action || !table || !TABLES.has(table)) {
     return jsonResponse({ error: "Invalid action or table" }, 400);
   }
+
+  console.log("dashboard-mutate", action, table, "by", caller.email, caller.role);
 
   const supabase = serviceClient();
   const now = new Date().toISOString();

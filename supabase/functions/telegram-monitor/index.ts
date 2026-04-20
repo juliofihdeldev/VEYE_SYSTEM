@@ -1,5 +1,6 @@
 import { serviceClient } from "../_shared/supabase.ts";
-import { corsHeaders, jsonResponse, verifySecret } from "../_shared/http.ts";
+import { corsHeaders, jsonResponse } from "../_shared/http.ts";
+import { requireDashboardRole } from "../_shared/auth.ts";
 import { runTelegramMonitor } from "../_shared/telegram_monitor.ts";
 
 Deno.serve(async (req: Request) => {
@@ -7,8 +8,18 @@ Deno.serve(async (req: Request) => {
 		return new Response(null, { status: 204, headers: corsHeaders });
 	}
 
-	const ok = await verifySecret(req);
-	if (!ok) return jsonResponse({ error: "Unauthorized" }, 401);
+	const caller = await requireDashboardRole(req, ["admin", "moderator"]);
+	if (!caller) {
+		return jsonResponse(
+			{
+				error: "Unauthorized",
+				code: "TELEGRAM_MONITOR_FORBIDDEN",
+				hint: "Sign in to the dashboard with an admin or moderator account.",
+			},
+			401,
+		);
+	}
+	console.log("telegram-monitor invoked by", caller.email, caller.role);
 
 	const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
 	if (!botToken) {
